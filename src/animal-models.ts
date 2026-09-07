@@ -71,6 +71,7 @@ export function animalClips(clips:T.AnimationClip[]){
  const idle=find([/^idle$/i,/idle/i,/stand/i])??clips[0];
  const walk=find([/^walk$/i,/walk/i,/trot/i,/locomotion/i])??idle;
  const run=find([/^run$/i,/run/i,/gallop/i,/sprint/i])??walk;
- const attack=find([/^attack$/i,/attack/i,/bite/i,/maul/i]);
- return {idle,walk,run,attack};
+ const attack=find([/^attack$/i,/attack/i,/bite/i,/maul/i,/strike/i]);
+ const fly=find([/^fly$/i,/fly/i,/flight/i,/soar/i,/flap/i])??run??walk??idle;
+ return {idle,walk,run,attack,fly};
 }
