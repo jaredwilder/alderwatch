@@ -6,6 +6,7 @@ import {Soundscape} from './audio';
 import {seedExpedition} from './expedition';
 import {makePlayer,type EnemyState,type LocalAuthority,type PlayerState} from './state';
 import {beginAction,combatState,faces,horizontalDistance,resolveStrike,seedEnemies,WEAPONS,attackProfile,type StrikeResult} from './combat-rules';
+import {animalAlive,resolveWildlifeStrike} from './wildlife-rules';
 
 class Intent {
  keys=new Set<string>();secondary=false;pressed=new Set<string>();
@@ -23,7 +24,6 @@ export class Combat {
    const state:PlayerState={...makePlayer('Warden'),...enemy,hood:true,hair:'#27201c',skin:'#bb947b'};
    const actor=new Character(assets,physics,state,root),input=new Intent();actor.getTick=()=>authority.state.tick;actor.moveSpeed=.78;
    actor.onActionRequest=action=>{const out=beginAction(enemy,authority.state.tick,action);this.copyToActor(enemy,actor);if(out.ok&&(action==='attack'||action==='heavy'))this.sound.combat('swing');return out.ok;};
-   // Reuse the authored adult body and socket, with a muted oxblood/charcoal outfit identity.
    actor.model.traverse(o=>{if(o instanceof T.Mesh){const mats=Array.isArray(o.material)?o.material:[o.material];for(const mat of mats){const m=mat as T.MeshStandardMaterial;if(m.name.includes('Ranger')){m.color.set(enemy.role==='captain'?'#b6ab89':'#f3ebe6');m.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\nif(diffuseColor.g>diffuseColor.r*1.12 && diffuseColor.g>diffuseColor.b*1.15){float clothL=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));diffuseColor.rgb=vec3(.52,.145,.085)*clothL*2.2;}');};m.customProgramCacheKey=()=>"outcast-oxblood-cloth-v1";}}}});
    actor.onImpact=()=>{const target=authority.state.players[enemy.targetId??''];this.feedback(resolveStrike(authority.state,enemy,target,target?authority.lineOfSight!(enemy,target):true),enemy.id);};
    this.raiders.set(enemy.id,{state:enemy,actor,input});this.copyToActor(enemy,actor);actor.syncCombatPose();
@@ -33,7 +33,12 @@ export class Combat {
  private copyToActor(e:EnemyState,a:Character){a.state.health=e.health;a.state.stamina=e.stamina;a.state.combat=e.combat;}
  nearest(p=this.player.state,range=12){return Object.values(this.authority.state.enemies).filter(e=>e.health>0&&horizontalDistance(e.position,p.position)<range).sort((a,b)=>horizontalDistance(a.position,p.position)-horizontalDistance(b.position,p.position))[0];}
  target(range?:number){const p=this.player.state,weapon=p.equipped?WEAPONS[p.equipped]:undefined;return Object.values(this.authority.state.enemies).filter(e=>e.health>0&&horizontalDistance(e.position,p.position)<(range??(weapon?.reach??2)+.25)&&faces(p,e,0)&&this.authority.lineOfSight?.(p,e)!==false).sort((a,b)=>horizontalDistance(a.position,p.position)-horizontalDistance(b.position,p.position))[0];}
- playerStrike(){const e=this.target();const out=this.authority.dispatch({type:'strike',playerId:this.player.state.id,enemyId:e?.id}) as StrikeResult;this.feedback(out,this.player.state.id);return out;}
+ animalTarget(range?:number){const p=this.player.state,weapon=p.equipped?WEAPONS[p.equipped]:undefined;return Object.values(this.authority.state.animals??{}).filter(a=>a.kind!=='crow'&&animalAlive(a)&&horizontalDistance(a.position,p.position)<(range??(weapon?.reach??2)+.4)&&faces(p,a as never,-.15)).sort((a,b)=>horizontalDistance(a.position,p.position)-horizontalDistance(b.position,p.position))[0];}
+ playerStrike(){
+  const e=this.target();if(e){const out=this.authority.dispatch({type:'strike',playerId:this.player.state.id,enemyId:e.id}) as StrikeResult;this.feedback(out,this.player.state.id);return out;}
+  const animal=this.animalTarget();if(animal){const out=resolveWildlifeStrike(this.authority.state,this.player.state,animal);this.events.push({tick:this.authority.state.tick,attackerId:this.player.state.id,...out});if(out.outcome==='hit'||out.outcome==='killed'){this.sound.combat('hit');this.shake=out.outcome==='killed'?.08:.055;const visual=this.root.getObjectByName(animal.id);if(visual)this.burst(visual.position.clone().add(new T.Vector3(0,.7,0)),false);this.onNotice(out.message);}return out;}
+  const out=this.authority.dispatch({type:'strike',playerId:this.player.state.id}) as StrikeResult;this.feedback(out,this.player.state.id);return out;
+ }
  feedback(out:StrikeResult,attackerId:string){
   this.events.push({tick:this.authority.state.tick,attackerId,...out});if(this.events.length>30)this.events.shift();
   if(!out.outcome||out.outcome==='miss')return;
@@ -73,7 +78,6 @@ export class Combat {
    else {
     e.targetId=target.id;
     const desired=Math.atan2(target.position[0]-e.position[0],target.position[2]-e.position[2]);
-    // Nearby allies reserve an attack beat so two blades cannot chain-stagger indefinitely.
     const allyAttacking=Object.values(w.enemies).some(other=>other.id!==e.id&&other.health>0&&other.targetId===target.id&&other.combat?.weapon&&other.combat.started>w.tick-100);
     if(distance<1.8&&w.tick>=e.decisionAt&&!allyAttacking){actor.root.rotation.y=desired;e.yaw=desired;const heavy=e.role==='captain'&&Math.floor(w.tick/180)%2===0;actor.startAttack(heavy);e.phase='windup';e.decisionAt=w.tick+(heavy?155:e.role==='scout'?100:118);}
     else if(distance>1.75){e.phase='approach';destination=new T.Vector3(...target.position);}
