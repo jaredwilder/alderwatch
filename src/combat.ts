@@ -17,7 +17,7 @@ interface Raider {state:EnemyState;actor:Character;input:Intent}
 export class Combat {
  raiders=new Map<string,Raider>();shake=0;onNotice=(text:string)=>{};events:({tick:number;attackerId:string}&StrikeResult)[]=[];
  private sparks:{mesh:T.Points;velocity:T.Vector3[];life:number}[]=[];
- private freezes=new Map<Character,number>();private shakePeak=0;private shakeTime=0;private shakeDuration=0;
+ private freezes=new Map<Character,{left:number;action?:T.AnimationAction}>();private shakePeak=0;private shakeTime=0;private shakeDuration=0;
  constructor(private root:T.Group,private assets:Assets,private physics:RAPIER.World,private authority:LocalAuthority,private player:Character,private sound:Soundscape){
   seedEnemies(authority.state);seedExpedition(authority.state);
   authority.lineOfSight=(a,b)=>{const actor=a.id===player.state.id?player:this.raiders.get(a.id)?.actor,target=b.id===player.state.id?player:this.raiders.get(b.id)?.actor;if(!actor||!target)return false;const from=new T.Vector3(...a.position).add(new T.Vector3(0,1.1,0)),to=new T.Vector3(...b.position).add(new T.Vector3(0,1.1,0)),delta=to.sub(from),length=delta.length();const hit=physics.castRay(new RAPIER.Ray(from,delta.normalize()),length,true,undefined,undefined,actor.collider,actor.body);return !hit||hit.collider.handle===target.collider.handle;};
@@ -32,7 +32,7 @@ export class Combat {
   }
  }
  private copyToActor(e:EnemyState,a:Character){a.state.health=e.health;a.state.stamina=e.stamina;a.state.combat=e.combat;}
- private freeze(actor:Character|undefined,seconds:number){if(!actor||seconds<=0)return;this.freezes.set(actor,Math.max(this.freezes.get(actor)??0,seconds));actor.mixer.timeScale=0;}
+ private freeze(actor:Character|undefined,seconds:number){if(!actor||seconds<=0)return;const prior=this.freezes.get(actor),action=actor.actions.get(actor.current);if(prior?.action&&prior.action!==action)prior.action.paused=false;if(action)action.paused=true;this.freezes.set(actor,{left:Math.max(prior?.left??0,seconds),action});}
  private impulse(peak:number,duration:number){this.shakePeak=Math.max(this.shakePeak,peak);this.shakeDuration=Math.max(this.shakeDuration,duration);this.shakeTime=Math.max(this.shakeTime,duration);this.shake=this.shakePeak;}
  nearest(p=this.player.state,range=12){return Object.values(this.authority.state.enemies).filter(e=>e.health>0&&horizontalDistance(e.position,p.position)<range).sort((a,b)=>horizontalDistance(a.position,p.position)-horizontalDistance(b.position,p.position))[0];}
  target(range?:number){const p=this.player.state,weapon=p.equipped?WEAPONS[p.equipped]:undefined;return Object.values(this.authority.state.enemies).filter(e=>e.health>0&&horizontalDistance(e.position,p.position)<(range??(weapon?.reach??2)+.25)&&faces(p,e,0)&&this.authority.lineOfSight?.(p,e)!==false).sort((a,b)=>horizontalDistance(a.position,p.position)-horizontalDistance(b.position,p.position))[0];}
@@ -100,7 +100,7 @@ export class Combat {
  }
  postStep(dt:number){
   for(const {state:e,actor} of this.raiders.values()){actor.postStep(dt);e.position=[...actor.state.position];e.yaw=actor.state.yaw;e.stamina=actor.state.stamina;e.combat=actor.state.combat;}
-  for(const [actor,left] of this.freezes){const next=left-dt;if(next<=0){actor.mixer.timeScale=1;this.freezes.delete(actor);}else this.freezes.set(actor,next);}
+  for(const [actor,freeze] of this.freezes){const next=freeze.left-dt;if(next<=0){if(freeze.action)freeze.action.paused=false;this.freezes.delete(actor);}else freeze.left=next;}
   if(this.shakeTime>0){this.shakeTime=Math.max(0,this.shakeTime-dt);const t=this.shakeDuration?this.shakeTime/this.shakeDuration:0;this.shake=this.shakePeak*t*t;if(this.shakeTime===0){this.shake=0;this.shakePeak=0;this.shakeDuration=0;}}else this.shake=0;
   for(let i=this.sparks.length-1;i>=0;i--){const s=this.sparks[i];s.life-=dt;const attr=s.mesh.geometry.getAttribute('position') as T.BufferAttribute;for(let j=0;j<s.velocity.length;j++){s.velocity[j].y-=dt*4.5;attr.setXYZ(j,attr.getX(j)+s.velocity[j].x*dt,attr.getY(j)+s.velocity[j].y*dt,attr.getZ(j)+s.velocity[j].z*dt);}attr.needsUpdate=true;(s.mesh.material as T.PointsMaterial).opacity=Math.max(0,s.life/.3);if(s.life<=0){s.mesh.removeFromParent();s.mesh.geometry.dispose();(s.mesh.material as T.Material).dispose();this.sparks.splice(i,1);}}
  }
