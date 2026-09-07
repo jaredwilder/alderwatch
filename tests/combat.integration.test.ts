@@ -66,6 +66,19 @@ test('moving tools retain walking speed and held attacks chain through recovery'
  for(let i=0;i<160;i++){f.actor.preStep(1/60,held,Math.PI,true);f.physics.step();f.actor.postStep(1/60);f.authority.state.tick++;if(i>15)minimum=Math.min(minimum,f.actor.velocity.length());}
  assert.ok(minimum>3,'Moving axe still throttled below walking speed: '+minimum);assert.ok(f.p.position[2]>7.5);assert.ok(impacts>=2,'Held attack did not chain');f.physics.free();
 });
+
+test('locomotion gait and moving-attack handoffs preserve lower-body cycle phase',async()=>{
+ const f=await fixture(),phase=(a:T.AnimationAction)=>((a.time/a.getClip().duration)%1+1)%1,run=f.actor.actions.get('run')!,sprint=f.actor.actions.get('sprint')!,stride=(f.actor as any).strideAction as T.AnimationAction;
+ f.actor.play('run');run.time=run.getClip().duration*.63;f.actor.play('sprint');assert.ok(Math.abs(phase(sprint)-.63)<1e-6,'run to sprint restarted the gait cycle');
+ sprint.time=sprint.getClip().duration*.41;(f.actor as any).swingLocomotion=true;f.actor.startAttack();assert.equal(f.actor.current,'attack_moving');assert.ok(Math.abs(phase(stride)-.41)<1e-6,'moving attack legs started on an unrelated phase');
+ stride.time=stride.getClip().duration*.77;f.actor.play('run');assert.ok(Math.abs(phase(run)-.77)<1e-6,'attack recovery restarted locomotion at frame zero');f.physics.free();
+});
+
+test('shipping locomotion root stays in place for the kinematic controller',async()=>{
+ const g=await model('survivor'),root=g.scene.getObjectByName('root')!;assert.ok(root);
+ for(const name of ['walk','run','sprint']){const clip=g.animations.find(c=>c.name===name)!,mixer=new T.AnimationMixer(g.scene),action=mixer.clipAction(clip).play();action.setLoop(T.LoopOnce,1);const first=new T.Vector3();mixer.setTime(0);g.scene.updateMatrixWorld(true);root.getWorldPosition(first);for(let i=1;i<=12;i++){mixer.setTime(clip.duration*i/12);g.scene.updateMatrixWorld(true);const p=root.getWorldPosition(new T.Vector3());assert.ok(Math.abs(p.x-first.x)<1e-5&&Math.abs(p.z-first.z)<1e-5,`${name} contains horizontal root motion`);}mixer.stopAllAction();mixer.uncacheRoot(g.scene);}
+});
+
 test('windup tracking is not overwritten by camera direction while moving',async()=>{
  const f=await fixture();f.input.keys.add('KeyW');f.actor.onAttackStart=()=>{f.actor.root.rotation.y=.4;};f.actor.onWindupAim=()=>{f.actor.root.rotation.y=.4;};f.actor.startAttack();for(let i=0;i<15;i++)f.step();assert.ok(Math.abs(f.actor.root.rotation.y-.4)<.01);f.physics.free();
 });
