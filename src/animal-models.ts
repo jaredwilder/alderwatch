@@ -8,7 +8,7 @@ export type ExtendedAnimalKind='goat'|'sheep'|'deer'|'bear';
 const SPECS:Record<ExtendedAnimalKind,{url:string;height:number;yaw:number}>={
  goat:{url:'/assets/animals/goat.glb',height:.9,yaw:Math.PI},
  sheep:{url:'/assets/animals/sheep.glb',height:.95,yaw:Math.PI},
- deer:{url:'/assets/animals/deer.glb',height:1.75,yaw:Math.PI},
+ deer:{url:'/assets/animals/deer.glb',height:1.75,yaw:0},
  bear:{url:'/assets/animals/bear.glb',height:1.65,yaw:Math.PI},
 };
 
