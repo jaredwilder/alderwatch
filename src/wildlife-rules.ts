@@ -10,7 +10,7 @@ const LOOT:Record<AnimalKind,Partial<Record<ItemId,number>>>={
 export function ensureAnimalVitals(animal:AnimalState){
  animal.maxHealth??=VITALS[animal.kind];
  animal.health??=animal.maxHealth;
- animal.dead??=animal.health<=0;
+ animal.dead??=false;
  return animal;
 }
 export function animalAlive(animal:AnimalState){return !ensureAnimalVitals(animal).dead&&animal.health!>0;}
@@ -30,7 +30,7 @@ export function killAnimal(world:WorldState,animal:AnimalState,killer:'player'|'
 export function damageAnimal(world:WorldState,animal:AnimalState,damage:number,killer:'player'|'bear'){
  ensureAnimalVitals(animal);if(!animalAlive(animal))return {killed:false,damage:0};
  const dealt=Math.min(animal.health!,Math.max(1,Math.round(damage)));animal.health=Math.max(0,animal.health!-dealt);
- const killed=animal.health<=0&&killAnimal(world,animal,killer);return {killed,damage:dealt};
+ const killed=animal.health<=0?killAnimal(world,animal,killer):false;return {killed,damage:dealt};
 }
 
 export function resolveWildlifeStrike(world:WorldState,attacker:PlayerState,target:AnimalState|undefined):StrikeResult{
