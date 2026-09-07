@@ -1,8 +1,8 @@
 import type {ItemId,Vec3} from './state';
 
-export type AnimalKind='hare'|'crow'|'goat'|'sheep'|'deer'|'bear'|'bison'|'wolf';
+export type AnimalKind='hare'|'crow'|'goat'|'sheep'|'deer'|'bear'|'bison'|'wolf'|'eagle';
 export type AuthoredAnimalKind=Exclude<AnimalKind,'hare'|'crow'>;
-export type PredatorKind='bear'|'wolf';
+export type PredatorKind='bear'|'wolf'|'eagle';
 export type WildlifeKiller='player'|PredatorKind;
 
 export interface AnimalState {
@@ -30,6 +30,25 @@ export interface AnimalState {
  lastAttackerId?:string;
  aggroPlayerId?:string;
  aggroUntil?:number;
+ // Aerial ecology state is persisted because a reload should not magically refill a tired bird.
+ energy?:number;
+ airborne?:boolean;
+ carriedPreyId?:string;
+ carriedById?:string;
+ carryUntil?:number;
+}
+
+export interface AerialProfile {
+ maxEnergy:number;
+ takeoffEnergy:number;
+ cruiseHeight:number;
+ huntHeight:number;
+ flightDrainPerSecond:number;
+ carryDrainPerSecond:number;
+ groundRecoverPerSecond:number;
+ carrySeconds:number;
+ pickupPrey:readonly AnimalKind[];
+ killPrey:readonly AnimalKind[];
 }
 
 export interface WildlifeSpecies {
@@ -46,6 +65,7 @@ export interface WildlifeSpecies {
  wanderSpeed:number;
  escapeSpeed:number;
  turnRate:number;
+ aerial?:AerialProfile;
  predator?:{
   prey:readonly AnimalKind[];
   acquireRadius:number;
@@ -67,9 +87,12 @@ export const WILDLIFE_SPECIES:Record<AnimalKind,WildlifeSpecies>={
  goat:{authored:true,modelHeight:.9,aimHeight:.62,deathRoll:1.18,maxHealth:52,loot:{venison:2,hide:1},herd:true,grazes:false,fleeRadius:7.5,homeRadius:13,wanderSpeed:.62,escapeSpeed:3.6,turnRate:4.8},
  sheep:{authored:true,modelHeight:.95,aimHeight:.62,deathRoll:1.18,maxHealth:46,loot:{venison:2,hide:2},herd:true,grazes:false,fleeRadius:8,homeRadius:13,wanderSpeed:.56,escapeSpeed:3.5,turnRate:4.8},
  deer:{authored:true,modelHeight:1.75,aimHeight:.85,deathRoll:1.18,maxHealth:62,loot:{venison:4,hide:2},herd:true,grazes:true,fleeRadius:12,homeRadius:22,wanderSpeed:.82,escapeSpeed:5.6,turnRate:4.8},
- bear:{authored:true,modelHeight:1.65,aimHeight:1,deathRoll:.72,maxHealth:180,loot:{venison:6,hide:5},herd:false,grazes:false,fleeRadius:0,homeRadius:38,wanderSpeed:.72,escapeSpeed:1.8,turnRate:2.5,predator:{prey:['hare','goat','sheep','deer'],acquireRadius:23,chaseSpeed:4.1,attackReach:1.75,attackCooldown:72,preyDamage:24,playerAggroRadius:6.5,provokedRadius:34,playerDamage:26,blockedDamage:6,guardStaminaCost:20}},
+ bear:{authored:true,modelHeight:1.65,aimHeight:1,deathRoll:.72,maxHealth:180,loot:{venison:6,hide:5},herd:false,grazes:false,fleeRadius:0,homeRadius:38,wanderSpeed:.72,escapeSpeed:1.8,turnRate:2.5,predator:{prey:['hare','goat','sheep','deer','eagle'],acquireRadius:23,chaseSpeed:4.1,attackReach:1.75,attackCooldown:72,preyDamage:24,playerAggroRadius:6.5,provokedRadius:34,playerDamage:26,blockedDamage:6,guardStaminaCost:20}},
  bison:{authored:true,modelHeight:1.9,aimHeight:1.15,deathRoll:1.05,maxHealth:240,loot:{venison:8,hide:6},herd:true,grazes:true,fleeRadius:4.5,homeRadius:30,wanderSpeed:.52,escapeSpeed:4.8,turnRate:3.2},
- wolf:{authored:true,modelHeight:1.05,aimHeight:.58,deathRoll:1.08,maxHealth:74,loot:{venison:2,hide:1},herd:true,grazes:false,fleeRadius:0,homeRadius:34,wanderSpeed:.72,escapeSpeed:5.2,turnRate:5.4,predator:{prey:['bison'],acquireRadius:42,chaseSpeed:5.35,attackReach:1.55,attackCooldown:96,preyDamage:12,playerAggroRadius:4.5,provokedRadius:38,playerDamage:14,blockedDamage:4,guardStaminaCost:13}},
+ wolf:{authored:true,modelHeight:1.05,aimHeight:.58,deathRoll:1.08,maxHealth:74,loot:{venison:2,hide:1},herd:true,grazes:false,fleeRadius:0,homeRadius:34,wanderSpeed:.72,escapeSpeed:5.2,turnRate:5.4,predator:{prey:['bison','eagle'],acquireRadius:42,chaseSpeed:5.35,attackReach:1.55,attackCooldown:96,preyDamage:12,playerAggroRadius:4.5,provokedRadius:38,playerDamage:14,blockedDamage:4,guardStaminaCost:13}},
+ eagle:{authored:true,modelHeight:.95,aimHeight:.48,deathRoll:1.16,maxHealth:48,loot:{venison:1},herd:false,grazes:false,fleeRadius:0,homeRadius:58,wanderSpeed:1.05,escapeSpeed:2.8,turnRate:3.8,
+  aerial:{maxEnergy:100,takeoffEnergy:58,cruiseHeight:7.5,huntHeight:4.8,flightDrainPerSecond:.72,carryDrainPerSecond:2.55,groundRecoverPerSecond:.42,carrySeconds:8,pickupPrey:['hare','sheep'],killPrey:['crow']},
+  predator:{prey:['hare','sheep','crow'],acquireRadius:48,chaseSpeed:8.4,attackReach:1.75,attackCooldown:105,preyDamage:12,playerAggroRadius:0,provokedRadius:0,playerDamage:0,blockedDamage:0,guardStaminaCost:0}},
 };
 
 export const AUTHORED_ANIMAL_KINDS=(Object.keys(WILDLIFE_SPECIES) as AnimalKind[]).filter(kind=>WILDLIFE_SPECIES[kind].authored) as AuthoredAnimalKind[];
@@ -79,3 +102,4 @@ export const PREDATOR_SPECIES=new Set<AnimalKind>((Object.keys(WILDLIFE_SPECIES)
 
 export function species(kind:AnimalKind){return WILDLIFE_SPECIES[kind];}
 export function predatorCanHunt(predator:AnimalKind,prey:AnimalKind){return WILDLIFE_SPECIES[predator].predator?.prey.includes(prey)??false;}
+export function aerialProfile(kind:AnimalKind){return WILDLIFE_SPECIES[kind].aerial;}
