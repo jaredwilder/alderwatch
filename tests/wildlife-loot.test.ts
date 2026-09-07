@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {LocalAuthority,makePlayer,quantity} from '../src/state';
 import {seedNature} from '../src/nature';
 import {animalAlive,bearBite,corpseId,damageAnimal,ensureAnimalVitals} from '../src/wildlife-rules';
+import './wildlife-behavior.test';
 
 test('animals gain persistent health without resetting existing saves',()=>{
  const a=new LocalAuthority(),p=makePlayer('Warden');a.state.players[p.id]=p;seedNature(a.state);
