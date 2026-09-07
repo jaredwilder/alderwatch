@@ -2,17 +2,11 @@ import * as T from 'three';
 import {GLTFLoader,type GLTF} from 'three/addons/loaders/GLTFLoader.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {AUTHORED_ANIMAL_KINDS,species,type AuthoredAnimalKind} from './wildlife-species';
 
-export type ExtendedAnimalKind='goat'|'sheep'|'deer'|'bear'|'bison';
+// Compatibility alias while callers migrate to the clearer authored-animal name.
+export type ExtendedAnimalKind=AuthoredAnimalKind;
 export type AuthoredForwardAxis='+x'|'-x'|'+z'|'-z'|'unknown';
-
-const SPECS:Record<ExtendedAnimalKind,{url:string;height:number}>={
- goat:{url:'/assets/animals/goat.glb',height:.9},
- sheep:{url:'/assets/animals/sheep.glb',height:.95},
- deer:{url:'/assets/animals/deer.glb',height:1.75},
- bear:{url:'/assets/animals/bear.glb',height:1.65},
- bison:{url:'/assets/animals/bison.glb',height:1.9},
-};
 
 export interface AnimalForwardCalibration {axis:AuthoredForwardAxis;correctionYaw:number;proven:boolean}
 export interface AnimalInstance {
@@ -36,11 +30,7 @@ function namedPoints(root:T.Object3D,terms:string[]){
  return points;
 }
 
-/**
- * Proves model-forward from the authored rig itself. Quadruped rigs put their semantic
- * head/muzzle anchor forward of hips/spine; that horizontal vector is the authored
- * direction of travel. The returned yaw maps that measured vector onto Alderwatch +Z.
- */
+/** Prove model-forward from authored rig anatomy instead of maintaining species yaw guesses. */
 export function inferAnimalForward(root:T.Object3D):AnimalForwardCalibration{
  const heads=namedPoints(root,HEAD_TERMS),bodies=namedPoints(root,BODY_TERMS);
  let best:{dx:number;dz:number;score:number}|undefined;
@@ -58,17 +48,18 @@ export function inferAnimalForward(root:T.Object3D):AnimalForwardCalibration{
 
 export async function loadExtendedAnimalLibrary(){
  const loader=new GLTFLoader();loader.setMeshoptDecoder(MeshoptDecoder);
- const entries=await Promise.all((Object.keys(SPECS) as ExtendedAnimalKind[]).map(async kind=>[kind,await loader.loadAsync(SPECS[kind].url)] as const));
- return Object.fromEntries(entries) as Record<ExtendedAnimalKind,GLTF>;
+ const entries=await Promise.all(AUTHORED_ANIMAL_KINDS.map(async kind=>[kind,await loader.loadAsync(`/assets/animals/${kind}.glb`)] as const));
+ return Object.fromEntries(entries) as Record<AuthoredAnimalKind,GLTF>;
 }
 
-export function instantiateAnimal(kind:ExtendedAnimalKind,gltf:GLTF):AnimalInstance{
+export function instantiateAnimal(kind:AuthoredAnimalKind,gltf:GLTF):AnimalInstance{
  const root=clone(gltf.scene),forward=inferAnimalForward(root);
  if(!forward.proven)console.warn(`Could not prove authored forward axis for ${kind}; leaving model yaw uncorrected rather than guessing.`);
  root.rotation.y+=forward.correctionYaw;
  root.updateMatrixWorld(true);
  const box=new T.Box3().setFromObject(root),size=box.getSize(new T.Vector3());
- const scale=SPECS[kind].height/Math.max(size.y,.01);
+ const targetHeight=species(kind).modelHeight??1;
+ const scale=targetHeight/Math.max(size.y,.01);
  root.scale.multiplyScalar(scale);root.updateMatrixWorld(true);
  const grounded=new T.Box3().setFromObject(root);root.position.y-=grounded.min.y;
  root.traverse(o=>{if(o instanceof T.Mesh){o.castShadow=o.receiveShadow=true;o.frustumCulled=false;}});
@@ -80,5 +71,6 @@ export function animalClips(clips:T.AnimationClip[]){
  const idle=find([/^idle$/i,/idle/i,/stand/i])??clips[0];
  const walk=find([/^walk$/i,/walk/i,/trot/i,/locomotion/i])??idle;
  const run=find([/^run$/i,/run/i,/gallop/i,/sprint/i])??walk;
- return {idle,walk,run};
+ const attack=find([/^attack$/i,/attack/i,/bite/i,/maul/i]);
+ return {idle,walk,run,attack};
 }

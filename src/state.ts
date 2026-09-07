@@ -4,7 +4,7 @@ export type Vec3 = [number,number,number];
 import {applyEconomyCommand,type EconomyCommand} from './economy';
 import {stats,STATIC_STATIONS,type BuildKind,type StationKind} from './definitions';
 import {beginAction,resolveStrike,respawn,actionBusy,type Fighter} from './combat-rules';
-import type {AnimalState} from './nature';
+import type {AnimalState} from './wildlife-species';
 import {expeditionCommand,type ExpeditionProgress,type ExpeditionSite} from './expedition';
 export type ItemId='mushroom'|'herb'|'woodland_broth'|'axe'|'pickaxe'|'hammer'|'sword'|'fine_sword'|'bow'|'wood'|'stone'|'iron'|'fiber'|'venison'|'berries'|'grilled_venison'|'hearty_stew'|'hide'|'crow_crop'|'crow_milk';
 export type Archetype='Warden'|'Hunter'|'Reaver'|'Artisan';

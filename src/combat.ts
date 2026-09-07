@@ -7,7 +7,7 @@ import {seedExpedition} from './expedition';
 import {makePlayer,type EnemyState,type LocalAuthority,type PlayerState,type Vec3} from './state';
 import {beginAction,combatState,faces,horizontalDistance,resolveStrike,seedEnemies,WEAPONS,attackProfile,impactFeedback,type ImpactParticles,type StrikeResult} from './combat-rules';
 import {animalAlive,resolveWildlifeStrike} from './wildlife-rules';
-import type {AnimalState} from './nature';
+import {species,type AnimalState} from './wildlife-species';
 import {launchArrow,updateArrow,type ArrowFlight} from './archery';
 
 class Intent {
@@ -18,7 +18,7 @@ class Intent {
 interface Raider {state:EnemyState;actor:Character;input:Intent}
 type BowAim={id:'bow-aim';position:Vec3;synthetic:true};
 type CombatTarget=EnemyState|AnimalState|BowAim;
-const animalLift=(animal:AnimalState)=>{if(animal.kind==='bear')return 1;if(animal.kind==='deer')return .85;if(animal.kind==='goat'||animal.kind==='sheep')return .62;if(animal.kind==='crow')return .25;return .28;};
+const animalLift=(animal:AnimalState)=>species(animal.kind).aimHeight;
 export class Combat {
  raiders=new Map<string,Raider>();shake=0;onNotice=(text:string)=>{};events:({tick:number;attackerId:string}&StrikeResult)[]=[];
  private sparks:{mesh:T.Points;velocity:T.Vector3[];life:number}[]=[];private arrows:ArrowFlight[]=[];
