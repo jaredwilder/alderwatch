@@ -1,5 +1,6 @@
 import type {PlayerState,Vec3} from './state';
 import {HERD_SPECIES,predatorCanHunt,species,type AnimalState} from './wildlife-species';
+import {groundPredatorCanReach} from './wildlife-aerial';
 
 export const wildlifeDistance=(a:Vec3,b:Vec3)=>Math.hypot(a[0]-b[0],a[2]-b[2]);
 export const angleTo=(from:Vec3,to:Vec3)=>Math.atan2(to[0]-from[0],to[2]-from[2]);
@@ -10,7 +11,7 @@ export function ambientWanderHeading(animal:AnimalState){const phase=stableUnit(
 
 export function herdCenter(animal:AnimalState,animals:Record<string,AnimalState>):Vec3|undefined{
  if(!HERD_SPECIES.has(animal.kind))return undefined;
- const mates=Object.values(animals).filter(other=>other.kind===animal.kind&&other.health!==0&&!other.dead&&wildlifeDistance(other.home,animal.home)<34);
+ const mates=Object.values(animals).filter(other=>other.kind===animal.kind&&!other.carriedById&&other.health!==0&&!other.dead&&wildlifeDistance(other.home,animal.home)<34);
  if(mates.length<2)return undefined;
  const total=mates.reduce((sum,mate)=>[sum[0]+mate.position[0],sum[1]+mate.position[1],sum[2]+mate.position[2]] as Vec3,[0,0,0] as Vec3);
  return [total[0]/mates.length,total[1]/mates.length,total[2]/mates.length];
@@ -22,12 +23,18 @@ export function cohesiveFleeHeading(animal:AnimalState,threat:Vec3,center?:Vec3)
  return Math.atan2(ax+cx*.28,az+cz*.28);
 }
 
+function reachablePredatorPrey(predator:AnimalState,prey:AnimalState){
+ if(prey.carriedById)return false;
+ if(predator.kind==='eagle')return true;
+ return groundPredatorCanReach(prey);
+}
+
 export function predatorTarget(predator:AnimalState,animals:Record<string,AnimalState>,radius=species(predator.kind).predator?.acquireRadius??0){
- return Object.values(animals).filter(prey=>prey.id!==predator.id&&!prey.dead&&(prey.health??1)>0&&predatorCanHunt(predator.kind,prey.kind)&&wildlifeDistance(prey.position,predator.position)<radius).sort((a,b)=>wildlifeDistance(a.position,predator.position)-wildlifeDistance(b.position,predator.position)||a.id.localeCompare(b.id))[0];
+ return Object.values(animals).filter(prey=>prey.id!==predator.id&&!prey.dead&&(prey.health??1)>0&&predatorCanHunt(predator.kind,prey.kind)&&reachablePredatorPrey(predator,prey)&&wildlifeDistance(prey.position,predator.position)<radius).sort((a,b)=>wildlifeDistance(a.position,predator.position)-wildlifeDistance(b.position,predator.position)||a.id.localeCompare(b.id))[0];
 }
 
 export function predatorThreat(prey:AnimalState,animals:Record<string,AnimalState>,radius=18){
- return Object.values(animals).filter(predator=>predator.id!==prey.id&&!predator.dead&&(predator.health??1)>0&&predatorCanHunt(predator.kind,prey.kind)&&wildlifeDistance(predator.position,prey.position)<radius).sort((a,b)=>wildlifeDistance(a.position,prey.position)-wildlifeDistance(b.position,prey.position)||a.id.localeCompare(b.id))[0];
+ return Object.values(animals).filter(predator=>predator.id!==prey.id&&!predator.dead&&(predator.health??1)>0&&predatorCanHunt(predator.kind,prey.kind)&&reachablePredatorPrey(predator,prey)&&wildlifeDistance(predator.position,prey.position)<radius).sort((a,b)=>wildlifeDistance(a.position,prey.position)-wildlifeDistance(b.position,prey.position)||a.id.localeCompare(b.id))[0];
 }
 
 export function packMembers(wolf:AnimalState,animals:Record<string,AnimalState>){
@@ -49,7 +56,7 @@ export function livePlayer(players:Record<string,PlayerState>,id:string|undefine
 export function wolfInterferer(wolf:AnimalState,quarry:AnimalState|undefined,animals:Record<string,AnimalState>,players:Record<string,PlayerState>,tick:number){
  const remembered=(wolf.aggroUntil??0)>tick?livePlayer(players,wolf.aggroPlayerId):undefined;if(remembered)return remembered;
  for(const mate of packMembers(wolf,animals)){const provoker=(mate.alarmedUntil??0)>tick?livePlayer(players,mate.lastAttackerId):undefined;if(provoker)return provoker;}
- if(!quarry)return undefined;
+ if(!quarry||quarry.kind!=='bison')return undefined;
  const quarryAttacker=(quarry.alarmedUntil??0)>tick?livePlayer(players,quarry.lastAttackerId):undefined;if(quarryAttacker)return quarryAttacker;
  return Object.values(players).filter(player=>player.health>0&&Math.min(wildlifeDistance(player.position,wolf.position),wildlifeDistance(player.position,quarry.position))<6.2).sort((a,b)=>wildlifeDistance(a.position,wolf.position)-wildlifeDistance(b.position,wolf.position))[0];
 }
