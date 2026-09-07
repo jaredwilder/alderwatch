@@ -10,6 +10,23 @@ export const WEAPONS:Partial<Record<ItemId,{damage:number;reach:number;impact:nu
  pickaxe:{damage:12,reach:2.1,impact:17/30,duration:31/30,stamina:14},
  hammer:{damage:10,reach:1.5,impact:.567,duration:1.22,stamina:12},
 };
+export type ImpactSound='light_sword'|'heavy_sword'|'axe'|'pick'|'animal'|'hit'|'block'|'parry';
+export type ImpactParticles='flesh'|'metal'|'dust';
+export interface ImpactFeedbackProfile {sound:ImpactSound;shake:number;shakeDuration:number;freeze:number;knockback:number;staggerTicks:number;particles:ImpactParticles}
+export function impactFeedback(attacker:Fighter,outcome:'hit'|'blocked'|'parried'|'killed',target:'fighter'|'animal'='fighter'):ImpactFeedbackProfile{
+ if(outcome==='parried')return {sound:'parry',shake:.048,shakeDuration:.13,freeze:.055,knockback:.5,staggerTicks:66,particles:'metal'};
+ if(outcome==='blocked')return {sound:'block',shake:.03,shakeDuration:.10,freeze:.026,knockback:.32,staggerTicks:0,particles:'metal'};
+ const c=attacker.combat,item=c?.weapon??attacker.equipped,heavy=c?.kind==='heavy'&&!!item?.includes('sword');
+ let profile:ImpactFeedbackProfile;
+ if(heavy)profile={sound:'heavy_sword',shake:.072,shakeDuration:.16,freeze:.052,knockback:1.55,staggerTicks:34,particles:'flesh'};
+ else if(item?.includes('sword'))profile={sound:'light_sword',shake:.052,shakeDuration:.12,freeze:.034,knockback:1,staggerTicks:24,particles:'flesh'};
+ else if(item==='axe')profile={sound:'axe',shake:.062,shakeDuration:.14,freeze:.044,knockback:1.35,staggerTicks:30,particles:'flesh'};
+ else if(item==='pickaxe')profile={sound:'pick',shake:.056,shakeDuration:.12,freeze:.038,knockback:1.15,staggerTicks:27,particles:'flesh'};
+ else profile={sound:'hit',shake:.045,shakeDuration:.11,freeze:.03,knockback:.9,staggerTicks:24,particles:'dust'};
+ if(target==='animal')profile={...profile,sound:'animal',freeze:Math.max(.028,profile.freeze-.006),shake:profile.shake*.9};
+ if(outcome==='killed')profile={...profile,shake:profile.shake*1.12,knockback:profile.knockback*1.08};
+ return profile;
+}
 export const horizontalDistance=(a:Vec3,b:Vec3)=>Math.hypot(a[0]-b[0],a[2]-b[2]);
 export function combatState(f:Fighter):CombatState{return f.combat??={kind:'idle',started:0,until:0,consumed:false,blocking:false,weapon:null};}
 export function actionBusy(f:Fighter,tick:number){return f.health<=0||combatState(f).until>tick;}
@@ -51,13 +68,13 @@ export function resolveStrike(w:WorldState,attacker:Fighter,target:Fighter|undef
  let damage=Math.round(weapon.damage*(w.players[attacker.id]?stats(w.players[attacker.id]).damage:.72));
  let blocked=false;
  if(defense.blocking&&faces(target,attacker,.45)){
-  if(a.kind!=='heavy'&&defense.guardSince!==undefined&&w.tick-defense.guardSince<=12&&target.stamina>=8){target.stamina-=8;attacker.combat={kind:'hit',started:w.tick,until:w.tick+66,consumed:true,blocking:false,weapon:attacker.equipped};return {ok:true,outcome:'parried',damage:0,targetId:target.id,message:'Parried · counter now'};}
+  if(a.kind!=='heavy'&&defense.guardSince!==undefined&&w.tick-defense.guardSince<=12&&target.stamina>=8){target.stamina-=8;const stagger=impactFeedback(attacker,'parried').staggerTicks;attacker.combat={kind:'hit',started:w.tick,until:w.tick+stagger,consumed:true,blocking:false,weapon:attacker.equipped};return {ok:true,outcome:'parried',damage:0,targetId:target.id,message:'Parried · counter now'};}
   const guardCost=a.kind==='heavy'?32:18;blocked=target.stamina>=guardCost;target.stamina=Math.max(0,target.stamina-guardCost);
   if(blocked)damage=Math.max(1,Math.round(damage*.1));
  }
  target.health=Math.max(0,target.health-damage);
  if(target.health<=0)kill(w,target);
- else if(!blocked)target.combat={kind:'hit',started:w.tick,until:w.tick+24,consumed:true,blocking:false,weapon:target.equipped};
+ else if(!blocked){const stagger=impactFeedback(attacker,'hit').staggerTicks;target.combat={kind:'hit',started:w.tick,until:w.tick+stagger,consumed:true,blocking:false,weapon:target.equipped};}
  if(w.players[attacker.id])w.players[attacker.id].skills.combat++;
  return {ok:true,outcome:target.health<=0?'killed':blocked?'blocked':'hit',damage,targetId:target.id,message:target.health<=0?'Raider defeated — collect his supplies':blocked?'Guard held':'Strike landed'};
 }
