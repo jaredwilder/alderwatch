@@ -52,7 +52,7 @@ export function applyEconomyCommand(a:LocalAuthority,p:PlayerState,c:EconomyComm
  if(c.type==='craft'){
   const r=RECIPES.find(r=>r.id===c.recipeId),station=a.state.stations[c.stationId];if(!r||!station||station.kind!==r.station||distance(p.position,station.position)>3.2)return result(false,'Stand beside the correct crafting station');
   if(r.requires&&!a.state.progress.includes(r.requires))return result(false,'Craft the earlier weapon first');
-  if(!spend(p,r.cost))return result(false,'Gather the missing materials');addItem(a.state,p,r.output,r.count);if(p.equipped&&!quantity(p,p.equipped))p.equipped=null;p.skills[r.station==='campfire'?'cooking':'crafting']++;const flag='crafted-'+r.id;if(!a.state.progress.includes(flag))a.state.progress.push(flag);return result(true,'Crafted '+r.name);
+  if(!spend(p,r.cost))return result(false,'Gather the missing materials');addItem(a.state,p,r.output,r.count);if(p.equipped&&!quantity(p,p.equipped))p.equipped=null;if(r.station!=='campfire')p.skills.crafting++;const flag='crafted-'+r.id;if(!a.state.progress.includes(flag))a.state.progress.push(flag);return result(true,'Crafted '+r.name);
  }
  if(c.type==='rest'){
   const station=w.stations[c.stationId];if(!station||station.kind!=='campfire'||distance(p.position,station.position)>3.2)return result(false,'Rest beside a campfire.');

@@ -9,3 +9,5 @@ Continue from authoritative source and browser evidence. Never mark the game com
 Use the existing Vite server on port 5190 when live; verify its session before starting another. Assets are authored through Blender MCP and exported into `public/assets`. Preserve anatomical hand sockets, material identities, UVs and authored vertex colors during optimization.
 
 Check `DEVELOPMENT_STATE.md` for the latest verified checkpoint and gaps. It is a checkpoint, not a replacement specification.
+
+`GAME_REQUEST_LEDGER.md` is the running player-facing request contract. Update it whenever Jared makes a concrete game request, preserve explicit "on top of / not instead" constraints, and do not mark a request SHIPPED until the implemented behavior survives tests/build and the relevant live/deploy gate. A technically integrated visual change that does not materially change the live screenshot remains open.

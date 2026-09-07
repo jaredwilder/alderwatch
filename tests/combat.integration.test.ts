@@ -12,6 +12,8 @@ import {model} from './load-assets';
 import {FrontierRenderer} from '../src/frontier-renderer';
 import type {Landscape} from '../src/landscape';
 
+const DECORATIVE_MEDIEVAL_FIXTURE=['hut_a','hut_b','hut_c','hut_d','towerhouse','watchtower','barracks','storage','market','towncenter','windmill','well','wall','farm','crops','barrel','cauldron','hay','wood_pile','lantern','torch','campfire_burning_q'] as const;
+
 test('frontier streaming loads colliders near player, releases them and never resurrects harvested trees',async()=>{
  const f=await fixture(),r={id:'wild-resource-0',kind:'tree' as const,position:[8,0,0] as [number,number,number],variant:0,health:6,phase:'standing' as 'standing'|'fallen',rotation:0,scale:1};f.authority.state.resources[r.id]=r;
  const resources=new Map<string,T.Object3D>(),colliders=new Map<string,RAPIER.Collider>();
@@ -20,6 +22,9 @@ test('frontier streaming loads colliders near player, releases them and never re
 });
 async function fixture(){
  await RAPIER.init();const assets=new Assets();[assets.survivor,assets.kit]=await Promise.all([model('survivor'),model('frontier-kit')]);
+ // This unit fixture intentionally bypasses Assets.load(). Production must still fetch/load
+ // every authored GLB; here empty groups isolate the collider-streaming behavior under test.
+ for(const name of DECORATIVE_MEDIEVAL_FIXTURE)assets.medieval[name]=new T.Group();
  const physics=new RAPIER.World({x:0,y:-9.81,z:0}),root=new T.Group(),authority=new LocalAuthority(),p=makePlayer('Warden');
  physics.createCollider(RAPIER.ColliderDesc.cuboid(100,.1,100).setTranslation(0,-.1,0));
  p.position=[0,.02,0];p.yaw=0;p.equipped='sword';authority.state.players[p.id]=p;

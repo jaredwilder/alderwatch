@@ -4,6 +4,7 @@ import {Assets} from './assets';
 import {Landscape,height} from './landscape';
 import {LocalAuthority,ITEMS,type DropState,type ItemId,type PlayerState} from './state';
 import {Soundscape} from './audio';
+import {gainSkill} from './skills';
 type Falling={id:string;body:RAPIER.RigidBody;object:T.Object3D;age:number;half:number;scale:number};
 type PhysicalDrop={body:RAPIER.RigidBody;object:T.Object3D;state:DropState};
 export class Gathering {
@@ -15,7 +16,7 @@ export class Gathering {
  }
  burst(point:T.Vector3,stone=false){let n=0;for(const c of this.chipData){if(c.life>0)continue;c.position.copy(point);c.velocity.set((Math.random()-.5)*4,1+Math.random()*3,(Math.random()-.5)*4);c.life=.5+Math.random()*.6;c.scale=stone?.035+Math.random()*.05:.02+Math.random()*.025;if(++n===16)break;}this.shake=.1;}
  notch(id:string,normal:T.Vector3){const r=this.authority.state.resources[id];if(r.kind!=='tree')return;let mesh=this.notches.get(id);if(!mesh){const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute([-.42,0,0, .38,.04,0, .12,.13,0, -.17,.11,0],3));geo.setIndex([0,1,2,0,2,3]);geo.computeVertexNormals();mesh=new T.Mesh(geo,new T.MeshStandardMaterial({color:'#b8945c',roughness:1,side:T.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2}));this.notches.set(id,mesh);this.world.add(mesh);}mesh.position.fromArray(r.position).addScaledVector(normal,.87);mesh.position.y+=1.02;mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),normal);mesh.scale.set(1+(6-r.health)*.1,1+(6-r.health)*.5,1);}
- hit(player:PlayerState,id:string){const r=this.authority.state.resources[id];if(!r)return {ok:false,message:'Find a resource within reach'};const out=this.authority.dispatch({type:'harvest',playerId:player.id,resourceId:id});if(!out.ok)return out;const normal=new T.Vector3(player.position[0]-r.position[0],0,player.position[2]-r.position[2]).normalize();const point=new T.Vector3(...r.position).addScaledVector(normal,.85);point.y+=1.05;this.burst(point,r.kind==='rock');this.sound.impact(r.kind==='tree'?'wood':'stone');this.notch(id,normal);
+ hit(player:PlayerState,id:string){const r=this.authority.state.resources[id];if(!r)return {ok:false,message:'Find a resource within reach'};const out=this.authority.dispatch({type:'harvest',playerId:player.id,resourceId:id});if(!out.ok)return out;gainSkill(player,r.kind==='tree'?'lumberjacking':'mining');const normal=new T.Vector3(player.position[0]-r.position[0],0,player.position[2]-r.position[2]).normalize();const point=new T.Vector3(...r.position).addScaledVector(normal,.85);point.y+=1.05;this.burst(point,r.kind==='rock');this.sound.impact(r.kind==='tree'?'wood':'stone');this.notch(id,normal);
   if(r.health===0){if(r.kind==='tree')this.fell(id,normal.clone().negate());else{const obj=this.land.resources.get(id);obj?.removeFromParent();this.land.resources.delete(id);const c=this.land.colliders.get(id);if(c)this.physics.removeCollider(c,true);this.land.colliders.delete(id);for(let i=0;i<6;i++)this.spawnDrop(i<4?'stone':'iron',i<4?3:2,new T.Vector3(r.position[0]+Math.cos(i)*.8,r.position[1]+.9,r.position[2]+Math.sin(i)*.8));}}
   return out;
  }

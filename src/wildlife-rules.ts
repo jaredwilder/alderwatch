@@ -3,6 +3,7 @@ import {PREDATOR_SPECIES,species,type AnimalState,type PredatorKind,type Wildlif
 import {groundPredatorCanReach,releaseCarry} from './wildlife-aerial';
 import {stats} from './definitions';
 import {attackProfile,combatState,faces,horizontalDistance,killFighter,type StrikeResult} from './combat-rules';
+import {combatSkillFor,gainSkill} from './skills';
 
 export function ensureAnimalVitals(animal:AnimalState){
  animal.maxHealth??=species(animal.kind).maxHealth;
@@ -40,7 +41,7 @@ export function resolveWildlifeStrike(world:WorldState,attacker:PlayerState,targ
  action.consumed=true;
  const facing=action.weapon==='bow'?.35:-.12,verticalReach=action.weapon==='bow'?(target&&species(target.kind).aerial?12:3):1.8;
  if(!target||!animalAlive(target)||!lineClear||horizontalDistance(attacker.position,target.position)>weapon.reach+.35||Math.abs(attacker.position[1]-target.position[1])>verticalReach||!faces(attacker,target as never,facing))return {ok:true,outcome:'miss',message:lineClear?'Out of reach':'Shot obstructed'};
- const damage=Math.round(weapon.damage*stats(attacker).damage),hit=damageAnimal(world,target,damage,'player',attacker.id);attacker.skills.combat++;
+ const damage=Math.round(weapon.damage*stats(attacker).damage),hit=damageAnimal(world,target,damage,'player',attacker.id),skill=combatSkillFor(action.weapon??attacker.equipped);if(skill){gainSkill(attacker,skill);gainSkill(attacker,'tactics');}
  return {ok:true,outcome:hit.killed?'killed':'hit',damage:hit.damage,targetId:target.id,message:hit.killed?`${target.kind} down — search the carcass`:`${target.kind} · ${target.health}/${target.maxHealth}`};
 }
 

@@ -4,6 +4,16 @@ The locally supplied license files for Quaternius Universal Base Characters (Sta
 
 Environment kit, equipment, original hare/crow wildlife and modifications were authored for Alderwatch through Blender. Concept art and texture images were AI-generated for this project; available prompts/provenance are in art/concepts/prompts.md, art/textures/prompts.md, and art/direction-v2/.
 
+## Runtime-downloaded medieval settlement models
+
+`npm run assets:medieval` downloads a pinned, audited set of self-contained GLBs into `public/assets/medieval/`. The source mirror is `jm-sky/seedvale` at commit `9e69e3d8898f8105d06ceac92c95981482810163`, whose adjacent credits and license records identify these Quaternius packs as **CC0 1.0**.
+
+- **Quaternius Medieval Village MegaKit (Standard/free)** — modular plaster/timber walls, doors, windows, tiled and wooden roofs, chimney, wagon, crate, wooden fences, supports, stairs, vines and trim. CC0 1.0.
+- **Quaternius Ultimate Fantasy RTS settlement set** — complete authored `hut_a`–`hut_d`, `towerhouse`, `watchtower`, `barracks`, `storage`, `market`, `towncenter`, `windmill`, `well`, settlement `wall` and `farm` models. CC0 1.0.
+- **Quaternius settlement props** from the same audited source family — crops, barrel, cauldron, hay, wood pile, lantern, torch and burning campfire. CC0 1.0.
+
+These assets are intentionally downloaded at build time from the pinned mirror rather than a mutable runtime CDN. The fetcher validates GLB headers and minimum sizes and fails the build instead of silently substituting primitives.
+
 ## Runtime-downloaded animal models
 
 `npm run assets:animals` downloads pinned GLB files into `public/assets/animals/` for local development and production builds. These generated/downloaded binaries are not treated as Alderwatch-authored art.
@@ -16,6 +26,6 @@ Environment kit, equipment, original hare/crow wildlife and modifications were a
 - **Wolf** — Quaternius Wild Animals, Creative Commons Zero (CC0). Alderwatch downloads the animated `wolf.glb` from `StateDev08/War-of-the-Kindom-Mobile` pinned to commit `9b5a2827...`. That mirror stores the model under `models/quaternius/animals/` and its adjacent `README_ANIMALS.md` explicitly records the collection as “Quaternius Wild Animals (CC0)”. Creator source: https://quaternius.com/ .
 - **Eagle** — “animated EAGLE” by **Asim3d**, Creative Commons Attribution 4.0. Original model: https://sketchfab.com/3d-models/animated-eagle-8fb150270adb45aa9653e857f3fa351b . Alderwatch downloads the animated GLB mirrored by `maramilod/LYMonada` at pinned commit `677cdce7...`; the adjacent download-origin metadata records that exact Sketchfab model ID. License: https://creativecommons.org/licenses/by/4.0/ .
 
-The fetcher validates GLB headers and minimum file sizes and never silently substitutes primitives. If a source cannot be downloaded, the build fails rather than shipping a fake animal.
+The fetchers validate GLB headers and minimum file sizes and never silently substitute primitives. If a source cannot be downloaded, the build fails rather than shipping a fake asset.
 
 Third-party JavaScript dependencies retain their own licenses. See package-lock.json and installed package license files. This credits note does not apply a new open-source license to the original game code or art; no project-wide license has been selected by the owner.
