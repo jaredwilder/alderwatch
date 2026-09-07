@@ -50,8 +50,8 @@ export function skillRank(value:number){
 }
 export function skillTitle(id:SkillId,value:number){return `${skillRank(value)} ${SKILLS[id].profession}`;}
 export function bestSkill(player:PlayerState){
- const skills=ensureSkills(player);let id:SkillId='tactics';
+ const skills=ensureSkills(player);let id:SkillId=SKILL_ORDER[0];
  for(const candidate of SKILL_ORDER)if((skills[candidate]??0)>(skills[id]??0))id=candidate;
  return {id,value:skills[id]??0};
 }
-export function characterTitle(player:PlayerState){const top=bestSkill(player);return skillTitle(top.id,top.value);}
+export function characterTitle(player:PlayerState){const top=bestSkill(player);return top.value>0?skillTitle(top.id,top.value):`${player.archetype} of the Far March`;}
