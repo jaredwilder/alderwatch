@@ -25,7 +25,7 @@ import {seedBounties,bountyObjective} from '../src/bounties';
 
 test('bounty camps preserve saves and pay only after tracking, reaching and clearing their chest',()=>{
  const a=new LocalAuthority(),p=makePlayer('Warden');a.state.players[p.id]=p;seedBounties(a.state);
- assert.equal(Object.keys(a.state.bountySites!).length,2);const b=a.state.bountySites!.woodcutters;
+ assert.equal(Object.keys(a.state.bountySites!).length,6);assert.equal(a.state.bountySites!.heath.enemies.length,4);const b=a.state.bountySites!.woodcutters;
  const run=(action:'accept'|'claim')=>a.dispatch({type:'bounty',playerId:p.id,action,bountyId:b.id});
  p.position=[...b.position];assert.equal(run('claim').ok,false);assert.ok(run('accept').ok);assert.equal(run('claim').ok,false);assert.ok(guardedCache(a.state,'bounty-cache-'+b.id));
  a.state.enemies[b.enemies[0]].health=0;p.position=[100,0,100];assert.equal(run('claim').ok,false);p.position=[...b.position];assert.match(bountyObjective(a.state,p)!.text,/Camp cleared/);assert.ok(run('claim').ok);assert.equal(quantity(p,'sword'),1);assert.equal(quantity(p,'iron'),6);assert.equal(run('claim').ok,false);
