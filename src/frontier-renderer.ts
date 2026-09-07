@@ -3,6 +3,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import type {Landscape} from './landscape';
 import {frontierArea,seeded,trailDistance,regionAt} from './worldgen';
 import {height} from './terrain';
+import {forestDensity,forestEdge,meadowDensity} from './ecology';
 
 /** Distant instanced trees; interactable authored trees and colliders only near the survivor. */
 export class FrontierRenderer {
@@ -35,11 +36,23 @@ export class FrontierRenderer {
  }
  dispose(){for(const b of this.proxies)b.mesh.dispose();for(const group of this.chunks.values())group.traverse(o=>{if(o instanceof T.InstancedMesh)o.dispose();});}
  private cover(cx:number,cz:number){
-  const group=new T.Group();this.land.scene.add(group);const rng=seeded((this.land.state.frontier?.seed??1)^Math.imul(cx,73856093)^Math.imul(cz,19349663)),grass:T.Matrix4[]=[],ferns:T.Matrix4[]=[];
-  for(let x=cx*32;x<(cx+1)*32;x+=.85)for(let z=cz*32;z<(cz+1)*32;z+=.85){const px=x+rng()*.6,pz=z+rng()*.6;if(!frontierArea(px,pz)||Math.abs(px)<110&&pz<80||trailDistance(px,pz)<2.3||this.land.ambientOccupied(px,pz)||height(px,pz)<-1||Object.values(this.land.state.frontier?.sites??{}).some(s=>Math.hypot(px-s.position[0],pz-s.position[2])<4)||Object.values(this.land.state.structures).some(s=>Math.hypot(px-s.position[0],pz-s.position[2])<2.2))continue;
-   const s=1.15+rng()*.5,normal=new T.Vector3(height(px-.4,pz)-height(px+.4,pz),.8,height(px,pz-.4)-height(px,pz+.4)).normalize(),rotation=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,1,0),normal).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),rng()*Math.PI*2));grass.push(new T.Matrix4().compose(new T.Vector3(px,height(px,pz)-.1,pz),rotation,new T.Vector3(s,.4+rng()*.23,s)));if(rng()<(regionAt(px,pz)==='Southwood'?.035:.008))ferns.push(new T.Matrix4().compose(new T.Vector3(px,height(px,pz),pz),rotation,new T.Vector3(.9,.9,.9)));
+  const group=new T.Group();group.name=`frontier cover ${cx},${cz}`;this.land.scene.add(group);
+  const rng=seeded((this.land.state.frontier?.seed??1)^Math.imul(cx,73856093)^Math.imul(cz,19349663)),grass:T.Matrix4[]=[],ferns:T.Matrix4[]=[],rocks:T.Matrix4[]=[],logs:T.Matrix4[]=[];
+  const midX=cx*32+16,midZ=cz*32+16,treeRoots=Object.values(this.land.state.resources).filter(r=>r.id.startsWith('wild-resource-')&&r.kind==='tree'&&r.phase==='standing'&&Math.abs(r.position[0]-midX)<48&&Math.abs(r.position[2]-midZ)<48).map(r=>r.position);
+  for(let x=cx*32;x<(cx+1)*32;x+=1.02)for(let z=cz*32;z<(cz+1)*32;z+=1.02){
+   const px=x+rng()*.72,pz=z+rng()*.72;if(!frontierArea(px,pz)||Math.abs(px)<110&&pz<80||trailDistance(px,pz)<2.45||this.land.ambientOccupied(px,pz)||height(px,pz)<-1||Object.values(this.land.state.frontier?.sites??{}).some(s=>Math.hypot(px-s.position[0],pz-s.position[2])<4.5)||Object.values(this.land.state.structures).some(s=>Math.hypot(px-s.position[0],pz-s.position[2])<2.4))continue;
+   let canopy=0;for(const root of treeRoots){const dx=px-root[0],dz=pz-root[2],d2=dx*dx+dz*dz;if(d2<90)canopy=Math.max(canopy,Math.exp(-d2/23));}
+   const region=regionAt(px,pz),woods=Math.max(forestDensity(px,pz),canopy*.92),edge=forestEdge(px,pz),meadow=meadowDensity(px,pz);
+   const regionGrass=region==='Briar Heath'?.92:region==='Ironward Heights'?.46:.72,grassChance=Math.max(.08,Math.min(.92,regionGrass*(.28+meadow*.76)*(1-woods*.62)+edge*.12));
+   const normal=new T.Vector3(height(px-.4,pz)-height(px+.4,pz),.8,height(px,pz-.4)-height(px,pz+.4)).normalize(),rotation=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,1,0),normal).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),rng()*Math.PI*2));
+   if(rng()<grassChance){const s=1.02+rng()*.55,h=(.29+rng()*.23+meadow*.12)*(1-canopy*.42);grass.push(new T.Matrix4().compose(new T.Vector3(px,height(px,pz)-.1,pz),rotation,new T.Vector3(s,h,s)));}
+   const fernChance=(region==='Southwood'?.018:.004)+edge*.035+canopy*(1-canopy)*.055;if(rng()<fernChance){const s=.76+rng()*.68;ferns.push(new T.Matrix4().compose(new T.Vector3(px,height(px,pz),pz),rotation,new T.Vector3(s,s,s)));}
+   const cluster=edge*.55+canopy*.45;if(rng()<.004+cluster*.005){const s=.22+rng()*.42;rocks.push(new T.Matrix4().compose(new T.Vector3(px,height(px,pz)-.09,pz),new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),rng()*Math.PI*2),new T.Vector3(s*1.45,s*.62,s)));}
+   if(canopy>.2&&canopy<.78&&rng()<.0015+edge*.0025){const s=.48+rng()*.32;logs.push(new T.Matrix4().compose(new T.Vector3(px,height(px,pz)+.02,pz),new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),rng()*Math.PI*2),new T.Vector3(s,s,s)));}
   }
-  for(const [name,matrices] of [['grass',grass],['fern',ferns]] as const){if(!matrices.length)continue;const source=this.land.assets.prop(name);source.updateMatrixWorld(true);source.traverse(o=>{if(!(o instanceof T.Mesh))return;const mesh=new T.InstancedMesh(o.geometry,o.material,matrices.length),region=regionAt(cx*32+16,cz*32+16),tint=new T.Color(region==='Briar Heath'?'#f1dba9':region==='Ironward Heights'?'#d9d8c1':'#c3dfb8');matrices.forEach((m,i)=>{mesh.setMatrixAt(i,m.clone().multiply(o.matrixWorld));mesh.setColorAt(i,tint);});mesh.receiveShadow=true;mesh.computeBoundingSphere();group.add(mesh);});}
+  const region=regionAt(midX,midZ),grassTint=new T.Color(region==='Briar Heath'?'#ead7aa':region==='Ironward Heights'?'#d2d0bf':'#c9ddb4'),fernTint=new T.Color(region==='Ironward Heights'?'#c8ceb8':'#d1e0b9');
+  const add=(name:string,matrices:T.Matrix4[],tint?:T.Color,cast=false)=>{if(!matrices.length)return;const source=this.land.assets.prop(name);source.updateMatrixWorld(true);source.traverse(o=>{if(!(o instanceof T.Mesh))return;const mesh=new T.InstancedMesh(o.geometry,o.material,matrices.length);matrices.forEach((m,i)=>{mesh.setMatrixAt(i,m.clone().multiply(o.matrixWorld));if(tint)mesh.setColorAt(i,tint);});mesh.castShadow=cast;mesh.receiveShadow=true;mesh.computeBoundingSphere();group.add(mesh);});};
+  add('grass',grass,grassTint);add('fern',ferns,fernTint);add('rock_2',rocks,undefined,true);add('log',logs,undefined,true);
   return group;
  }
 }
