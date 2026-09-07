@@ -52,7 +52,7 @@ export function applyEconomyCommand(a:LocalAuthority,p:PlayerState,c:EconomyComm
  if(c.type==='craft'){
   const r=RECIPES.find(r=>r.id===c.recipeId),station=a.state.stations[c.stationId];if(!r||!station||station.kind!==r.station||distance(p.position,station.position)>3.2)return result(false,'Stand beside the correct crafting station');
   if(r.requires&&!a.state.progress.includes(r.requires))return result(false,'Craft the earlier weapon first');
-  if(!spend(p,r.cost))return result(false,'Gather the missing materials');addItem(a.state,p,r.output,r.count);if(p.equipped&&!quantity(p,p.equipped))p.equipped=null;if(r.station!=='campfire')p.skills.crafting++;const flag='crafted-'+r.id;if(!a.state.progress.includes(flag))a.state.progress.push(flag);return result(true,'Crafted '+r.name);
+  if(!spend(p,r.cost))return result(false,'Gather the missing materials');addItem(a.state,p,r.output,r.count);if(p.equipped&&!quantity(p,p.equipped))p.equipped=null;const flag='crafted-'+r.id;if(!a.state.progress.includes(flag))a.state.progress.push(flag);return result(true,'Crafted '+r.name);
  }
  if(c.type==='rest'){
   const station=w.stations[c.stationId];if(!station||station.kind!=='campfire'||distance(p.position,station.position)>3.2)return result(false,'Rest beside a campfire.');
@@ -70,7 +70,7 @@ export function applyEconomyCommand(a:LocalAuthority,p:PlayerState,c:EconomyComm
   p.health=Math.min(stats(p).health,p.health+food.heal);if(food.duration&&!a.state.progress.includes('food-buff'))a.state.progress.push('food-buff');return result(true,food.duration?'Well fed — stronger for the road':'Recovered 10 health');
  }
  if(c.type==='place'){
-  const error=placementError(a,p,c);if(error)return result(false,error);spend(p,BUILDS[c.kind].cost);const id='structure-'+a.state.nextId++;const s:StructureState={id,kind:c.kind,position:[...c.position],yaw:c.yaw,ownerId:p.id,supportId:c.supportId,doorOpen:false};a.state.structures[id]=s;p.skills.building++;
+  const error=placementError(a,p,c);if(error)return result(false,error);spend(p,BUILDS[c.kind].cost);const id='structure-'+a.state.nextId++;const s:StructureState={id,kind:c.kind,position:[...c.position],yaw:c.yaw,ownerId:p.id,supportId:c.supportId,doorOpen:false};a.state.structures[id]=s;
   if(c.kind==='foundation'&&!p.home)p.home=[...c.position];
   if(c.kind==='workbench'||c.kind==='campfire')a.state.stations[id]={id,kind:c.kind,name:BUILDS[c.kind].name,position:[...c.position]};
   if(c.kind==='chest')a.state.containers[id]={id,name:'Home supplies',position:[...c.position],ownerId:p.id,inventory:[],looted:true};
