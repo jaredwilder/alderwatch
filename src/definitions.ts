@@ -18,6 +18,7 @@ export const BUILDS:Record<BuildKind,BuildDefinition>={
 export interface Recipe {id:string;name:string;cost:Partial<Record<ItemId,number>>;station:StationKind;output:ItemId;count:number;description:string;requires?:string;}
 export const RECIPES:Recipe[]=[
  {id:'woodland_broth',name:'Woodland broth',cost:{mushroom:2,herb:1,wood:1},station:'campfire',output:'woodland_broth',count:1,description:'Foraged mushrooms and herbs. +40 stamina for eight minutes; restores 25 health.'},
+ {id:'crow_milk',name:'Crow milk',cost:{crow_crop:1,herb:1},station:'campfire',output:'crow_milk',count:1,description:'Render one crow crop with wild herbs into a deeply questionable tonic. +15 health and +25 stamina for six minutes.'},
  {id:'sword',name:'Marcher’s sword',cost:{wood:3,stone:2,iron:4},station:'workbench',output:'sword',count:1,description:'Forged iron. A dependable blade for the frontier.'},
  {id:'fine_sword',name:'Tempered marcher’s sword',cost:{sword:1,iron:6,hide:2},station:'workbench',output:'fine_sword',count:1,requires:'crafted-sword',description:'Improved balance and a hardened edge. 34 melee damage.'},
  {id:'grilled_venison',name:'Grilled venison',cost:{venison:1,wood:1},station:'campfire',output:'grilled_venison',count:1,description:'+35 maximum health and slow recovery for 8 minutes.'},
@@ -25,6 +26,7 @@ export const RECIPES:Recipe[]=[
 ];
 export const FOOD:Partial<Record<ItemId,{health:number;stamina:number;duration:number;heal:number}>>={
  woodland_broth:{health:0,stamina:40,duration:480,heal:25},
+ crow_milk:{health:15,stamina:25,duration:360,heal:15},
  berries:{health:0,stamina:0,duration:0,heal:10},
  grilled_venison:{health:35,stamina:0,duration:480,heal:20},
  hearty_stew:{health:25,stamina:25,duration:480,heal:25},
