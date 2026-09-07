@@ -1,7 +1,7 @@
 import * as T from 'three';
 
 /** Elevated action-RPG framing; cinematic menus retain their own lens. */
-export const ACTION_CAMERA={pitch:.96,distance:14,fov:42,minPitch:.45,maxPitch:1.3,minDistance:7,maxDistance:24};
+export const ACTION_CAMERA={pitch:.96,distance:14,fov:42,minPitch:.18,maxPitch:1.42,minDistance:7,maxDistance:24};
 
 /** Follow only translation; mouse orbit stays responsive. Collision release is eased independently. */
 export class FollowCamera {
