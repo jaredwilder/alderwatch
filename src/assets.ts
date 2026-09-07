@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {GLTFLoader, type GLTF} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
 import {normalizeBatchColors} from './geometry-batching';
 export class Assets {
@@ -11,7 +12,7 @@ export class Assets {
   this.sight.value.set((point.x*.5+.5)*viewport.x,(point.y*.5+.5)*viewport.y,active?viewport.y*.34:0,depth);
  }
  async load(progress:(message:string)=>void){
-  const loader=new GLTFLoader(),tl=new T.TextureLoader();
+  const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),tl=new T.TextureLoader();
   const medieval=['wall_plaster_straight','wall_plaster_door_flat','wall_plaster_window_wide_flat','doorframe_flat_wooddark','door_1_flat','window_wide_flat1','corner_exterior_wood','roof_roundtiles_6x6','chimney','crate','wagon','fence_wood_single'];
   progress('Opening the old road…');
   await Promise.all([loader.loadAsync('/assets/frontier-kit.glb').then(g=>this.kit=g),loader.loadAsync('/assets/wildlife.glb').then(g=>{this.nature=g;g.scene.traverse(o=>{if(o instanceof T.Mesh){o.castShadow=o.receiveShadow=true;}});}),loader.loadAsync('/assets/survivor.glb').then(g=>this.survivor=g),...medieval.map(async n=>loader.loadAsync(`/assets/medieval/${n}.glb`).then(g=>this.medieval[n]=g.scene)),...['bark','meadow','leaves','timber','stone','grass','soil','thatch','fern','wool','leather','plaster'].map(async n=>{const t=await tl.loadAsync(`/textures/${n}.webp`);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=8;this.textures[n]=t;})]);
