@@ -30,12 +30,20 @@ export class FrontierRenderer {
   this.visual('satchel',x-.78,z+.45,-.45+rng()*.35,.72,.02);
   this.visual('stump',x+1.35,z+3.02,rng()*Math.PI*2,.38,.005);this.visual('stump',x+4.18,z+1.08,rng()*Math.PI*2,.34,.005);
   this.visual('rock_2',x-4.18,z+.92,rng()*Math.PI*2,.30,-.05);this.visual('rock_2',x+4.62,z-.58,rng()*Math.PI*2,.24,-.06);
+  // Quaternius CC0 raid: make every frontier site read as occupied rather than generated primitives.
+  this.visual('crate',x+1.15,z-.72,.18+rng()*.22,.72,.01);this.visual('crate',x+1.82,z-.48,-.31+rng()*.18,.54,.02);
   if(kind==='camp'){
    this.visual('palisade',x-4.12,z-2.18,Math.PI/2+.10,.60);this.visual('palisade',x+4.10,z-2.08,Math.PI/2-.12,.60);
+   this.visual('palisade',x-5.05,z+.65,.43,.54);this.visual('palisade',x+5.08,z+.78,-.40,.54);
+   this.visual('wagon',x+4.62,z+3.35,-.88+rng()*.18,.72,.015);
+   this.visual('support',x-2.88,z+.32,.18,.82,.01);this.visual('support',x-3.02,z+2.18,-.14,.82,.01);
+   this.visual('roof_wooden_2x1',x-2.94,z+1.28,.04,.78,2.15);
+   this.visual('floor_wooddark',x-2.94,z+1.28,.04,.74,.025);
    this.visual('stump',x-1.72,z-1.18,rng()*Math.PI*2,.42,.005);
   }else{
    this.visual('palisade',x-4.05,z-3.18,.12,.54);this.visual('paving_0',x-2.85,z-1.15,-.18,.54,.018);
-   if(kind==='rest')this.visual('satchel',x-2.18,z-2.42,.30,.66,.02);
+   if(kind==='rest'){this.visual('satchel',x-2.18,z-2.42,.30,.66,.02);this.visual('wagon',x+3.82,z-1.92,.72,.62,.01);}
+   else {this.visual('crate',x-1.42,z-.62,.72,.62,.01);this.visual('fence_wood_single',x+3.15,z-2.55,-.24,.82,.01);}
   }
  }
  private dressAlderbrook(){
