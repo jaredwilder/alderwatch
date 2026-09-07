@@ -30,7 +30,7 @@ export function highlandHeight(x:number,north:number){
 }
 export function meadowDensity(x:number,z:number){
  const local=noise2(x*.16+11,z*.16+7),broad=noise2(x*.045,z*.045),woods=forestDensity(x,z);
- return clamp01(.18+.64*local*(.42+.58*broad)+.18*(1-woods));
+ return .25+.75*clamp01(.05+.68*local*(.42+.58*broad)+.16*(1-woods));
 }
 export function distantGround(x:number,z:number,playableHeight:(x:number,z:number)=>number){
  const playable=Math.abs(x)<=258&&Math.abs(z)<=258?playableHeight(x,z):-Infinity;
