@@ -18,6 +18,7 @@ class Intent {
 interface Raider {state:EnemyState;actor:Character;input:Intent}
 type BowAim={id:'bow-aim';position:Vec3;synthetic:true};
 type CombatTarget=EnemyState|AnimalState|BowAim;
+const animalLift=(animal:AnimalState)=>animal.kind==='bear'?1:animal.kind==='deer'?.85:['goat','sheep'].includes(animal.kind)?.62:animal.kind==='crow'?.25:.28;
 export class Combat {
  raiders=new Map<string,Raider>();shake=0;onNotice=(text:string)=>{};events:({tick:number;attackerId:string}&StrikeResult)[]=[];
  private sparks:{mesh:T.Points;velocity:T.Vector3[];life:number}[]=[];private arrows:ArrowFlight[]=[];
@@ -48,12 +49,12 @@ export class Combat {
   if(p.equipped==='bow')return {id:'bow-aim',synthetic:true,position:[p.position[0]+Math.sin(p.yaw)*38,p.position[1]+1.05,p.position[2]+Math.cos(p.yaw)*38]};
   return undefined;
  }
- private animalLineClear(animal:AnimalState){const from=this.player.grip.getWorldPosition(new T.Vector3()),lift=animal.kind==='bear'?1:animal.kind==='deer'?.85:animal.kind==='goat'||animal.kind==='sheep'?.62:animal.kind==='crow'?.25:.28,to=new T.Vector3(...animal.position).add(new T.Vector3(0,lift,0)),delta=to.clone().sub(from),length=delta.length();if(length<.05)return true;const hit=this.physics.castRay(new RAPIER.Ray(from,delta.normalize()),length,true,undefined,undefined,this.player.collider,this.player.body);return !hit||hit.timeOfImpact>=length-.35;}
- private arrowPoint(target:CombatTarget){if('synthetic'in target)return new T.Vector3(...target.position);if('kind'in target){const lift=target.kind==='bear'?1:target.kind==='deer'?.85:target.kind==='goat'||target.kind==='sheep'?.62:target.kind==='crow'?.25:.28;return new T.Vector3(...target.position).add(new T.Vector3(0,lift,0));}return new T.Vector3(...target.position).add(new T.Vector3(0,1.05,0));}
+ private animalLineClear(animal:AnimalState){const from=this.player.grip.getWorldPosition(new T.Vector3()),to=new T.Vector3(...animal.position).add(new T.Vector3(0,animalLift(animal),0)),delta=to.clone().sub(from),length=delta.length();if(length<.05)return true;const hit=this.physics.castRay(new RAPIER.Ray(from,delta.normalize()),length,true,undefined,undefined,this.player.collider,this.player.body);return !hit||hit.timeOfImpact>=length-.35;}
+ private arrowPoint(target:CombatTarget){if('synthetic'in target)return new T.Vector3(...target.position);if('kind'in target)return new T.Vector3(...target.position).add(new T.Vector3(0,animalLift(target),0));return new T.Vector3(...target.position).add(new T.Vector3(0,1.05,0));}
  private animalStrike(animal:AnimalState){const out=resolveWildlifeStrike(this.authority.state,this.player.state,animal,this.animalLineClear(animal));this.events.push({tick:this.authority.state.tick,attackerId:this.player.state.id,...out});if(this.events.length>30)this.events.shift();if(out.outcome==='hit'||out.outcome==='killed'){const profile=impactFeedback(this.player.state,out.outcome,'animal');this.sound.combat(profile.sound);this.impulse(profile.shake,profile.shakeDuration);this.freeze(this.player,profile.freeze);const visual=this.root.getObjectByName(animal.id);if(visual)this.burst(visual.position.clone().add(new T.Vector3(0,.7,0)),profile.particles);this.onNotice(out.message);}else if(out.outcome==='miss')this.onNotice(out.message);return out;}
  playerStrike(){
   const target=this.target(),bow=this.player.state.equipped==='bow';
-  if(bow&&target){this.arrows.push(launchArrow(this.root,this.player.grip.getWorldPosition(new T.Vector3()),this.arrowPoint(target)));}
+  if(bow&&target)this.arrows.push(launchArrow(this.root,this.player.grip.getWorldPosition(new T.Vector3()),this.arrowPoint(target)));
   if(target&&!('synthetic'in target)){
    if('kind'in target)return this.animalStrike(target);
    const out=this.authority.dispatch({type:'strike',playerId:this.player.state.id,enemyId:target.id}) as StrikeResult;this.feedback(out,this.player.state.id);return out;
