@@ -1,6 +1,7 @@
 import type {CombatState,EnemyState,ItemId,PlayerState,Vec3,WorldState} from './state';
 import {stats} from './definitions';
 import {height} from './terrain';
+import {combatSkillFor,gainSkill} from './skills';
 
 export interface Fighter {id:string;position:Vec3;yaw:number;health:number;stamina:number;equipped:ItemId|null;combat?:CombatState}
 export const WEAPONS:Partial<Record<ItemId,{damage:number;reach:number;impact:number;duration:number;stamina:number}>>={
@@ -77,7 +78,7 @@ export function resolveStrike(w:WorldState,attacker:Fighter,target:Fighter|undef
  target.health=Math.max(0,target.health-damage);
  if(target.health<=0)killFighter(w,target);
  else if(!blocked){const stagger=impactFeedback(attacker,'hit').staggerTicks;target.combat={kind:'hit',started:w.tick,until:w.tick+stagger,consumed:true,blocking:false,weapon:target.equipped};}
- if(w.players[attacker.id])w.players[attacker.id].skills.combat++;
+ const player=w.players[attacker.id],skill=combatSkillFor(a.weapon??attacker.equipped);if(player&&skill){gainSkill(player,skill);gainSkill(player,'tactics');}
  return {ok:true,outcome:target.health<=0?'killed':blocked?'blocked':'hit',damage,targetId:target.id,message:target.health<=0?'Raider defeated — collect his supplies':blocked?'Guard held':'Strike landed'};
 }
 export function seedEnemies(w:WorldState){
