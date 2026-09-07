@@ -23,11 +23,14 @@ export class FrontierRenderer {
   this.dressSouthGate();this.dressAlderbrook();this.dressRegionalLandmarks();this.update(0,true);
  }
  private clearDressingGround(){
+  // Minimal renderer test shims intentionally omit ambient foliage. The real
+  // Landscape always owns foliageBatches; use that as the migration boundary.
+  if(!this.land.foliageBatches)return;
   const hidden=new T.Matrix4().makeScale(0,0,0);
   for(const r of Object.values(this.land.state.resources))if(r.phase==='standing'&&insideDressingZone(r.position[0],r.position[2],this.zones,-1.25)){
    r.health=0;r.phase='fallen';const visual=this.land.resources.get(r.id);visual?.removeFromParent();this.land.resources.delete(r.id);const collider=this.land.colliders.get(r.id);if(collider)this.land.physics.removeCollider(collider,true);this.land.colliders.delete(r.id);
   }
-  for(const batch of this.land.foliageBatches??[]){batch.placements.forEach((p,i)=>{if(!insideDressingZone(p.x,p.z,this.zones))return;batch.matrices[i]=hidden;batch.mesh.setMatrixAt(i,hidden);});batch.mesh.instanceMatrix.needsUpdate=true;}
+  for(const batch of this.land.foliageBatches){batch.placements.forEach((p,i)=>{if(!insideDressingZone(p.x,p.z,this.zones))return;batch.matrices[i]=hidden;batch.mesh.setMatrixAt(i,hidden);});batch.mesh.instanceMatrix.needsUpdate=true;}
  }
  private visual(name:string,x:number,z:number,yaw=0,scale=1,yOffset=0){const o=this.land.assets.prop(name);o.position.set(x,height(x,z)+yOffset,z);o.rotation.y=yaw;o.scale.setScalar(scale);clampDressingBounds(o);o.name='dressing '+name;o.traverse(c=>{if(c instanceof T.Mesh){c.castShadow=true;c.receiveShadow=true;}});this.dressing.add(o);return o;}
  private visualLocal(name:string,x:number,z:number,yaw:number,lx:number,lz:number,scale=1,extraYaw=0,yOffset=0){const c=Math.cos(yaw),s=Math.sin(yaw),wx=x+lx*c+lz*s,wz=z-lx*s+lz*c;return this.visual(name,wx,wz,yaw+extraYaw,scale,yOffset);}
