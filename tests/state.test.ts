@@ -9,7 +9,7 @@ test('light sword connects at capsule reach but still misses rear and distant ta
   const {a,p,e}=fight();e.position=[...position];beginAction(p,0,'attack');a.state.tick=26;assert.equal(resolveStrike(a.state,p,e).outcome,expected);
  }
 });
-import {seedEnemies,beginAction,resolveStrike,setGuard,combatState} from '../src/combat-rules';
+import {seedEnemies,beginAction,resolveStrike,setGuard,combatState,impactFeedback} from '../src/combat-rules';
 function realm(){const a=new LocalAuthority();const p=makePlayer('Warden');p.position=[0,0,0];a.state.players[p.id]=p;return {a,p};}
 test('inventory stacks have stable IDs and never exceed capacity',()=>{const {a,p}=realm();addItem(a.state,p,'wood',205);assert.equal(quantity(p,'wood'),205);assert.ok(p.inventory.every(s=>s.count>0&&s.count<=99));assert.equal(new Set(p.inventory.map(s=>s.id)).size,p.inventory.length);});
 test('failed recipe payment is atomic',()=>{const {a,p}=realm();addItem(a.state,p,'wood',3);const before=structuredClone(p.inventory);assert.equal(spend(p,{wood:2,iron:4}),false);assert.deepEqual(p.inventory,before);});
@@ -61,3 +61,7 @@ test('a hit reaction cancels an unresolved attack and equipment cannot swap mid-
 test('heavy strikes spend more stamina, wait for their own contact, and pressure guarding',()=>{const {a,p,e}=fight();assert.ok(beginAction(p,0,'heavy').ok);assert.equal(p.stamina,74);a.state.tick=26;assert.equal(resolveStrike(a.state,p,e).ok,false);a.state.tick=50;assert.equal(resolveStrike(a.state,p,e).damage,41);a.state.tick=100;e.stamina=28;setGuard(e,100,true);beginAction(p,100,'heavy');a.state.tick=150;assert.equal(resolveStrike(a.state,p,e).outcome,'hit');assert.equal(e.stamina,0);});
 test('a solid barrier prevents damage even inside weapon reach',()=>{const {a,p,e}=fight();a.lineOfSight=()=>false;beginAction(p,0,'attack');a.state.tick=26;const out=a.dispatch({type:'strike',playerId:p.id,enemyId:e.id});assert.equal(out.message,'Strike obstructed');assert.equal(e.health,88);});
 test('a narrow heavy cut misses a target standing clear of its blade corridor',()=>{const {a,p,e}=fight();e.position=[.65,0,1.25];beginAction(p,0,'heavy');a.state.tick=50;assert.equal(resolveStrike(a.state,p,e).message,'The blade passed clear');assert.equal(e.health,88);});
+test('impact feedback keeps light, heavy, axe, block, parry and animal hits mechanically distinct',()=>{
+ const {p}=realm();p.equipped='sword';p.combat={kind:'attack',started:0,until:50,consumed:true,blocking:false,weapon:'sword'};const light=impactFeedback(p,'hit');p.combat={...p.combat,kind:'heavy'};const heavy=impactFeedback(p,'hit');p.equipped='axe';p.combat={...p.combat,kind:'attack',weapon:'axe'};const axe=impactFeedback(p,'hit'),block=impactFeedback(p,'blocked'),parry=impactFeedback(p,'parried'),animal=impactFeedback(p,'hit','animal');
+ assert.equal(light.sound,'light_sword');assert.equal(heavy.sound,'heavy_sword');assert.equal(axe.sound,'axe');assert.equal(block.sound,'block');assert.equal(parry.sound,'parry');assert.equal(animal.sound,'animal');assert.ok(heavy.freeze>light.freeze&&heavy.knockback>axe.knockback&&axe.knockback>light.knockback);assert.ok(parry.freeze>block.freeze);assert.equal(block.particles,'metal');
+});
