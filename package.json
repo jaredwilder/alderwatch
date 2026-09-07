@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "assets:animals": "node scripts/fetch_animals.mjs",
-    "predev": "npm run assets:animals",
+    "assets:medieval": "node scripts/fetch_medieval.mjs",
+    "predev": "npm run assets:animals && npm run assets:medieval",
     "dev": "vite --host 127.0.0.1 --port 5190 --strictPort",
-    "prebuild": "npm run assets:animals",
+    "prebuild": "npm run assets:animals && npm run assets:medieval",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5191 --strictPort",
     "test": "tsx --test tests/state.test.ts tests/assets.test.ts tests/combat.integration.test.ts tests/building.integration.test.ts tests/input.test.ts tests/expedition.test.ts tests/nature-camera.test.ts tests/wildlife-loot.test.ts tests/geometry-batching.test.ts"
