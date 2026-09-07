@@ -1,6 +1,7 @@
 import * as T from 'three';
 import {GLTFLoader, type GLTF} from 'three/addons/loaders/GLTFLoader.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
+import {normalizeBatchColors} from './geometry-batching';
 export class Assets {
  kit!:GLTF; survivor!:GLTF; nature!:GLTF; textures:Record<string,T.Texture>={}; time={value:0};
  sight={value:new T.Vector4(0,0,0,0)};
@@ -13,6 +14,8 @@ export class Assets {
   const loader=new GLTFLoader(),tl=new T.TextureLoader();
   progress('Opening the old road…');
   await Promise.all([loader.loadAsync('/assets/frontier-kit.glb').then(g=>this.kit=g),loader.loadAsync('/assets/wildlife.glb').then(g=>{this.nature=g;g.scene.traverse(o=>{if(o instanceof T.Mesh){o.castShadow=o.receiveShadow=true;}});}),loader.loadAsync('/assets/survivor.glb').then(g=>this.survivor=g),...['bark','meadow','leaves','timber','stone','grass','soil','thatch','fern','wool','leather','plaster'].map(async n=>{const t=await tl.loadAsync(`/textures/${n}.webp`);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=8;this.textures[n]=t;})]);
+  const batchColors=(scene:T.Object3D)=>{const byMaterial=new Map<T.Material,T.BufferGeometry[]>();scene.traverse(o=>{if(!(o instanceof T.Mesh)||Array.isArray(o.material))return;if(!byMaterial.has(o.material))byMaterial.set(o.material,[]);byMaterial.get(o.material)!.push(o.geometry);});for(const geometries of byMaterial.values())normalizeBatchColors(geometries);};
+  batchColors(this.kit.scene);batchColors(this.nature.scene);
   const cache=new Map<T.Material,T.Material>();
   // glTF has already converted authored UVs to a top-left texture origin.
   this.textures.grass.flipY=false;this.textures.grass.needsUpdate=true;this.textures.leaves.flipY=false;this.textures.leaves.needsUpdate=true;
