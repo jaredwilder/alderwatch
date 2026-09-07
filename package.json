@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "assets:animals": "node scripts/fetch_animals.mjs",
+    "predev": "npm run assets:animals",
     "dev": "vite --host 127.0.0.1 --port 5190 --strictPort",
+    "prebuild": "npm run assets:animals",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5191 --strictPort",
     "test": "tsx --test tests/state.test.ts tests/assets.test.ts tests/combat.integration.test.ts tests/building.integration.test.ts tests/input.test.ts tests/expedition.test.ts tests/nature-camera.test.ts"
