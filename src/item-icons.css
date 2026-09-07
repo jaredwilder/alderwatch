@@ -1,0 +1,21 @@
+/* Generated medieval item art: transparent PNG sprites, framed by the existing UI CSS. */
+.item-art{display:block;flex:0 0 auto;width:56px;height:56px;background-image:url('/assets/ui/icons/alderwatch-items.png');background-repeat:no-repeat;background-size:500% 400%;filter:drop-shadow(0 3px 3px #0009);image-rendering:auto}
+.item-axe{background-position:0 0}.item-pickaxe{background-position:25% 0}.item-hammer{background-position:50% 0}.item-sword{background-position:75% 0}.item-fine_sword{background-position:100% 0}
+.item-wood{background-position:0 33.333%}.item-stone{background-position:25% 33.333%}.item-iron{background-position:50% 33.333%}.item-fiber{background-position:75% 33.333%}.item-hide{background-position:100% 33.333%}
+.item-venison{background-position:0 66.667%}.item-grilled_venison{background-position:25% 66.667%}.item-berries{background-position:50% 66.667%}.item-herb{background-position:75% 66.667%}.item-mushroom{background-position:100% 66.667%}
+.item-woodland_broth{background-position:0 100%}.item-hearty_stew{background-position:25% 100%}
+
+#ui .pack-item.has-item-art{display:grid;grid-template-columns:62px minmax(0,1fr);column-gap:14px;align-items:start}.pack-item-copy{min-width:0}.pack-item-icon{width:58px;height:58px;margin-top:1px}.pack-item.has-item-art .item-actions{grid-column:2}
+#ui .recipe.has-item-art{gap:15px}.recipe-icon{width:58px;height:58px}.recipe-copy{min-width:0}
+.loot-icon .item-art{width:32px;height:32px;filter:drop-shadow(0 2px 2px #0009)}.loot-icon{overflow:visible}
+
+/* Hotbar receives real item art without changing its gameplay markup or key labels. */
+#ui .hotbar button{min-height:58px;padding-left:56px;text-align:left}#ui .hotbar button:before{content:"";position:absolute;left:9px;top:50%;width:40px;height:40px;transform:translateY(-50%);background-image:url('/assets/ui/icons/alderwatch-items.png');background-repeat:no-repeat;background-size:500% 400%;filter:drop-shadow(0 2px 2px #000a)}
+#ui .hotbar button:nth-child(1):before{background-position:0 0}#ui .hotbar button:nth-child(2):before{background-position:25% 0}#ui .hotbar button:nth-child(3):before{background-position:75% 0}#ui .hotbar button:nth-child(4):before{background-position:50% 0}
+
+/* Status art stays supplemental: bars and timed-food text remain the source of truth. */
+#ui .vitals:before{content:"";width:34px;height:34px;left:10px;border:0;box-shadow:none;background-image:url('/assets/ui/icons/alderwatch-buffs.png');background-repeat:no-repeat;background-size:400% 200%;background-position:0 0;filter:drop-shadow(0 2px 3px #000b)}
+#ui .vitals:after{content:"";position:absolute;left:18px;bottom:7px;width:18px;height:18px;background-image:url('/assets/ui/icons/alderwatch-buffs.png');background-repeat:no-repeat;background-size:400% 200%;background-position:33.333% 0;filter:drop-shadow(0 2px 2px #000b)}
+#ui .buffs{min-height:38px;padding:7px 11px 7px 43px}#ui .buffs:before{content:"";position:absolute;left:7px;top:50%;width:30px;height:30px;transform:translateY(-50%);background-image:url('/assets/ui/icons/alderwatch-buffs.png');background-repeat:no-repeat;background-size:400% 200%;background-position:66.667% 100%;filter:drop-shadow(0 2px 2px #000b)}
+
+@media(max-width:850px){#ui .hotbar button{min-width:88px;padding-left:39px}#ui .hotbar button:before{left:5px;width:31px;height:31px}.pack-item-icon,.recipe-icon{width:50px;height:50px}#ui .pack-item.has-item-art{grid-template-columns:54px minmax(0,1fr);column-gap:10px}}
