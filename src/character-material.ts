@@ -8,8 +8,8 @@ export function weatheredCloth(m:T.MeshStandardMaterial,textures:Record<string,T
  if(!m.name.includes('Ranger'))return;
  const jerkin=part.includes('Body')&&!part.includes('Belt');
  m.metalness=0;
- m.roughness=jerkin?.79:.94;
- m.envMapIntensity=jerkin?.58:.34;
+ m.roughness=jerkin ? .79 : .94;
+ m.envMapIntensity=jerkin ? .58 : .34;
  m.onBeforeCompile=shader=>{
   shader.uniforms.awGarment={value:textures[jerkin?'leather':'wool']};
   shader.fragmentShader='uniform sampler2D awGarment;\n'+shader.fragmentShader;
