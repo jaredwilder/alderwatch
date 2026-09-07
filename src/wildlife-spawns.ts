@@ -27,7 +27,6 @@ export const WILDLIFE_SPAWNS:readonly WildlifeSpawn[]=[
  {id:'southwood-deer-12',kind:'deer',x:-12,z:103,yaw:1.2},{id:'southwood-deer-13',kind:'deer',x:-20,z:113,yaw:4.0},{id:'southwood-deer-14',kind:'deer',x:63,z:124,yaw:2.6},{id:'southwood-deer-15',kind:'deer',x:71,z:136,yaw:.8},
  {id:'southwood-deer-16',kind:'deer',x:-63,z:118,yaw:5.6},{id:'southwood-deer-17',kind:'deer',x:-72,z:131,yaw:2.4},{id:'southwood-deer-18',kind:'deer',x:18,z:149,yaw:4.9},{id:'southwood-deer-19',kind:'deer',x:29,z:163,yaw:1.5},
  {id:'high-meadow-bison-0',kind:'bison',x:88,z:58,yaw:.5},{id:'high-meadow-bison-1',kind:'bison',x:96,z:64,yaw:1.5},{id:'high-meadow-bison-2',kind:'bison',x:104,z:56,yaw:2.4},{id:'high-meadow-bison-3',kind:'bison',x:111,z:67,yaw:4.1},{id:'high-meadow-bison-4',kind:'bison',x:101,z:73,yaw:5.2},
- {id:'high-meadow-bison-5',kind:'bison',x:116,z:48,yaw:.9},{id:'high-meadow-bison-6',kind:'bison',x:122,z:59,yaw:3.7},{id:'high-meadow-bison-7',kind:'bison',x:91,z:79,yaw:2.0},
  // Three territories, intentionally capped. Each overlaps a different prey pocket rather than blanketing the map.
  {id:'eagle-pasture-0',kind:'eagle',x:-5,z:58,yaw:1.2},
  {id:'eagle-southwood-0',kind:'eagle',x:19,z:104,yaw:4.5},
