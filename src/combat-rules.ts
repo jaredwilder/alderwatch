@@ -9,6 +9,7 @@ export const WEAPONS:Partial<Record<ItemId,{damage:number;reach:number;impact:nu
  axe:{damage:20,reach:2.2,impact:17/30,duration:31/30,stamina:14},
  pickaxe:{damage:12,reach:2.1,impact:17/30,duration:31/30,stamina:14},
  hammer:{damage:10,reach:1.5,impact:.567,duration:1.22,stamina:12},
+ bow:{damage:32,reach:38,impact:.32,duration:.76,stamina:9},
 };
 export type ImpactSound='light_sword'|'heavy_sword'|'axe'|'pick'|'animal'|'hit'|'block'|'parry';
 export type ImpactParticles='flesh'|'metal'|'dust';
@@ -22,8 +23,9 @@ export function impactFeedback(attacker:Fighter,outcome:'hit'|'blocked'|'parried
  else if(item?.includes('sword'))profile={sound:'light_sword',shake:.052,shakeDuration:.12,freeze:.034,knockback:1,staggerTicks:24,particles:'flesh'};
  else if(item==='axe')profile={sound:'axe',shake:.062,shakeDuration:.14,freeze:.044,knockback:1.35,staggerTicks:30,particles:'flesh'};
  else if(item==='pickaxe')profile={sound:'pick',shake:.056,shakeDuration:.12,freeze:.038,knockback:1.15,staggerTicks:27,particles:'flesh'};
+ else if(item==='bow')profile={sound:'hit',shake:.026,shakeDuration:.08,freeze:.012,knockback:.55,staggerTicks:18,particles:'flesh'};
  else profile={sound:'hit',shake:.045,shakeDuration:.11,freeze:.03,knockback:.9,staggerTicks:24,particles:'dust'};
- if(target==='animal')profile={...profile,sound:'animal',freeze:Math.max(.028,profile.freeze-.006),shake:profile.shake*.9};
+ if(target==='animal')profile={...profile,sound:'animal',freeze:Math.max(.012,profile.freeze-.006),shake:profile.shake*.9};
  if(outcome==='killed')profile={...profile,shake:profile.shake*1.12,knockback:profile.knockback*1.08};
  return profile;
 }
@@ -39,13 +41,13 @@ export function beginAction(f:Fighter,tick:number,action:'attack'|'heavy'|'dodge
  const cost=action==='dodge'?22:action==='heavy'?26:weapon!.stamina;
  if(f.stamina<cost)return {ok:false,message:'Not enough stamina'};
  f.stamina-=cost;f.combat={kind:action,started:tick,until:tick+Math.ceil((action==='dodge'?.8:action==='heavy'?47/30:weapon!.duration)*60),consumed:false,blocking:false,weapon:f.equipped};
- return {ok:true,message:action==='dodge'?'Dodge':'Attack'};
+ return {ok:true,message:action==='dodge'?'Dodge':f.equipped==='bow'?'Loose arrow':'Attack'};
 }
-export function setGuard(f:Fighter,tick:number,wanted:boolean){const c=combatState(f),blocking=wanted&&!actionBusy(f,tick)&&f.stamina>=1&&!!f.equipped&&!!WEAPONS[f.equipped];if(blocking&&!c.blocking)c.guardSince=tick;if(!blocking)c.guardSince=undefined;c.blocking=blocking;}
+export function setGuard(f:Fighter,tick:number,wanted:boolean){const c=combatState(f),blocking=wanted&&!actionBusy(f,tick)&&f.stamina>=1&&!!f.equipped&&f.equipped!=='bow'&&!!WEAPONS[f.equipped];if(blocking&&!c.blocking)c.guardSince=tick;if(!blocking)c.guardSince=undefined;c.blocking=blocking;}
 export function faces(a:Fighter,b:Fighter,minimum=.25){const dx=b.position[0]-a.position[0],dz=b.position[2]-a.position[2],d=Math.hypot(dx,dz);return d<.01||(Math.sin(a.yaw)*dx+Math.cos(a.yaw)*dz)/d>=minimum;}
 export type StrikeResult={ok:boolean;message:string;outcome?:'hit'|'blocked'|'parried'|'dodged'|'miss'|'killed';damage?:number;targetId?:string};
 function worldDrop(w:WorldState,item:ItemId,count:number,position:Vec3,index:number){const id='drop-'+w.nextId++,angle=index*2.4;w.drops[id]={id,item,count,position:[position[0]+Math.sin(angle)*.6,position[1]+.65,position[2]+Math.cos(angle)*.6],rotation:[0,angle,Math.PI/2]};}
-function kill(w:WorldState,target:Fighter){
+export function killFighter(w:WorldState,target:Fighter){
  target.health=0;target.combat={kind:'death',started:w.tick,until:w.tick+180,consumed:true,blocking:false,weapon:target.equipped};
  const enemy=w.enemies[target.id];
  if(enemy){enemy.phase='dead';if(!enemy.rewarded){enemy.rewarded=true;(['hide','iron','venison'] as ItemId[]).forEach((item,i)=>worldDrop(w,item,[3,2,1][i],target.position,i));if(!w.progress.includes('bandit-defeated'))w.progress.push('bandit-defeated');}}
@@ -56,7 +58,7 @@ export function resolveStrike(w:WorldState,attacker:Fighter,target:Fighter|undef
  const a=combatState(attacker),weapon=attackProfile(attacker),age=(w.tick-a.started)/60;
  if(attacker.health<=0||!['attack','heavy'].includes(a.kind)||a.consumed||!weapon||age+1e-6<weapon.impact||w.tick>a.until)return {ok:false,message:'No unresolved strike at this time'};
  a.consumed=true;
- if(!target||target.health<=0||!lineClear||horizontalDistance(attacker.position,target.position)>weapon.reach||Math.abs(attacker.position[1]-target.position[1])>1.5||!faces(attacker,target))return {ok:true,outcome:'miss',message:lineClear?'Out of reach':'Strike obstructed'};
+ if(!target||target.health<=0||!lineClear||horizontalDistance(attacker.position,target.position)>weapon.reach||Math.abs(attacker.position[1]-target.position[1])>1.5||!faces(attacker,target,a.weapon==='bow'?.35:.25))return {ok:true,outcome:'miss',message:lineClear?'Out of reach':'Strike obstructed'};
  if(a.weapon?.includes('sword')){
   const dx=target.position[0]-attacker.position[0],dz=target.position[2]-attacker.position[2],side=dx*Math.cos(attacker.yaw)-dz*Math.sin(attacker.yaw),forward=dx*Math.sin(attacker.yaw)+dz*Math.cos(attacker.yaw);
   // Authored contact corridor around the blade, expanded by the target capsule.
@@ -73,7 +75,7 @@ export function resolveStrike(w:WorldState,attacker:Fighter,target:Fighter|undef
   if(blocked)damage=Math.max(1,Math.round(damage*.1));
  }
  target.health=Math.max(0,target.health-damage);
- if(target.health<=0)kill(w,target);
+ if(target.health<=0)killFighter(w,target);
  else if(!blocked){const stagger=impactFeedback(attacker,'hit').staggerTicks;target.combat={kind:'hit',started:w.tick,until:w.tick+stagger,consumed:true,blocking:false,weapon:target.equipped};}
  if(w.players[attacker.id])w.players[attacker.id].skills.combat++;
  return {ok:true,outcome:target.health<=0?'killed':blocked?'blocked':'hit',damage,targetId:target.id,message:target.health<=0?'Raider defeated — collect his supplies':blocked?'Guard held':'Strike landed'};
