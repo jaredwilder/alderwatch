@@ -1,6 +1,7 @@
 import type {AnimalKind} from './wildlife-species';
 
 export const MAX_WOLF_PACK_SIZE=3;
+export const MAX_EAGLES=3;
 export interface WildlifeSpawn {
  id:string;
  kind:AnimalKind;
@@ -19,7 +20,11 @@ export const WILDLIFE_SPAWNS:readonly WildlifeSpawn[]=[
  {id:'southwood-deer-0',kind:'deer',x:24,z:91,yaw:1.7},{id:'southwood-deer-1',kind:'deer',x:31,z:98,yaw:4.2},{id:'southwood-deer-2',kind:'deer',x:38,z:106,yaw:.9},{id:'southwood-deer-3',kind:'deer',x:27,z:113,yaw:3.5},
  {id:'southwood-deer-4',kind:'deer',x:-31,z:132,yaw:2.7},{id:'southwood-deer-5',kind:'deer',x:-39,z:140,yaw:5.7},{id:'southwood-deer-6',kind:'deer',x:-47,z:149,yaw:1.1},{id:'southwood-deer-7',kind:'deer',x:-35,z:156,yaw:4.6},
  {id:'high-meadow-bison-0',kind:'bison',x:88,z:58,yaw:.5},{id:'high-meadow-bison-1',kind:'bison',x:96,z:64,yaw:1.5},{id:'high-meadow-bison-2',kind:'bison',x:104,z:56,yaw:2.4},{id:'high-meadow-bison-3',kind:'bison',x:111,z:67,yaw:4.1},{id:'high-meadow-bison-4',kind:'bison',x:101,z:73,yaw:5.2},
- // Two authored encounters; every pack is statically guarded at MAX_WOLF_PACK_SIZE by tests.
+ // Three territories, intentionally capped. Each overlaps a different prey pocket rather than blanketing the map.
+ {id:'eagle-pasture-0',kind:'eagle',x:-5,z:58,yaw:1.2},
+ {id:'eagle-southwood-0',kind:'eagle',x:19,z:104,yaw:4.5},
+ {id:'eagle-high-meadow-0',kind:'eagle',x:76,z:82,yaw:2.7},
+ // Two authored wolf encounters; every pack is statically guarded at MAX_WOLF_PACK_SIZE by tests.
  {id:'wolf-high-meadow-0',kind:'wolf',x:127,z:55,yaw:4.4,packId:'high-meadow'},{id:'wolf-high-meadow-1',kind:'wolf',x:131,z:61,yaw:4.1,packId:'high-meadow'},{id:'wolf-high-meadow-2',kind:'wolf',x:128,z:68,yaw:3.8,packId:'high-meadow'},
  {id:'wolf-ridge-0',kind:'wolf',x:151,z:98,yaw:5.1,packId:'east-ridge'},{id:'wolf-ridge-1',kind:'wolf',x:156,z:104,yaw:4.7,packId:'east-ridge'},{id:'wolf-ridge-2',kind:'wolf',x:149,z:109,yaw:5.4,packId:'east-ridge'},
  {id:'ironward-bear',kind:'bear',x:198,z:72,yaw:2.8},{id:'briar-bear',kind:'bear',x:-214,z:154,yaw:5.1},{id:'southwood-bear',kind:'bear',x:76,z:201,yaw:3.6},

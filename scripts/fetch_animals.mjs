@@ -12,6 +12,7 @@ const SOURCES=[
  {name:'bear',file:'bear.glb',minBytes:300_000,url:'https://raw.githubusercontent.com/TuanTran0168/myunivokai-personalized-3d-worlds/9112af6c04ea14cd849ca90f82f45c875d3c7f50/apps/myunivokai-personalization/public/assets/nature/models/animal-bear.glb'},
  {name:'bison',file:'bison.glb',minBytes:40_000,url:'https://github.com/series-ai/jam-ready-assets/raw/e93aa129978daafda85f3c907eebc8f1807ec43f/kenney-prototype-kit/3D/prototype-blocks/Models/GLB%20format/animal-bison.glb'},
  {name:'wolf',file:'wolf.glb',minBytes:1_500_000,url:'https://raw.githubusercontent.com/StateDev08/War-of-the-Kindom-Mobile/9b5a2827ed8f2b7adf657ddf7e47cb026bab0b39/client/assets/models/quaternius/animals/wolf.glb'},
+ {name:'eagle',file:'eagle.glb',minBytes:3_000_000,url:'https://raw.githubusercontent.com/maramilod/LYMonada/677cdce7c62c731bc46fd59edebc40e4e2376dd4/src/assets/3d/eagle.glb'},
 ];
 
 await mkdir(OUT,{recursive:true});

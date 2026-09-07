@@ -2,13 +2,13 @@ const positions:Record<string,[number,number]>={
  mushroom:[0,0],herb:[1,0],woodland_broth:[2,0],axe:[3,0],pickaxe:[4,0],bow:[5,0],
  hammer:[0,1],sword:[1,1],fine_sword:[2,1],wood:[3,1],stone:[4,1],crow_crop:[5,1],
  iron:[0,2],fiber:[1,2],venison:[2,2],berries:[3,2],grilled_venison:[4,2],crow_milk:[5,2],
- hearty_stew:[0,3],hide:[1,3],health:[2,3],stamina:[3,3],speed:[4,3],
+ hearty_stew:[0,3],hide:[1,3],health:[2,3],stamina:[3,3],speed:[4,3],wild_honey:[5,3],
 };
 const names:Record<string,string>={
  'Woodland mushrooms':'mushroom','Wild herbs':'herb','Woodland broth':'woodland_broth','Iron axe':'axe','Mining pick':'pickaxe','Hunter’s bow':'bow',
  'Builder’s hammer':'hammer','Marcher’s sword':'sword','Tempered sword':'fine_sword','Tempered marcher’s sword':'fine_sword','Oak timber':'wood',
  'Fieldstone':'stone','Iron ore':'iron','Wild flax':'fiber','Raw venison':'venison','Wild berries':'berries','Grilled venison':'grilled_venison',
- 'Marcher’s stew':'hearty_stew','Cured hide':'hide','Crow crop':'crow_crop','Crow milk':'crow_milk',
+ 'Marcher’s stew':'hearty_stew','Cured hide':'hide','Crow crop':'crow_crop','Crow milk':'crow_milk','Wild honey':'wild_honey',
 };
 const recipeNames:Record<string,string>={'Woodland broth':'woodland_broth','Crow milk':'crow_milk','Marcher’s sword':'sword','Tempered marcher’s sword':'fine_sword','Grilled venison':'grilled_venison','Marcher’s stew':'hearty_stew'};
 
@@ -19,6 +19,7 @@ if(typeof document!=='undefined'){
  style.dataset.alderwatchItemIcons='1';
  style.textContent=`
 .aw-item-icon{display:inline-block;width:2.35rem;height:2.35rem;flex:0 0 auto;background-image:url('/assets/ui/item-icons.svg');background-size:600% 400%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0008);vertical-align:middle}
+.aw-item-icon[data-item="wild_honey"]{background-image:url('/assets/ui/honey-icon.svg');background-size:100% 100%;background-position:center}
 .pack-item strong>.aw-item-icon{width:2.8rem;height:2.8rem;margin-right:.55rem}.pack-item strong{display:flex;align-items:center}
 .loot-icon.aw-item-icon{width:2.8rem;height:2.8rem;font-size:0}
 .recipe h3>.aw-item-icon{width:2.25rem;height:2.25rem;margin-right:.5rem}.recipe h3{display:flex;align-items:center}
