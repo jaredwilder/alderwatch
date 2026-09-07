@@ -1,5 +1,6 @@
 import type {ItemId,PlayerState,WorldState} from './state';
 import {PREDATOR_SPECIES,species,type AnimalState,type PredatorKind,type WildlifeKiller} from './wildlife-species';
+import {groundPredatorCanReach,releaseCarry} from './wildlife-aerial';
 import {stats} from './definitions';
 import {attackProfile,combatState,faces,horizontalDistance,killFighter,type StrikeResult} from './combat-rules';
 
@@ -14,7 +15,10 @@ export function corpseId(animalId:string){return 'corpse-'+animalId;}
 
 export function killAnimal(world:WorldState,animal:AnimalState,killer:WildlifeKiller){
  ensureAnimalVitals(animal);if(animal.dead)return false;
- animal.health=0;animal.dead=true;animal.killedBy=killer;animal.diedAt=world.tick;
+ const animals=world.animals??{};
+ if(animal.carriedPreyId)releaseCarry(animal,animals);
+ if(animal.carriedById){const carrier=animals[animal.carriedById];if(carrier)releaseCarry(carrier,animals);animal.carriedById=undefined;}
+ animal.health=0;animal.dead=true;animal.killedBy=killer;animal.diedAt=world.tick;animal.airborne=false;
  const id=corpseId(animal.id);
  if(!world.containers[id]){
   const inventory=Object.entries(species(animal.kind).loot).flatMap(([item,count])=>count?[{id:'item-'+world.nextId++,item:item as ItemId,count,quality:1}]:[]);
@@ -34,15 +38,16 @@ export function resolveWildlifeStrike(world:WorldState,attacker:PlayerState,targ
  const action=combatState(attacker),weapon=attackProfile(attacker),age=(world.tick-action.started)/60;
  if(attacker.health<=0||!['attack','heavy'].includes(action.kind)||action.consumed||!weapon||age+1e-6<weapon.impact||world.tick>action.until)return {ok:false,message:'No unresolved strike at this time'};
  action.consumed=true;
- const facing=action.weapon==='bow'?.35:-.12;
- if(!target||!animalAlive(target)||!lineClear||horizontalDistance(attacker.position,target.position)>weapon.reach+.35||Math.abs(attacker.position[1]-target.position[1])>(action.weapon==='bow'?3:1.8)||!faces(attacker,target as never,facing))return {ok:true,outcome:'miss',message:lineClear?'Out of reach':'Shot obstructed'};
+ const facing=action.weapon==='bow'?.35:-.12,verticalReach=action.weapon==='bow'?(target&&species(target.kind).aerial?12:3):1.8;
+ if(!target||!animalAlive(target)||!lineClear||horizontalDistance(attacker.position,target.position)>weapon.reach+.35||Math.abs(attacker.position[1]-target.position[1])>verticalReach||!faces(attacker,target as never,facing))return {ok:true,outcome:'miss',message:lineClear?'Out of reach':'Shot obstructed'};
  const damage=Math.round(weapon.damage*stats(attacker).damage),hit=damageAnimal(world,target,damage,'player',attacker.id);attacker.skills.combat++;
  return {ok:true,outcome:hit.killed?'killed':'hit',damage:hit.damage,targetId:target.id,message:hit.killed?`${target.kind} down — search the carcass`:`${target.kind} · ${target.health}/${target.maxHealth}`};
 }
 
 export function predatorBite(world:WorldState,predator:AnimalState,prey:AnimalState,damageOverride?:number){
  ensureAnimalVitals(predator);ensureAnimalVitals(prey);const config=species(predator.kind).predator;
- if(!config||!PREDATOR_SPECIES.has(predator.kind)||!animalAlive(predator)||!animalAlive(prey)||!config.prey.includes(prey.kind))return {killed:false,damage:0};
+ const reachable=predator.kind==='eagle'||groundPredatorCanReach(prey);
+ if(!config||!PREDATOR_SPECIES.has(predator.kind)||!animalAlive(predator)||!animalAlive(prey)||!config.prey.includes(prey.kind)||!reachable)return {killed:false,damage:0};
  return damageAnimal(world,prey,damageOverride??config.preyDamage,predator.kind as PredatorKind,predator.id);
 }
 
