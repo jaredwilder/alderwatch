@@ -58,6 +58,11 @@ test('default action camera frames a wide elevated play area at every zoom limit
  assert.ok(2*a.distance*Math.tan(T.MathUtils.degToRad(a.fov/2))>10,'At least ten metres of vertical coverage');
  for(const distance of [a.minDistance,a.maxDistance]){c.reset();const v=c.update(p,0,a.pitch,distance,1/60,()=>undefined);assert.ok(Math.abs(v.position.distanceTo(v.aim)-distance)<.001);assert.ok(v.position.y>p.y+6);}
  assert.ok(a.minPitch>0&&a.maxPitch<Math.PI/2,'Orbit cannot cross the pole or drop below ground');
+ assert.ok(a.minPitch<=.2&&a.maxPitch>=1.4&&a.maxPitch-a.minPitch>1.15,'Vertical orbit must span low exploration framing through near-overhead tactical framing');
+ c.reset();const low=c.update(p,0,a.minPitch,a.distance,1/60,()=>undefined);c.reset();const high=c.update(p,0,a.maxPitch,a.distance,1/60,()=>undefined);
+ assert.ok(high.position.y-low.position.y>10,'Vertical mouse travel must materially change camera height');
+ assert.ok(Math.hypot(low.position.x-low.aim.x,low.position.z-low.aim.z)>10,'Low pitch must expose the horizon instead of remaining top-down');
+ assert.ok(Math.hypot(high.position.x-high.aim.x,high.position.z-high.aim.z)<3,'High pitch must reach a true tactical near-overhead view');
 });
 test('mouse orbit is immediate while follow translation and collision recovery are damped',()=>{
  const c=new FollowCamera(),p=new T.Vector3();c.update(p,0,.2,5,1/60,()=>undefined);const turn=c.update(p,Math.PI/2,.2,5,1/60,()=>undefined);assert.ok(turn.position.x<-4.8);assert.ok(Math.abs(turn.position.z)<.01);
