@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+<defs>
+ <linearGradient id="iron" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8d2c1"/><stop offset=".45" stop-color="#6f756f"/><stop offset="1" stop-color="#292f2e"/></linearGradient>
+ <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9b6b38"/><stop offset="1" stop-color="#3c2619"/></linearGradient>
+ <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#829259"/><stop offset="1" stop-color="#35452f"/></linearGradient>
+ <linearGradient id="food" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b36e46"/><stop offset="1" stop-color="#572e27"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8b66b"/><stop offset="1" stop-color="#705329"/></linearGradient>
+ <filter id="soft"><feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-opacity=".45"/></filter>
+</defs>
+<!-- row 1: mushroom, herb, broth, axe, pickaxe, bow -->
+<g transform="translate(0 0)" filter="url(#soft)"><path fill="#d8c6a1" d="M28 48c3-20 40-29 51-3 2 5 1 9-4 10H25c-4-1-2-4 3-7z"/><path fill="#aa987a" d="M46 54h12l6 29H40z"/><path fill="#594332" d="M36 59h28l-3 5H39z"/></g>
+<g transform="translate(100 0)" filter="url(#soft)" fill="url(#leaf)"><path d="M51 84c-4-22-2-45 3-67l6 2c-7 25-6 45-2 64z"/><path d="M51 54C32 52 22 40 20 27c17-2 31 6 35 20zM57 43c5-17 18-26 31-25 0 16-9 29-29 32zM51 69c-16 2-27-5-32-15 14-6 27-2 35 8z"/></g>
+<g transform="translate(200 0)" filter="url(#soft)"><path fill="#5b4030" d="M20 49h60l-8 34H28z"/><path fill="#b58b55" d="M25 43c7-15 44-15 50 0l-4 8H29z"/><path fill="#ddd0a7" d="M32 38c8-9 29-10 37 0-13-4-25-2-37 0z"/><path stroke="#786039" stroke-width="5" d="M75 49l10-10"/></g>
+<g transform="translate(300 0)" filter="url(#soft)"><path fill="url(#wood)" d="M47 31h8v57h-8z" transform="rotate(-26 51 60)"/><path fill="url(#iron)" d="M27 24c17 0 32 5 49 16l-5 11c-17-10-30-14-49-15z"/><path fill="#a9a690" d="M65 41l13 8-7 8-11-9z"/></g>
+<g transform="translate(400 0)" filter="url(#soft)"><path fill="url(#wood)" d="M48 28h8v59h-8z" transform="rotate(20 52 59)"/><path fill="url(#iron)" d="M19 33c17-11 45-13 63-2l-6 10c-17-7-34-5-52 3z"/><path fill="#b3ad9b" d="M23 31l4 18-9 2-5-15z"/></g>
+<g transform="translate(500 0)" filter="url(#soft)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="url(#wood)" stroke-width="7" d="M30 15c31 17 31 53 0 71"/><path stroke="#d8c6a1" stroke-width="2.5" d="M31 17L72 50 31 84M31 17v67"/><path stroke="url(#iron)" stroke-width="4" d="M19 50h59"/><path fill="url(#iron)" stroke="none" d="M78 50l-12-7v14z"/><path fill="#7d5730" stroke="none" d="M23 46h10v8H23z"/></g>
+<!-- row 2: hammer, sword, fine sword, wood, stone -->
+<g transform="translate(0 100)" filter="url(#soft)"><path fill="url(#wood)" d="M47 36h9v52h-9z"/><path fill="url(#iron)" d="M23 23h58v19H23z"/><path fill="#97998f" d="M17 27h14v11H17z"/></g>
+<g transform="translate(100 100)" filter="url(#soft)"><path fill="url(#iron)" d="M48 12h8l4 52-8 13-8-13z"/><path fill="url(#gold)" d="M28 62h47v8H28zM47 70h11v14H47z"/><circle cx="52" cy="87" r="6" fill="#705329"/></g>
+<g transform="translate(200 100)" filter="url(#soft)"><path fill="#d9e0df" d="M48 9h8l5 54-9 15-9-15z"/><path stroke="#f4f0c8" stroke-width="2" d="M52 17v45"/><path fill="#b89851" d="M27 61h49v8H27zM47 69h11v15H47z"/><path fill="#373b38" d="M48 84h9v8h-9z"/></g>
+<g transform="translate(300 100)" filter="url(#soft)"><path fill="url(#wood)" d="M18 33l54-14 11 43-55 16z"/><path stroke="#c18d50" stroke-width="3" d="M29 38l40-10M32 49l40-10M35 61l39-11"/><path fill="#4b3020" d="M19 33l10 44-8 2-9-42z"/></g>
+<g transform="translate(400 100)" filter="url(#soft)"><path fill="#7e8179" d="M18 56l12-28 33-10 23 23-7 34-35 10z"/><path fill="#a9a89b" d="M30 32l30-9 15 14-33 12z"/><path fill="#5b5f59" d="M42 50l34-10-3 25-29 13z"/></g>
+<!-- row 3: iron, fiber, venison, berries, grilled venison -->
+<g transform="translate(0 200)" filter="url(#soft)"><path fill="#535957" d="M18 65l15-37 37-12 17 31-18 35-36 3z"/><path fill="url(#iron)" d="M35 35l17-9 9 11-15 10zM57 52l15-7 5 9-16 10z"/></g>
+<g transform="translate(100 200)" filter="url(#soft)"><path stroke="#a59b69" stroke-width="5" fill="none" d="M22 78c25-24 23-47 20-62M51 82c17-27 14-48 10-65M76 78C61 57 68 36 75 20"/><path fill="url(#leaf)" d="M26 51c-13-5-18-14-16-24 13 1 21 7 23 18zM61 48c-11-7-15-16-11-25 12 3 18 10 18 20zM72 51c13-4 20-12 20-22-13-1-22 5-25 17z"/></g>
+<g transform="translate(200 200)" filter="url(#soft)"><path fill="url(#food)" d="M19 57c7-26 29-39 55-27 16 8 16 27 3 42-13 15-38 18-54 7-7-5-8-13-4-22z"/><path fill="#e4c7a7" d="M68 31c8-9 17-11 21-5 5 7-3 14-13 18z"/><path fill="#8f4f3e" d="M30 55c11-14 27-18 41-12-13 1-27 8-36 20z"/></g>
+<g transform="translate(300 200)" filter="url(#soft)"><path stroke="#596740" stroke-width="4" d="M50 57c-4-16-1-27 6-39"/><g fill="#8d3540"><circle cx="35" cy="50" r="13"/><circle cx="56" cy="56" r="14"/><circle cx="67" cy="38" r="12"/><circle cx="43" cy="32" r="11"/></g><path fill="#6f8050" d="M52 26c-11-11-22-11-29-6 7 10 17 14 29 11z"/></g>
+<g transform="translate(400 200)" filter="url(#soft)"><path fill="#69352a" d="M18 58c8-24 30-38 55-27 15 7 17 27 3 42-14 14-40 18-55 5-6-5-7-12-3-20z"/><path stroke="#c18859" stroke-width="4" d="M31 51l38 16M36 41l39 16M27 63l32 14"/><path fill="#d8b293" d="M70 31c8-8 17-10 21-4 4 7-4 14-14 17z"/></g>
+<!-- row 4: stew, hide, health, stamina, speed -->
+<g transform="translate(0 300)" filter="url(#soft)"><path fill="#43352d" d="M17 45h66l-9 38H26z"/><path fill="#6f4c33" d="M22 39c9-15 48-16 57 0l-5 9H27z"/><circle cx="39" cy="39" r="6" fill="#8b3d3e"/><circle cx="55" cy="37" r="7" fill="#718050"/><circle cx="66" cy="42" r="5" fill="#b28758"/></g>
+<g transform="translate(100 300)" filter="url(#soft)"><path fill="#8f6542" d="M20 27c16-15 24-7 31-16 8 10 18 6 28 17-8 13-2 27-8 45-18 11-38 10-52-1 8-15 0-29 1-45z"/><path stroke="#c69a69" stroke-width="3" fill="none" d="M30 36c13 5 28 5 40-1M27 51c15 5 29 5 45 0"/></g>
+<g transform="translate(200 300)" filter="url(#soft)"><path fill="#8e3541" d="M50 82C9 58 22 22 43 25c8 1 12 6 15 12 5-9 12-13 21-11 22 5 23 37-29 56z"/><path fill="#d59092" d="M37 32c7-4 13-1 17 5-8-2-14 1-19 7z"/></g>
+<g transform="translate(300 300)" filter="url(#soft)"><path fill="#718c82" d="M52 13c22 27 30 42 26 56-5 20-23 23-29 22-21-2-31-20-22-39 5-11 14-23 25-39z"/><path fill="#b8d0c3" d="M48 31c8 11 13 20 15 29-8-6-15-6-22-1 0-10 3-19 7-28z"/></g>
+<g transform="translate(400 300)" filter="url(#soft)"><path stroke="#d4c392" stroke-width="7" stroke-linecap="round" d="M22 68c18-2 26-14 32-29M42 76c20-4 31-18 37-39"/><path fill="#87926d" d="M54 36l-13-13 17-8 10 15zM78 35l-8-14 16-3 6 14z"/></g>
+</svg>

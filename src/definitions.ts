@@ -1,3 +1,4 @@
+import './item-icons';
 import type {ItemId,PlayerState,Vec3} from './state';
 import {height} from './terrain';
 export type BuildKind='foundation'|'wall'|'window'|'doorway'|'roof'|'workbench'|'campfire'|'chest'|'palisade';
