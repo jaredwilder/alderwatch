@@ -88,6 +88,6 @@ if(m.name==='AW_grass'){const meadow=m.onBeforeCompile;m.onBeforeCompile=(s,r)=>
     }`);
   };m.customProgramCacheKey=()=>key+'-sight-cutaway-v1';
  }
- prop(name:string){if(name==='highland')return new T.Group();if(name==='palisade'&&this.medieval.fence_wood_ext1)return this.authoredFortification();if(name==='satchel'&&this.medieval.crate)return this.authoredFieldClutter();if(name==='village_details'&&this.medieval.wall_plaster_straight)return this.authoredLonghouse();if((name==='village_roof'||name==='village_gable')&&this.medieval.roof_roundtiles_6x6)return new T.Group();const o=this.kit.scene.getObjectByName(name)??this.nature?.scene.getObjectByName(name);if(!o)throw new Error('Missing authored asset: '+name);return o.clone(true);}
+ prop(name:string){if(name==='highland')return new T.Group();if(name==='palisade'&&this.medieval.fence_wood_ext1)return this.authoredFortification();if(name==='satchel'&&this.medieval.crate)return this.authoredFieldClutter();if(name==='village_details'&&this.medieval.wall_plaster_straight)return this.authoredLonghouse();if((name==='village_roof'||name==='village_gable')&&this.medieval.roof_roundtiles_6x6)return new T.Group();const o=this.medieval[name]??this.kit.scene.getObjectByName(name)??this.nature?.scene.getObjectByName(name);if(!o)throw new Error('Missing authored asset: '+name);return o.clone(true);}
  human(){return clone(this.survivor.scene);}
 }
