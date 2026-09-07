@@ -6,6 +6,7 @@ import type {PlayerState,ItemId} from './state';
 import {stats} from './definitions';
 import {beginAction,combatState,setGuard,attackProfile} from './combat-rules';
 import {weatheredCloth} from './character-material';
+import {makeBow} from './archery';
 export class Character {
  root=new T.Group();model:T.Object3D;mixer:T.AnimationMixer;actions=new Map<string,T.AnimationAction>();current='';body:RAPIER.RigidBody;collider:RAPIER.Collider;controller:RAPIER.KinematicCharacterController;
  grip:T.Object3D;tool?:T.Object3D;equipped:ItemId|null=null;velocity=new T.Vector3();vertical=0;locked=0;attackTime=0;attackHit=false;onImpact=()=>{};onAttackStart=()=>{};onStep=()=>{};stride=0;
@@ -26,12 +27,12 @@ export class Character {
  }
  customize(){this.model.traverse(o=>{if(o.name.includes('Hood'))o.visible=this.state.hood;if(o.name.includes('Hair_Simple'))o.visible=!this.state.hood;if(o instanceof T.Mesh){const mats=Array.isArray(o.material)?o.material:[o.material];const custom=mats.map(old=>{const m=(old as T.MeshStandardMaterial).clone();weatheredCloth(m,this.assets.textures,o.name);if(m.name.includes('Hair'))m.color.set(this.state.hair);if(m.name.includes('Superhero')||m.name.includes('Regular_Male'))m.color.set(this.state.skin);return m;});o.material=Array.isArray(o.material)?custom:custom[0];}});}
  private gripAlignment?:T.Quaternion;
- equip(name:ItemId|null){if(this.tool){this.tool.removeFromParent();this.tool=undefined;}this.equipped=name;if(name&&['axe','pickaxe','sword','fine_sword','hammer'].includes(name)){
+ equip(name:ItemId|null){if(this.tool){this.tool.removeFromParent();this.tool=undefined;}this.equipped=name;if(name&&['axe','pickaxe','sword','fine_sword','hammer','bow'].includes(name)){
   if(!this.gripAlignment){
    // Calibrate once in the authored idle reference pose. This offset stays rigidly bone-local in every animation.
    this.root.updateMatrixWorld(true);const rootQ=this.root.getWorldQuaternion(new T.Quaternion());const shaft=new T.Vector3(0,-.98,.20).normalize().applyQuaternion(rootQ);const edge=new T.Vector3(-1,0,0).applyQuaternion(rootQ);const normal=new T.Vector3().crossVectors(edge,shaft).normalize();edge.crossVectors(shaft,normal).normalize();const worldQ=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(edge,shaft,normal));this.gripAlignment=this.grip.getWorldQuaternion(new T.Quaternion()).invert().multiply(worldQ);
   }
-  const t=this.assets.prop(name==='fine_sword'?'sword':name);if(name==='fine_sword'){t.scale.setScalar(1.08);t.traverse(o=>{if(o instanceof T.Mesh){const tint=(m:T.Material)=>{const n=(m as T.MeshStandardMaterial).clone();n.color.multiplyScalar(1.35);n.roughness=.26;return n;};o.material=Array.isArray(o.material)?o.material.map(tint):tint(o.material);}});}this.grip.add(t);t.position.set(0,0,0);t.quaternion.copy(this.gripAlignment);this.tool=t;
+  const t=name==='bow'?makeBow():this.assets.prop(name==='fine_sword'?'sword':name);if(name==='fine_sword'){t.scale.setScalar(1.08);t.traverse(o=>{if(o instanceof T.Mesh){const tint=(m:T.Material)=>{const n=(m as T.MeshStandardMaterial).clone();n.color.multiplyScalar(1.35);n.roughness=.26;return n;};o.material=Array.isArray(o.material)?o.material.map(tint):tint(o.material);}});}this.grip.add(t);t.position.set(0,0,0);t.quaternion.copy(this.gripAlignment);if(name==='bow'){t.scale.setScalar(1.08);t.rotateY(Math.PI/2);t.rotateZ(Math.PI/2);}this.tool=t;
  }}
  private locomotion(name:string){return name==='walk'||name==='run'||name==='sprint'||name==='guard_walk';}
  private phase(action:T.AnimationAction){const d=action.getClip().duration;return d>0?T.MathUtils.euclideanModulo(action.time/d,1):0;}
@@ -42,7 +43,7 @@ export class Character {
  syncCombatPose(){const c=combatState(this.state),tick=this.getTick(),key=c.kind+':'+c.started;if(c.kind==='idle'||(c.until<=tick&&c.kind!=='death'))return;const base=c.kind==='attack'?(c.weapon==='axe'?'chop':c.weapon==='pickaxe'?'mine':'attack'):c.kind,clip=this.swingLocomotion&&['attack','heavy'].includes(c.kind)?base+'_moving':base;if(key!==this.poseKey||this.current!==clip){const changed=key!==this.poseKey;this.poseKey=key;if(changed)this.attackHit=false;if(changed&&this.swingLocomotion&&this.locomotion(this.current))this.prepareStride(this.current,this.phase(this.actions.get(this.current)!));this.play(clip,true,true);this.actions.get(clip)!.time=Math.max(0,(tick-c.started)/60);}this.locked=Math.max(this.locked,(c.until-tick)/60);if(c.kind==='death'){this.velocity.set(0,0,0);this.collider.setEnabled(false);}}
  startAttack(heavy=false){if(this.locked>0||this.state.health<=0)return;this.onAttackStart();this.state.yaw=this.root.rotation.y;if(this.onActionRequest(heavy?'heavy':'attack'))this.syncCombatPose();}
  preStep(dt:number,input:Pick<Input,'keys'|'take'|'secondary'> & Partial<Pick<Input,'primary'>>,yaw:number,enabled:boolean){
-  const p=this.state,tick=this.getTick();let target=new T.Vector3();this.locked=Math.max(0,this.locked-dt);if(this.locked<1e-6)this.locked=0;this.swingLocomotion=enabled&&['KeyW','KeyA','KeyS','KeyD'].some(k=>input.keys.has(k));this.syncCombatPose();if(!enabled||combatState(p).kind==='hit')this.bufferedAttack=undefined;if(p.health<=0)return;
+  const p=this.state,tick=this.getTick();let target=new T.Vector3();this.locked=Math.max(0,this.locked-dt);if(this.locked<1e-6)this.locked=0;if(enabled&&this.locked===0&&input.take('Digit5')&&p.inventory.some(s=>s.item==='bow')){p.equipped='bow';this.equip('bow');}this.swingLocomotion=enabled&&['KeyW','KeyA','KeyS','KeyD'].some(k=>input.keys.has(k));this.syncCombatPose();if(!enabled||combatState(p).kind==='hit')this.bufferedAttack=undefined;if(p.health<=0)return;
   const before=combatState(p);this.attackTime=['attack','heavy'].includes(before.kind)?(tick-before.started)/60:0;
   if(['attack','heavy'].includes(before.kind)&&this.attackTime<(attackProfile(p)?.impact??0)-.12){this.onWindupAim(dt);p.yaw=this.root.rotation.y;}
   if(['attack','heavy'].includes(before.kind)&&tick<=before.until&&!this.attackHit&&this.attackTime>=(attackProfile(p)?.impact??.567)){this.attackHit=true;this.onImpact();}

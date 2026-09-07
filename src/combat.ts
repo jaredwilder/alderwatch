@@ -4,9 +4,11 @@ import {Assets} from './assets';
 import {Character} from './character';
 import {Soundscape} from './audio';
 import {seedExpedition} from './expedition';
-import {makePlayer,type EnemyState,type LocalAuthority,type PlayerState} from './state';
+import {makePlayer,type EnemyState,type LocalAuthority,type PlayerState,type Vec3} from './state';
 import {beginAction,combatState,faces,horizontalDistance,resolveStrike,seedEnemies,WEAPONS,attackProfile,impactFeedback,type ImpactParticles,type StrikeResult} from './combat-rules';
 import {animalAlive,resolveWildlifeStrike} from './wildlife-rules';
+import type {AnimalState} from './nature';
+import {launchArrow,updateArrow,type ArrowFlight} from './archery';
 
 class Intent {
  keys=new Set<string>();secondary=false;pressed=new Set<string>();
@@ -14,9 +16,12 @@ class Intent {
  clear(){this.keys.clear();this.pressed.clear();this.secondary=false;}
 }
 interface Raider {state:EnemyState;actor:Character;input:Intent}
+type BowAim={id:'bow-aim';position:Vec3;synthetic:true};
+type CombatTarget=EnemyState|AnimalState|BowAim;
+const animalLift=(animal:AnimalState)=>{if(animal.kind==='bear')return 1;if(animal.kind==='deer')return .85;if(animal.kind==='goat'||animal.kind==='sheep')return .62;if(animal.kind==='crow')return .25;return .28;};
 export class Combat {
  raiders=new Map<string,Raider>();shake=0;onNotice=(text:string)=>{};events:({tick:number;attackerId:string}&StrikeResult)[]=[];
- private sparks:{mesh:T.Points;velocity:T.Vector3[];life:number}[]=[];
+ private sparks:{mesh:T.Points;velocity:T.Vector3[];life:number}[]=[];private arrows:ArrowFlight[]=[];
  private freezes=new Map<Character,{left:number;action?:T.AnimationAction}>();private shakePeak=0;private shakeTime=0;private shakeDuration=0;
  constructor(private root:T.Group,private assets:Assets,private physics:RAPIER.World,private authority:LocalAuthority,private player:Character,private sound:Soundscape){
   seedEnemies(authority.state);seedExpedition(authority.state);
@@ -35,11 +40,25 @@ export class Combat {
  private freeze(actor:Character|undefined,seconds:number){if(!actor||seconds<=0)return;const prior=this.freezes.get(actor),action=actor.actions.get(actor.current);if(prior?.action&&prior.action!==action)prior.action.paused=false;if(action)action.paused=true;this.freezes.set(actor,{left:Math.max(prior?.left??0,seconds),action});}
  private impulse(peak:number,duration:number){this.shakePeak=Math.max(this.shakePeak,peak);this.shakeDuration=Math.max(this.shakeDuration,duration);this.shakeTime=Math.max(this.shakeTime,duration);this.shake=this.shakePeak;}
  nearest(p=this.player.state,range=12){return Object.values(this.authority.state.enemies).filter(e=>e.health>0&&horizontalDistance(e.position,p.position)<range).sort((a,b)=>horizontalDistance(a.position,p.position)-horizontalDistance(b.position,p.position))[0];}
- target(range?:number){const p=this.player.state,weapon=p.equipped?WEAPONS[p.equipped]:undefined;return Object.values(this.authority.state.enemies).filter(e=>e.health>0&&horizontalDistance(e.position,p.position)<(range??(weapon?.reach??2)+.25)&&faces(p,e,0)&&this.authority.lineOfSight?.(p,e)!==false).sort((a,b)=>horizontalDistance(a.position,p.position)-horizontalDistance(b.position,p.position))[0];}
- animalTarget(range?:number){const p=this.player.state,weapon=p.equipped?WEAPONS[p.equipped]:undefined;return Object.values(this.authority.state.animals??{}).filter(a=>a.kind!=='crow'&&animalAlive(a)&&horizontalDistance(a.position,p.position)<(range??(weapon?.reach??2)+.4)&&faces(p,a as never,-.15)).sort((a,b)=>horizontalDistance(a.position,p.position)-horizontalDistance(b.position,p.position))[0];}
+ animalTarget(range?:number){const p=this.player.state,weapon=p.equipped?WEAPONS[p.equipped]:undefined,limit=p.equipped==='bow'?Math.max(range??0,weapon?.reach??38):(range??(weapon?.reach??2)+.4),minimum=p.equipped==='bow'?.35:-.15;return Object.values(this.authority.state.animals??{}).filter(a=>(a.kind!=='crow'||p.equipped==='bow')&&animalAlive(a)&&horizontalDistance(a.position,p.position)<limit&&faces(p,a as never,minimum)).sort((a,b)=>horizontalDistance(a.position,p.position)-horizontalDistance(b.position,p.position))[0];}
+ target(range?:number):CombatTarget|undefined{
+  const p=this.player.state,weapon=p.equipped?WEAPONS[p.equipped]:undefined,limit=p.equipped==='bow'?Math.max(range??0,weapon?.reach??38):(range??(weapon?.reach??2)+.25),minimum=p.equipped==='bow'?.35:0;
+  const enemies=Object.values(this.authority.state.enemies).filter(e=>e.health>0&&horizontalDistance(e.position,p.position)<limit&&faces(p,e,minimum)&&this.authority.lineOfSight?.(p,e)!==false);
+  const animals=Object.values(this.authority.state.animals??{}).filter(a=>(a.kind!=='crow'||p.equipped==='bow')&&animalAlive(a)&&horizontalDistance(a.position,p.position)<limit&&faces(p,a as never,p.equipped==='bow'?.35:-.15));
+  const actual=[...enemies,...animals].sort((a,b)=>horizontalDistance(a.position,p.position)-horizontalDistance(b.position,p.position))[0];if(actual)return actual;
+  if(p.equipped==='bow')return {id:'bow-aim',synthetic:true,position:[p.position[0]+Math.sin(p.yaw)*38,p.position[1]+1.05,p.position[2]+Math.cos(p.yaw)*38]};
+  return undefined;
+ }
+ private animalLineClear(animal:AnimalState){const from=this.player.grip.getWorldPosition(new T.Vector3()),to=new T.Vector3(...animal.position).add(new T.Vector3(0,animalLift(animal),0)),delta=to.clone().sub(from),length=delta.length();if(length<.05)return true;const hit=this.physics.castRay(new RAPIER.Ray(from,delta.normalize()),length,true,undefined,undefined,this.player.collider,this.player.body);return !hit||hit.timeOfImpact>=length-.35;}
+ private arrowPoint(target:CombatTarget){if('synthetic'in target)return new T.Vector3(...target.position);if('kind'in target)return new T.Vector3(...target.position).add(new T.Vector3(0,animalLift(target),0));return new T.Vector3(...target.position).add(new T.Vector3(0,1.05,0));}
+ private animalStrike(animal:AnimalState){const out=resolveWildlifeStrike(this.authority.state,this.player.state,animal,this.animalLineClear(animal));this.events.push({tick:this.authority.state.tick,attackerId:this.player.state.id,...out});if(this.events.length>30)this.events.shift();if(out.outcome==='hit'||out.outcome==='killed'){const profile=impactFeedback(this.player.state,out.outcome,'animal');this.sound.combat(profile.sound);this.impulse(profile.shake,profile.shakeDuration);this.freeze(this.player,profile.freeze);const visual=this.root.getObjectByName(animal.id);if(visual)this.burst(visual.position.clone().add(new T.Vector3(0,.7,0)),profile.particles);this.onNotice(out.message);}else if(out.outcome==='miss')this.onNotice(out.message);return out;}
  playerStrike(){
-  const e=this.target();if(e){const out=this.authority.dispatch({type:'strike',playerId:this.player.state.id,enemyId:e.id}) as StrikeResult;this.feedback(out,this.player.state.id);return out;}
-  const animal=this.animalTarget();if(animal){const out=resolveWildlifeStrike(this.authority.state,this.player.state,animal);this.events.push({tick:this.authority.state.tick,attackerId:this.player.state.id,...out});if(out.outcome==='hit'||out.outcome==='killed'){const profile=impactFeedback(this.player.state,out.outcome,'animal');this.sound.combat(profile.sound);this.impulse(profile.shake,profile.shakeDuration);this.freeze(this.player,profile.freeze);const visual=this.root.getObjectByName(animal.id);if(visual)this.burst(visual.position.clone().add(new T.Vector3(0,.7,0)),profile.particles);this.onNotice(out.message);}return out;}
+  const target=this.target(),bow=this.player.state.equipped==='bow';
+  if(bow&&target)this.arrows.push(launchArrow(this.root,this.player.grip.getWorldPosition(new T.Vector3()),this.arrowPoint(target)));
+  if(target&&!('synthetic'in target)){
+   if('kind'in target)return this.animalStrike(target);
+   const out=this.authority.dispatch({type:'strike',playerId:this.player.state.id,enemyId:target.id}) as StrikeResult;this.feedback(out,this.player.state.id);return out;
+  }
   const out=this.authority.dispatch({type:'strike',playerId:this.player.state.id}) as StrikeResult;this.feedback(out,this.player.state.id);return out;
  }
  feedback(out:StrikeResult,attackerId:string){
@@ -100,6 +119,7 @@ export class Combat {
  }
  postStep(dt:number){
   for(const {state:e,actor} of this.raiders.values()){actor.postStep(dt);e.position=[...actor.state.position];e.yaw=actor.state.yaw;e.stamina=actor.state.stamina;e.combat=actor.state.combat;}
+  for(let i=this.arrows.length-1;i>=0;i--)if(!updateArrow(this.arrows[i],dt))this.arrows.splice(i,1);
   for(const [actor,freeze] of this.freezes){const next=freeze.left-dt;if(next<=0){if(freeze.action)freeze.action.paused=false;this.freezes.delete(actor);}else freeze.left=next;}
   if(this.shakeTime>0){this.shakeTime=Math.max(0,this.shakeTime-dt);const t=this.shakeDuration?this.shakeTime/this.shakeDuration:0;this.shake=this.shakePeak*t*t;if(this.shakeTime===0){this.shake=0;this.shakePeak=0;this.shakeDuration=0;}}else this.shake=0;
   for(let i=this.sparks.length-1;i>=0;i--){const s=this.sparks[i];s.life-=dt;const attr=s.mesh.geometry.getAttribute('position') as T.BufferAttribute;for(let j=0;j<s.velocity.length;j++){s.velocity[j].y-=dt*4.5;attr.setXYZ(j,attr.getX(j)+s.velocity[j].x*dt,attr.getY(j)+s.velocity[j].y*dt,attr.getZ(j)+s.velocity[j].z*dt);}attr.needsUpdate=true;(s.mesh.material as T.PointsMaterial).opacity=Math.max(0,s.life/.3);if(s.life<=0){s.mesh.removeFromParent();s.mesh.geometry.dispose();(s.mesh.material as T.Material).dispose();this.sparks.splice(i,1);}}
