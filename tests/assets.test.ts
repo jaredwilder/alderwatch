@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import * as T from 'three';
 import {distantGround,highlandHeight,noise2,meadowDensity} from '../src/ecology';
 import {height} from '../src/terrain';
 import {NodeIO} from '@gltf-transform/core';
+import {clampDressingBounds,normalizeMedievalAsset} from '../src/medieval-asset-specs';
 function glb(name:string){const b=fs.readFileSync(`public/assets/${name}.glb`);assert.equal(b.readUInt32LE(0),0x46546c67);return {bytes:b.length,json:JSON.parse(b.subarray(20,20+b.readUInt32LE(12)).toString())};}
 test('village-scale roof, loft and inhabited facade are real exported meshes',()=>{const {json:j}=glb('frontier-kit');for(const name of ['village_roof','village_gable','village_details']){const node=j.nodes.find((n:any)=>n.name===name);assert.ok(node,name);const primitives=j.meshes[node.mesh].primitives;assert.ok(primitives.every((p:any)=>p.attributes.TEXCOORD_0!==undefined));}const roof=j.nodes.find((n:any)=>n.name==='village_roof');const bounds=j.meshes[roof.mesh].primitives.map((p:any)=>j.accessors[p.attributes.POSITION]);assert.ok(Math.max(...bounds.map((p:any)=>p.max[0]))-Math.min(...bounds.map((p:any)=>p.min[0]))>7);assert.ok(fs.statSync('public/textures/plaster.webp').size>10000);});
 test('optimized survivor retains verified anatomical equipment sockets',()=>{const {json:j}=glb('survivor');for(const side of ['r','l']){const hand=j.nodes.find((n:any)=>n.name===`hand_${side}`);const socket=j.nodes.findIndex((n:any)=>n.name===`Grip_${side.toUpperCase()}`);assert.ok(socket>=0);assert.ok(hand.children.includes(socket));}});
@@ -20,3 +22,12 @@ test('all exported clips start at zero and heavy combat remains fully skeletal',
 test('continuous highlands and a lighter distant woodland asset survive export',()=>{const {json:j}=glb('frontier-kit');for(const name of ['highland','oak_distant'])assert.ok(j.nodes.some((n:any)=>n.name===name));const m=j.meshes.find((m:any)=>m.name.startsWith('highland'));assert.ok(j.accessors[m.primitives[0].attributes.POSITION].count>25000);assert.ok(m.primitives[0].attributes.COLOR_0!==undefined);const far=j.meshes.find((m:any)=>m.name.startsWith('oak_distant'));const near=j.meshes.find((m:any)=>m.name.startsWith('oak_0'));assert.ok(far.primitives.reduce((n:number,p:any)=>n+j.accessors[p.indices].count,0)<near.primitives.reduce((n:number,p:any)=>n+j.accessors[p.indices].count,0)*.2);});
 test('distant woodland uses only terrain that actually exists under it',()=>{assert.equal(distantGround(330,-95,height),-Infinity);assert.equal(distantGround(330,-180,height),highlandHeight(330,180));assert.equal(distantGround(80,-110,height),height(80,-110));assert.equal(distantGround(0,-300,height),highlandHeight(0,300));for(let x=-400;x<=400;x+=17)for(let z=-450;z<=-85;z+=19){assert.ok(noise2(x*.1,z*.1)>=0&&noise2(x*.1,z*.1)<=1);assert.ok(meadowDensity(x,z)>=.25&&meadowDensity(x,z)<=1);assert.ok(Number.isFinite(highlandHeight(x,-z)));}});
 test('shipping highland vertices match the runtime distant-tree placement contract',async()=>{const d=await new NodeIO().read('public/assets/frontier-kit.glb');const p=d.getRoot().listNodes().find(n=>n.getName()==='highland')!.getMesh()!.listPrimitives()[0].getAttribute('POSITION')!;const a=p.getArray()!;for(let i=0;i<p.getCount();i+=113){const [x,y,z]=[a[i*3],a[i*3+1],a[i*3+2]];assert.ok(Math.abs(y-highlandHeight(x,-z))<.002,`exported terrain diverged at ${x},${z}`);}});
+
+test('third-party settlement roots are normalized to world metres before placement',()=>{
+ const source=new T.Mesh(new T.BoxGeometry(20,50,30),new T.MeshStandardMaterial()),root=normalizeMedievalAsset('watchtower',source),box=new T.Box3().setFromObject(root),size=box.getSize(new T.Vector3());
+ assert.equal(root.scale.x,1);assert.ok(Math.abs(size.y-9.5)<1e-5,`watchtower height=${size.y}`);assert.ok(size.x<10&&size.z<10);assert.ok(root.userData.awNormalized);
+});
+test('decorative imports have a hard bound against world-sized planes and beams',()=>{
+ const root=new T.Group();root.add(new T.Mesh(new T.BoxGeometry(120,40,80),new T.MeshBasicMaterial()));clampDressingBounds(root);const size=new T.Box3().setFromObject(root).getSize(new T.Vector3());
+ assert.ok(Math.max(size.x,size.z)<=24.001);assert.ok(size.y<=18.001);assert.ok(root.userData.awBoundsClamped);
+});
