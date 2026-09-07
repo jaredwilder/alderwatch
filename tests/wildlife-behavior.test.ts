@@ -22,7 +22,7 @@ test('frontier wildlife roster is organized and wolf packs never exceed three',(
 
 test('every species owns complete gameplay tuning in one registry',()=>{
  for(const [kind,config] of Object.entries(WILDLIFE_SPECIES)){assert.ok(config.maxHealth>0,kind);assert.ok(config.turnRate>0,kind);if(config.authored)assert.ok((config.modelHeight??0)>0,kind);}
- assert.deepEqual(WILDLIFE_SPECIES.wolf.predator?.prey,['bison']);assert.equal(WILDLIFE_SPECIES.wolf.herd,true);
+ assert.deepEqual(WILDLIFE_SPECIES.wolf.predator?.prey,['bison','eagle']);assert.equal(WILDLIFE_SPECIES.wolf.herd,true);
 });
 
 test('seeding is additive and never resets an existing animal transform or health',()=>{
@@ -36,8 +36,8 @@ test('bear selects nearest live prey inside acquisition radius only',()=>{
  assert.equal(bearTarget(bear,{bear,deer,sheep,farGoat,otherBear})?.id,'sheep');sheep.dead=true;assert.equal(bearTarget(bear,{bear,deer,sheep,farGoat,otherBear})?.id,'deer');deer.position=[31,0,0];assert.equal(bearTarget(bear,{bear,deer,sheep,farGoat,otherBear}),undefined);
 });
 
-test('wolves hunt bison only and bison recognizes wolves as predators',()=>{
- const wolf=animal('wolf','wolf',0,0,'pack'),nearBison=animal('bison-near','bison',8,0),farBison=animal('bison-far','bison',18,0),deer=animal('deer','deer',3,0),all={wolf,nearBison,farBison,deer};
+test('wolves hunt bison and bison recognizes wolves as predators',()=>{
+ const wolf=animal('wolf','wolf',0,0),nearBison=animal('bison-near','bison',8,0),farBison=animal('bison-far','bison',18,0),deer=animal('deer','deer',3,0),all={wolf,nearBison,farBison,deer};
  assert.equal(predatorTarget(wolf,all)?.id,'bison-near');assert.equal(predatorThreat(nearBison,all)?.id,'wolf');deer.position=[1,0,0];assert.equal(predatorTarget(wolf,all)?.kind,'bison');
 });
 
