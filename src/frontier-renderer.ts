@@ -41,7 +41,7 @@ export class FrontierRenderer {
  private dressAlderbrook(){
   const homes=[[-9,-34,.1],[9,-46,Math.PI],[-14,-54,.4],[14,-67,3.3]] as const;
   homes.forEach(([x,z,yaw],i)=>{
-   const wide=this.land.wideCottage(x,z,yaw),entryX=wide?-1.5:0,side=i%2?1:-1;
+   const wide=typeof this.land.wideCottage==='function'?this.land.wideCottage(x,z,yaw):false,entryX=wide?-1.5:0,side=i%2?1:-1;
    [[entryX,5.18,.66,.04],[entryX+side*.12,6.02,.56,-.09],[entryX-side*.10,6.72,.47,.12]].forEach(([lx,lz,scale,rot])=>this.visualLocal('paving_0',x,z,yaw,lx,lz,scale,rot,.018));
    this.visualLocal('stump',x,z,yaw,entryX+side*(wide?2.55:1.85),4.62,.41,.25+i*.42,.006);
    this.visualLocal('satchel',x,z,yaw,entryX-side*(wide?2.05:1.48),5.02,.68,-.32+side*.16,.02);
