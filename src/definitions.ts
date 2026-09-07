@@ -27,6 +27,7 @@ export const RECIPES:Recipe[]=[
 export const FOOD:Partial<Record<ItemId,{health:number;stamina:number;duration:number;heal:number}>>={
  woodland_broth:{health:0,stamina:40,duration:480,heal:25},
  crow_milk:{health:15,stamina:25,duration:360,heal:15},
+ wild_honey:{health:0,stamina:0,duration:0,heal:15},
  berries:{health:0,stamina:0,duration:0,heal:10},
  grilled_venison:{health:35,stamina:0,duration:480,heal:20},
  hearty_stew:{health:25,stamina:25,duration:480,heal:25},
