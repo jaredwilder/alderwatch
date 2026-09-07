@@ -10,12 +10,12 @@ export type AnimalKind='hare'|'crow'|ExtendedAnimalKind;
 export interface AnimalState {id:string;kind:AnimalKind;position:Vec3;home:Vec3;yaw:number;phase:number;avoidUntil?:number;health?:number;maxHealth?:number;dead?:boolean;killedBy?:'player'|'bear';diedAt?:number;attackAt?:number;huntTargetId?:string;huntUntil?:number;huntBestDistance?:number;huntCooldownUntil?:number;hitAt?:number;alarmedUntil?:number;lastAttackerId?:string}
 interface AnimalVisual {group:T.Group;mixer?:T.AnimationMixer;idle?:T.AnimationAction;walk?:T.AnimationAction;run?:T.AnimationAction;active?:T.AnimationAction}
 const MODELS={berries:'berry_bush',mushroom:'mushrooms',herb:'herbs',wood:'fallen_branch',fiber:'flax'};
-const EXTENDED=new Set<AnimalKind>(['goat','sheep','deer','bear']);
+const EXTENDED=new Set<AnimalKind>(['goat','sheep','deer','bear','bison']);
 const PREY=new Set<AnimalKind>(['hare','goat','sheep','deer']);
 const PROFILE:Record<AnimalKind,{flee:number;home:number;wander:number;escape:number}>={
  hare:{flee:6,home:8,wander:.6,escape:3.8},crow:{flee:6,home:8,wander:.6,escape:3.8},
  goat:{flee:7.5,home:13,wander:.62,escape:3.6},sheep:{flee:8,home:13,wander:.56,escape:3.5},
- deer:{flee:12,home:22,wander:.82,escape:5.6},bear:{flee:0,home:38,wander:.72,escape:1.8},
+ deer:{flee:12,home:22,wander:.82,escape:5.6},bear:{flee:0,home:38,wander:.72,escape:1.8},bison:{flee:4.5,home:30,wander:.52,escape:4.8},
 };
 const dist=(a:Vec3,b:Vec3)=>Math.hypot(a[0]-b[0],a[2]-b[2]);
 const angleTo=(from:Vec3,to:Vec3)=>Math.atan2(to[0]-from[0],to[2]-from[2]);
@@ -25,8 +25,8 @@ export function headingVector(yaw:number):[number,number]{return [Math.sin(yaw),
 export function ambientWanderHeading(animal:AnimalState){const phase=stableUnit(animal.id)*Math.PI*2,heading=phase+Math.sin(animal.phase*.21+phase)*1.15+Math.sin(animal.phase*.073+phase*1.7)*.65;return T.MathUtils.euclideanModulo(heading+Math.PI,Math.PI*2)-Math.PI;}
 export function bearTarget(bear:AnimalState,animals:Record<string,AnimalState>,radius=24){return Object.values(animals).filter(a=>a.id!==bear.id&&PREY.has(a.kind)&&animalAlive(a)&&dist(a.position,bear.position)<radius).sort((a,b)=>dist(a.position,bear.position)-dist(b.position,bear.position)||a.id.localeCompare(b.id))[0];}
 export function herdCenter(animal:AnimalState,animals:Record<string,AnimalState>):Vec3|undefined{
- if(!['goat','sheep','deer'].includes(animal.kind))return undefined;
- const mates=Object.values(animals).filter(other=>other.kind===animal.kind&&animalAlive(other)&&dist(other.home,animal.home)<30);
+ if(!['goat','sheep','deer','bison'].includes(animal.kind))return undefined;
+ const mates=Object.values(animals).filter(other=>other.kind===animal.kind&&animalAlive(other)&&dist(other.home,animal.home)<34);
  if(mates.length<2)return undefined;
  const total=mates.reduce((sum,mate)=>[sum[0]+mate.position[0],sum[1]+mate.position[1],sum[2]+mate.position[2]] as Vec3,[0,0,0] as Vec3);
  return [total[0]/mates.length,total[1]/mates.length,total[2]/mates.length];
@@ -51,6 +51,7 @@ export function seedNature(w:WorldState){
   ['pasture-sheep-0','sheep',-14,19,2.2],['pasture-sheep-1','sheep',-18,23,3.1],['pasture-sheep-2','sheep',-23,28,.7],['pasture-sheep-3','sheep',-13,33,5.4],['pasture-sheep-4','sheep',-21,37,1.8],
   ['southwood-deer-0','deer',24,91,1.7],['southwood-deer-1','deer',31,98,4.2],['southwood-deer-2','deer',38,106,.9],['southwood-deer-3','deer',27,113,3.5],
   ['southwood-deer-4','deer',-31,132,2.7],['southwood-deer-5','deer',-39,140,5.7],['southwood-deer-6','deer',-47,149,1.1],['southwood-deer-7','deer',-35,156,4.6],
+  ['high-meadow-bison-0','bison',88,58,.5],['high-meadow-bison-1','bison',96,64,1.5],['high-meadow-bison-2','bison',104,56,2.4],['high-meadow-bison-3','bison',111,67,4.1],['high-meadow-bison-4','bison',101,73,5.2],
   ['ironward-bear','bear',198,72,2.8],['briar-bear','bear',-214,154,5.1],['southwood-bear','bear',76,201,3.6],
  ];
  for(const [id,kind,x,z,yaw] of roster){const y=height(x,z);w.animals[id]??={id,kind,position:[x,y,z],home:[x,y,z],yaw,phase:yaw*1.7};}
@@ -87,10 +88,11 @@ export class Nature {
    a.phase+=dt;const homeDistance=dist(a.home,a.position),centerDistance=center?dist(center,a.position):0,phase=stableUnit(a.id)*Math.PI*2;
    const threat=predator?.position??(provoked&&provoker?provoker.position:p&&near<profile.flee?p.position:undefined);
    const carcass=a.kind==='bear'&&!hunting&&Math.sin(a.phase*.12+phase)>.92?Object.values(all).filter(other=>other.dead&&PREY.has(other.kind)&&dist(other.position,a.position)<16).sort((x,y)=>dist(x.position,a.position)-dist(y.position,a.position))[0]:undefined;
-   const grazing=a.kind==='deer'&&!flee&&!hunting&&homeDistance<profile.home&&centerDistance<10&&Math.sin(a.phase*.18+phase)<.28;
+   const grazing=(a.kind==='deer'||a.kind==='bison')&&!flee&&!hunting&&homeDistance<profile.home&&centerDistance<10&&Math.sin(a.phase*.18+phase)<.28;
    let desired=threat?cohesiveFleeHeading(a,threat,center):hostilePlayer?angleTo(a.position,hostilePlayer.position):prey?angleTo(a.position,prey.position):carcass?angleTo(a.position,carcass.position):homeDistance>profile.home?angleTo(a.position,a.home):center&&centerDistance>7?angleTo(a.position,center):ambientWanderHeading(a);
    const ambientMove=!grazing&&Math.sin(a.phase*.55+phase)>.12,moving=flee||hunting||!!carcass||homeDistance>profile.home||centerDistance>7||ambientMove,flight=a.kind==='crow'&&moving;
-   if((a.avoidUntil??0)>this.w.tick)desired=a.yaw;if(moving)a.yaw+=T.MathUtils.clamp(T.MathUtils.euclideanModulo(desired-a.yaw+Math.PI,Math.PI*2)-Math.PI,-dt*(a.kind==='bear'?2.5:4.8),dt*(a.kind==='bear'?2.5:4.8));
+   const turnRate=a.kind==='bear'?2.5:a.kind==='bison'?3.2:4.8;
+   if((a.avoidUntil??0)>this.w.tick)desired=a.yaw;if(moving)a.yaw+=T.MathUtils.clamp(T.MathUtils.euclideanModulo(desired-a.yaw+Math.PI,Math.PI*2)-Math.PI,-dt*turnRate,dt*turnRate);
    const speed=hostilePlayer?4.6:prey?4.1:carcass?1.15:moving?(flee?profile.escape:flight?2.2:profile.wander):0,[hx,hz]=headingVector(a.yaw),x=a.position[0]+hx*speed*dt,z=a.position[2]+hz*speed*dt;
    const clear=height(x,z)>-1&&!this.land.ambientOccupied(x,z)&&Object.values(this.w.resources).every(r=>r.phase!=='standing'||Math.hypot(x-r.position[0],z-r.position[2])>(r.kind==='tree'?1.1:1.2))&&Object.values(this.w.structures).every(s=>Math.hypot(x-s.position[0],z-s.position[2])>2);
    if(clear||(flight&&!this.land.ambientOccupied(x,z)&&Object.values(this.w.structures).every(s=>Math.hypot(x-s.position[0],z-s.position[2])>2))){a.position[0]=x;a.position[2]=z;}else{a.yaw+=Math.PI*.6;a.avoidUntil=this.w.tick+50;if(a.kind==='bear'&&hunting){a.huntUntil=Math.min(a.huntUntil??this.w.tick,this.w.tick+90);}}
