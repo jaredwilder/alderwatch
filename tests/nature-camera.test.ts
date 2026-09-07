@@ -31,6 +31,16 @@ test('nature kit contains separate articulated animals and forage, never another
  assert.ok(!asset.scene.getObjectByName('hand_r'));assert.ok(fs.statSync('public/assets/wildlife.glb').size<500000);
  const hare=new T.Box3().setFromObject(asset.scene.getObjectByName('hare')!).getSize(new T.Vector3());assert.ok(hare.y>.5&&hare.y<1.1);
 });
+
+test('extended wildlife seeds additively without replacing existing animal state',()=>{
+ const a=new LocalAuthority(),p=makePlayer('Warden');a.state.players[p.id]=p;
+ a.state.animals={'legacy-hare':{id:'legacy-hare',kind:'hare',position:[1,0,1],home:[1,0,1],yaw:.7,phase:12}};
+ seedNature(a.state);const first=JSON.stringify(a.state.animals);seedNature(a.state);assert.equal(JSON.stringify(a.state.animals),first);
+ const kinds=new Set(Object.values(a.state.animals!).map(animal=>animal.kind));for(const kind of ['hare','crow','goat','sheep','deer','bear'])assert.ok(kinds.has(kind as never),kind);
+ assert.equal(a.state.animals!['legacy-hare'].yaw,.7);assert.equal(a.state.animals!['legacy-hare'].phase,12);
+ assert.ok(Object.values(a.state.animals!).filter(animal=>animal.kind==='bear').length>=2);
+});
+
 test('forage is reach-checked, cannot duplicate, and regrows after saved game-time delay',()=>{
  const a=new LocalAuthority(),p=makePlayer('Warden');a.state.players[p.id]=p;seedNature(a.state);const initial=JSON.stringify(a.state);seedNature(a.state);assert.equal(JSON.stringify(a.state),initial);
  const f=Object.values(a.state.forage).find(f=>f.kind==='mushroom')!;const gather=()=>a.dispatch({type:'forage',playerId:p.id,forageId:f.id});p.position=[100,0,100];assert.equal(gather().ok,false);p.position=[...f.position];assert.ok(gather().ok);assert.equal(quantity(p,'mushroom'),2);assert.equal(gather().ok,false);assert.equal(forageAvailable(f,a.state.tick),false);
