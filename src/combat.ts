@@ -18,7 +18,7 @@ class Intent {
 interface Raider {state:EnemyState;actor:Character;input:Intent}
 type BowAim={id:'bow-aim';position:Vec3;synthetic:true};
 type CombatTarget=EnemyState|AnimalState|BowAim;
-const animalLift=(animal:AnimalState)=>animal.kind==='bear'?1:animal.kind==='deer'?.85:['goat','sheep'].includes(animal.kind)?.62:animal.kind==='crow'?.25:.28;
+const animalLift=(animal:AnimalState)=>{if(animal.kind==='bear')return 1;if(animal.kind==='deer')return .85;if(animal.kind==='goat'||animal.kind==='sheep')return .62;if(animal.kind==='crow')return .25;return .28;};
 export class Combat {
  raiders=new Map<string,Raider>();shake=0;onNotice=(text:string)=>{};events:({tick:number;attackerId:string}&StrikeResult)[]=[];
  private sparks:{mesh:T.Points;velocity:T.Vector3[];life:number}[]=[];private arrows:ArrowFlight[]=[];
