@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import {LocalAuthority} from '../src/state';
-import {bearTarget,cohesiveFleeHeading,headingVector,herdCenter,seedNature,type AnimalState} from '../src/nature';
+import {ambientWanderHeading,bearTarget,cohesiveFleeHeading,headingVector,herdCenter,seedNature,type AnimalState} from '../src/nature';
 import {inferAnimalForward} from '../src/animal-models';
 
 const animal=(id:string,kind:AnimalState['kind'],x:number,z:number):AnimalState=>({id,kind,position:[x,0,z],home:[x,0,z],yaw:0,phase:0});
@@ -39,6 +39,11 @@ test('herd flee heading remains away from threat while bending toward separated 
  const yaw=cohesiveFleeHeading(focal,[0,0,-5],center),[x,z]=headingVector(yaw);
  assert.ok(z>0,'flee vector must point away from a threat behind the animal');
  assert.ok(x>0,'cohesion should bend flight toward nearby herd mates');
+});
+
+test('ambient wander is world-space steering, not recursive yaw that makes herds orbit',()=>{
+ const sheep=animal('pasture-sheep-0','sheep',0,0);sheep.phase=12.5;sheep.yaw=-2.4;const first=ambientWanderHeading(sheep);sheep.yaw=2.7;const second=ambientWanderHeading(sheep);assert.equal(first,second,'wander heading must not depend on current yaw');
+ sheep.phase+=.05;const next=ambientWanderHeading(sheep),delta=Math.abs(T.MathUtils.euclideanModulo(next-first+Math.PI,Math.PI*2)-Math.PI);assert.ok(delta<.08,'ambient heading should bend gradually instead of spinning the animal');
 });
 
 test('movement heading uses Alderwatch +Z and matches world displacement',()=>{
