@@ -18,6 +18,13 @@ test('joined roof bays close only their outside gables in either grid orientatio
  assert.equal(quantity(Object.values(w.players)[0],'wood'),59,'Fixture must pay normal construction costs');
 });
 
+test('built-piece presentation reuses authored medieval props deterministically',async()=>{
+ await RAPIER.init();const assets=new Assets();assets.kit=await model('frontier-kit');const physics=new RAPIER.World({x:0,y:-9.81,z:0}),building=new Building(new T.Group(),assets,physics,new LocalAuthority());
+ const doorway=building.model('doorway');assert.deepEqual(doorway.children.filter(o=>o.name.startsWith('Threshold slab')).map(o=>[o.name,...o.position.toArray().map(n=>+n.toFixed(3))]),[['Threshold slab 0',0,-.365,.78],['Threshold slab 1',0,-.215,.4]]);assert.equal(doorway.children.some(o=>o.name.startsWith('Threshold step')),false);
+ const bench=building.model('workbench'),chest=building.model('chest'),fire=building.model('campfire');assert.ok(bench.getObjectByName('Workbench satchel'));assert.ok(chest.getObjectByName('Storage satchel'));assert.ok(fire.getObjectByName('Fire seat west'));assert.ok(fire.getObjectByName('Fire seat east'));
+ physics.free();
+});
+
 test('actual survivor cannot pass a closed door, can open it and enter across both floors',async()=>{
  await RAPIER.init();const assets=new Assets();[assets.survivor,assets.kit]=await Promise.all([model('survivor'),model('frontier-kit')]);
  const authority=new LocalAuthority();authority.state=houseFixture();const p=Object.values(authority.state.players)[0],base=p.home![1];
