@@ -45,10 +45,7 @@ export function wolfFlankPoint(wolf:AnimalState,quarry:AnimalState,animals:Recor
 
 export function livePlayer(players:Record<string,PlayerState>,id:string|undefined){const p=id?players[id]:undefined;return p&&p.health>0?p:undefined;}
 
-/**
- * Wolves only escalate an active bison hunt when the player interferes: closes into the hunt,
- * wounds the quarry, or wounds any member of the pack. Once escalated the whole pack remembers it.
- */
+/** Wolves escalate an active bison hunt when a player crowds it or wounds quarry/pack. */
 export function wolfInterferer(wolf:AnimalState,quarry:AnimalState|undefined,animals:Record<string,AnimalState>,players:Record<string,PlayerState>,tick:number){
  const remembered=(wolf.aggroUntil??0)>tick?livePlayer(players,wolf.aggroPlayerId):undefined;if(remembered)return remembered;
  for(const mate of packMembers(wolf,animals)){const provoker=(mate.alarmedUntil??0)>tick?livePlayer(players,mate.lastAttackerId):undefined;if(provoker)return provoker;}
@@ -57,4 +54,6 @@ export function wolfInterferer(wolf:AnimalState,quarry:AnimalState|undefined,ani
  return Object.values(players).filter(player=>player.health>0&&Math.min(wildlifeDistance(player.position,wolf.position),wildlifeDistance(player.position,quarry.position))<6.2).sort((a,b)=>wildlifeDistance(a.position,wolf.position)-wildlifeDistance(b.position,wolf.position))[0];
 }
 
-export function aggroWolfPack(wolf:AnimalState,animals:Record<string,AnimalState>,playerId:string,tick:number,duration=540){for(const mate of packMembers(wolf,animals)){mate.aggroPlayerId=playerId;mate.aggroUntil=tick+duration;mate.huntTargetId=undefined;mate.huntBestDistance=undefined;}}
+export function aggroWolfPack(wolf:AnimalState,animals:Record<string,AnimalState>,playerId:string,tick:number,duration=540){
+ for(const mate of packMembers(wolf,animals)){mate.aggroPlayerId=playerId;mate.aggroUntil=tick+duration;mate.huntTargetId=undefined;mate.huntBestDistance=undefined;mate.huntCooldownUntil=mate.aggroUntil;}
+}
