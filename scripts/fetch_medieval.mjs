@@ -22,6 +22,16 @@ const FILES=[
  'crate.glb',
  'wagon.glb',
  'fence_wood_single.glb',
+ // Raid pass: authored clutter / fortification pieces for frontier camps.
+ 'fence_wood_ext1.glb',
+ 'fence_wood_ext2.glb',
+ 'support.glb',
+ 'stairs_exterior.glb',
+ 'floor_wooddark.glb',
+ 'roof_wooden_2x1.glb',
+ 'wall_arch.glb',
+ 'vine_1.glb',
+ 'border_straight.glb',
 ];
 
 await mkdir(OUT,{recursive:true});

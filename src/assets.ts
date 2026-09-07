@@ -13,7 +13,7 @@ export class Assets {
  }
  async load(progress:(message:string)=>void){
   const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),tl=new T.TextureLoader();
-  const medieval=['wall_plaster_straight','wall_plaster_door_flat','wall_plaster_window_wide_flat','doorframe_flat_wooddark','door_1_flat','window_wide_flat1','corner_exterior_wood','roof_roundtiles_6x6','chimney','crate','wagon','fence_wood_single'];
+  const medieval=['wall_plaster_straight','wall_plaster_door_flat','wall_plaster_window_wide_flat','doorframe_flat_wooddark','door_1_flat','window_wide_flat1','corner_exterior_wood','roof_roundtiles_6x6','chimney','crate','wagon','fence_wood_single','fence_wood_ext1','fence_wood_ext2','support','stairs_exterior','floor_wooddark','roof_wooden_2x1','wall_arch','vine_1','border_straight'];
   progress('Opening the old road…');
   await Promise.all([loader.loadAsync('/assets/frontier-kit.glb').then(g=>this.kit=g),loader.loadAsync('/assets/wildlife.glb').then(g=>{this.nature=g;g.scene.traverse(o=>{if(o instanceof T.Mesh){o.castShadow=o.receiveShadow=true;}});}),loader.loadAsync('/assets/survivor.glb').then(g=>this.survivor=g),...medieval.map(async n=>loader.loadAsync(`/assets/medieval/${n}.glb`).then(g=>this.medieval[n]=g.scene)),...['bark','meadow','leaves','timber','stone','grass','soil','thatch','fern','wool','leather','plaster'].map(async n=>{const t=await tl.loadAsync(`/textures/${n}.webp`);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=8;this.textures[n]=t;})]);
   for(const root of Object.values(this.medieval))root.traverse(o=>{if(o instanceof T.Mesh){o.castShadow=o.receiveShadow=true;const materials=(Array.isArray(o.material)?o.material:[o.material]) as T.MeshStandardMaterial[];for(const m of materials){m.roughness=Math.max(.72,m.roughness??.5);m.metalness=Math.min(.18,m.metalness??0);}}});
@@ -60,6 +60,19 @@ if(m.name==='AW_grass'){const meadow=m.onBeforeCompile;m.onBeforeCompile=(s,r)=>
   add('crate',2.25,0,5.25,-.18);add('wagon',-4.75,0,1.8,Math.PI/2);add('fence_wood_single',4.45,0,3.4,Math.PI/2);
   return root;
  }
+ authoredFortification(){
+  const root=new T.Group();root.name='Quaternius frontier fortification';
+  const add=(name:string,x:number,y:number,z:number,yaw=0,scale=1)=>{const source=this.medieval[name];if(!source)return;const o=source.clone(true);o.position.set(x,y,z);o.rotation.y=yaw;o.scale.setScalar(scale);root.add(o);};
+  add('fence_wood_ext1',-1.0,0,0,0,.92);add('fence_wood_ext2',1.0,0,0,Math.PI,.92);
+  add('support',-1.48,0,-.12,0,.92);add('support',1.48,0,-.12,0,.92);add('border_straight',0,.15,.08,0,.72);
+  return root;
+ }
+ authoredFieldClutter(){
+  const root=new T.Group();root.name='Quaternius field clutter';
+  const satchel=this.kit.scene.getObjectByName('satchel');if(satchel){const o=satchel.clone(true);o.scale.setScalar(.86);o.position.set(-.18,.02,.08);root.add(o);}
+  const crate=this.medieval.crate?.clone(true);if(crate){crate.scale.setScalar(.42);crate.position.set(.42,0,-.18);crate.rotation.y=.31;root.add(crate);}
+  return root;
+ }
  wind(m:T.MeshStandardMaterial,strength:number){m.onBeforeCompile=s=>{s.uniforms.awTime=this.time;s.vertexShader='uniform float awTime;\n'+s.vertexShader;s.vertexShader=s.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>\nfloat awH=max(position.y,0.0); transformed.x += sin(awTime*1.7+position.x*.8+position.z*.6)*${strength}*awH; transformed.z += cos(awTime*1.4+position.z*.7)*${strength*.5}*awH;`);};m.customProgramCacheKey=()=>`aw-wind-${strength}`;}
  sightCutaway(m:T.MeshStandardMaterial){
   const prior=m.onBeforeCompile,key=m.customProgramCacheKey();
@@ -75,6 +88,6 @@ if(m.name==='AW_grass'){const meadow=m.onBeforeCompile;m.onBeforeCompile=(s,r)=>
     }`);
   };m.customProgramCacheKey=()=>key+'-sight-cutaway-v1';
  }
- prop(name:string){if(name==='highland')return new T.Group();if(name==='village_details'&&this.medieval.wall_plaster_straight)return this.authoredLonghouse();if((name==='village_roof'||name==='village_gable')&&this.medieval.roof_roundtiles_6x6)return new T.Group();const o=this.kit.scene.getObjectByName(name)??this.nature?.scene.getObjectByName(name);if(!o)throw new Error('Missing authored asset: '+name);return o.clone(true);}
+ prop(name:string){if(name==='highland')return new T.Group();if(name==='palisade'&&this.medieval.fence_wood_ext1)return this.authoredFortification();if(name==='satchel'&&this.medieval.crate)return this.authoredFieldClutter();if(name==='village_details'&&this.medieval.wall_plaster_straight)return this.authoredLonghouse();if((name==='village_roof'||name==='village_gable')&&this.medieval.roof_roundtiles_6x6)return new T.Group();const o=this.medieval[name]??this.kit.scene.getObjectByName(name)??this.nature?.scene.getObjectByName(name);if(!o)throw new Error('Missing authored asset: '+name);return o.clone(true);}
  human(){return clone(this.survivor.scene);}
 }
