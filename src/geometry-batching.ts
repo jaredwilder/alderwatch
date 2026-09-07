@@ -10,7 +10,8 @@ function attributeKey(attribute:Attribute){
 
 function geometryKey(geometry:T.BufferGeometry){
  const attributes=Object.keys(geometry.attributes).sort().map(name=>`${name}=${attributeKey(geometry.getAttribute(name) as Attribute)}`).join('|');
- const morphs=Object.keys(geometry.morphAttributes).sort().map(name=>`${name}=[${geometry.morphAttributes[name].map(attribute=>attributeKey(attribute as Attribute)).join(',')}]`).join('|');
+ const morphAttributes=geometry.morphAttributes as Record<string,Attribute[]>;
+ const morphs=Object.keys(morphAttributes).sort().map(name=>`${name}=[${morphAttributes[name].map(attribute=>attributeKey(attribute)).join(',')}]`).join('|');
  return `${geometry.index?'indexed':'plain'};relative=${geometry.morphTargetsRelative?1:0};${attributes};${morphs}`;
 }
 
