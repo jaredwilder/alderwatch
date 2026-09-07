@@ -17,16 +17,16 @@ test('eagle population is explicitly capped and aerial tuning is registry-owned'
 });
 
 test('eagles pick up hare and sheep but kill other birds instead',()=>{
- const eagle=animal('e','eagle'),hare=animal('h','hare'),sheep=animal('s','sheep'),crow=animal('c','crow');ensureAerialState(eagle);
+ const eagle=animal('e','eagle'),hare=animal('h','hare'),sheep=animal('s','sheep'),crow=animal('c','crow'),all={e:eagle,h:hare,s:sheep,c:crow};ensureAerialState(eagle);
  assert.equal(aerialPreyAction(eagle,hare),'pickup');assert.equal(aerialPreyAction(eagle,sheep),'pickup');assert.equal(aerialPreyAction(eagle,crow),'kill');
  assert.equal(beginCarry(eagle,sheep,100),true);assert.equal(eagle.carriedPreyId,sheep.id);assert.equal(sheep.carriedById,eagle.id);assert.ok((eagle.carryUntil??0)>100);
- assert.equal(beginCarry(eagle,hare,100),false,'one eagle cannot stack multiple prey');assert.equal(releaseCarry(eagle,{eagle,sheep,hare,crow})?.id,sheep.id);assert.equal(sheep.carriedById,undefined);
+ assert.equal(beginCarry(eagle,hare,100),false,'one eagle cannot stack multiple prey');assert.equal(releaseCarry(eagle,all)?.id,sheep.id);assert.equal(sheep.carriedById,undefined);
 });
 
 test('carrying burns energy quickly; exhaustion forces landing and vulnerability',()=>{
  const eagle=animal('e','eagle');ensureAerialState(eagle);eagle.energy=5;eagle.carriedPreyId='h';
  const step=stepAerialEnergy(eagle,2);assert.equal(step.landed,true);assert.equal(step.exhaustedDrop,true);assert.equal(eagle.airborne,false);assert.equal(eagle.energy,0);assert.equal(groundPredatorCanReach(eagle),true);
- for(let i=0;i<400;i++)stepAerialEnergy(eagle,.5);assert.equal(eagle.airborne,true,'resting on foot eventually restores enough energy to take off');
+ let tookOff=false;for(let i=0;i<400&&!tookOff;i++)tookOff=stepAerialEnergy(eagle,.5).tookOff;assert.equal(tookOff,true,'resting on foot eventually restores enough energy to take off');
 });
 
 test('wolves and bears cannot eat a flying eagle, but can prey on it after it lands',()=>{
