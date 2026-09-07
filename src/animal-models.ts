@@ -3,7 +3,7 @@ import {GLTFLoader,type GLTF} from 'three/addons/loaders/GLTFLoader.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
-export type ExtendedAnimalKind='goat'|'sheep'|'deer'|'bear';
+export type ExtendedAnimalKind='goat'|'sheep'|'deer'|'bear'|'bison';
 export type AuthoredForwardAxis='+x'|'-x'|'+z'|'-z'|'unknown';
 
 const SPECS:Record<ExtendedAnimalKind,{url:string;height:number}>={
@@ -11,6 +11,7 @@ const SPECS:Record<ExtendedAnimalKind,{url:string;height:number}>={
  sheep:{url:'/assets/animals/sheep.glb',height:.95},
  deer:{url:'/assets/animals/deer.glb',height:1.75},
  bear:{url:'/assets/animals/bear.glb',height:1.65},
+ bison:{url:'/assets/animals/bison.glb',height:1.9},
 };
 
 export interface AnimalForwardCalibration {axis:AuthoredForwardAxis;correctionYaw:number;proven:boolean}

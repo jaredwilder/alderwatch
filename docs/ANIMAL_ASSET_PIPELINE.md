@@ -13,7 +13,7 @@ Blender is **not required** to add a model when the source is already a usable `
 7. Select embedded Idle/Walk/Run clips by semantic name and crossfade between them.
 8. Run `npm test` and `npm run build`, then visually inspect the real game. Automated build success is not visual acceptance.
 
-For the goat/sheep/deer/bear pass, `npm run assets:animals` downloads pinned licensed binaries. `predev` and `prebuild` invoke it automatically, so a fresh clone does not need Blender.
+For the goat/sheep/deer/bear/bison set, `npm run assets:animals` downloads pinned licensed binaries. `predev` and `prebuild` invoke it automatically, so a fresh clone does not need Blender.
 
 ## When Blender *is* useful / required
 
@@ -34,6 +34,8 @@ Do **not** route every model through Blender by default. Runtime code plus `gltf
 
 - Goat and sheep: pasture animals near Alderbrook; flee from close players and return to their home area.
 - Deer: wider-ranging Southwood animals with a larger flight radius and faster escape speed.
-- Bear: larger Ironward/Briar wildlife, slow-turning and currently ambient rather than a combat enemy. Hunting/hostile bear combat should be implemented as a separate authoritative gameplay pass rather than faked inside visual wildlife code.
+- Bison: a five-animal high-meadow herd using Kenney's animated CC0 Prototype Kit bison; slow ambient drift, grazing pauses, herd cohesion and a short defensive flight radius when pressed or attacked.
+- Bear: larger Ironward/Briar wildlife. Bears can hunt prey and attack nearby/provoking players through the authoritative combat rules.
+- Crow: legacy authored wildlife. Crow carcasses now yield a `crow_crop` ingredient used by the campfire-only Crow milk recipe.
 
-Existing hare/crow state and saves remain additive and authoritative.
+Existing wildlife state and saves remain additive and authoritative.

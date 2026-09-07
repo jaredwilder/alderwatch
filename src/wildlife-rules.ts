@@ -3,9 +3,9 @@ import type {AnimalKind,AnimalState} from './nature';
 import {stats} from './definitions';
 import {attackProfile,combatState,faces,horizontalDistance,killFighter,type StrikeResult} from './combat-rules';
 
-const VITALS:Record<AnimalKind,number>={hare:18,crow:10,goat:52,sheep:46,deer:62,bear:180};
+const VITALS:Record<AnimalKind,number>={hare:18,crow:10,goat:52,sheep:46,deer:62,bear:180,bison:240};
 const LOOT:Record<AnimalKind,Partial<Record<ItemId,number>>>={
- hare:{venison:1},crow:{},goat:{venison:2,hide:1},sheep:{venison:2,hide:2},deer:{venison:4,hide:2},bear:{venison:6,hide:5},
+ hare:{venison:1},crow:{crow_crop:1},goat:{venison:2,hide:1},sheep:{venison:2,hide:2},deer:{venison:4,hide:2},bear:{venison:6,hide:5},bison:{venison:8,hide:6},
 };
 
 export function ensureAnimalVitals(animal:AnimalState){

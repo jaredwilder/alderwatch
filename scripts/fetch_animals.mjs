@@ -10,6 +10,7 @@ const SOURCES=[
  {name:'sheep',file:'sheep.glb',minBytes:100_000,url:'https://raw.githubusercontent.com/SeloSlav/medieval-settlement-threejs/adebb282df90627f3ec63c8e89f076cf1cf14fe9/public/assets/models/livestock/quaternius-sheep.glb'},
  {name:'deer',file:'deer.glb',minBytes:300_000,url:'https://raw.githubusercontent.com/SeloSlav/medieval-settlement-threejs/adebb282df90627f3ec63c8e89f076cf1cf14fe9/public/assets/models/deer/quaternius-deer.glb'},
  {name:'bear',file:'bear.glb',minBytes:300_000,url:'https://raw.githubusercontent.com/TuanTran0168/myunivokai-personalized-3d-worlds/9112af6c04ea14cd849ca90f82f45c875d3c7f50/apps/myunivokai-personalization/public/assets/nature/models/animal-bear.glb'},
+ {name:'bison',file:'bison.glb',minBytes:40_000,url:'https://github.com/series-ai/jam-ready-assets/raw/e93aa129978daafda85f3c907eebc8f1807ec43f/kenney-prototype-kit/3D/prototype-blocks/Models/GLB%20format/animal-bison.glb'},
 ];
 
 await mkdir(OUT,{recursive:true});
