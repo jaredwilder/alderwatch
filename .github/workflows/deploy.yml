@@ -1,0 +1,88 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-hetzner
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SITE_URL: https://alderwatch.167.233.105.77.sslip.io
+  SITE_ROOT: /opt/infra/alderwatch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Load deploy key
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+          HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # Upload into a per-commit release directory, then flip the `current`
+      # symlink. The swap is atomic, so the live site is never served from a
+      # half-uploaded directory, and the previous release stays on disk for
+      # an instant rollback.
+      - name: Upload release
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            dist/ "deploy@$HOST:$SITE_ROOT/releases/$GITHUB_SHA/"
+
+      - name: Activate release
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "deploy@$HOST" \
+            "SITE_ROOT='$SITE_ROOT' SHA='$GITHUB_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          test -d "$SITE_ROOT/releases/$SHA"
+          ln -sfn "$SITE_ROOT/releases/$SHA" "$SITE_ROOT/current.tmp"
+          mv -T "$SITE_ROOT/current.tmp" "$SITE_ROOT/current"
+          echo "activated: $(readlink -f "$SITE_ROOT/current")"
+
+          # Keep the 5 most recent releases; delete only resolved paths that
+          # sit directly under the releases directory.
+          cd "$SITE_ROOT/releases"
+          ls -1td ./*/ 2>/dev/null | tail -n +6 | while read -r old; do
+            full="$(realpath "$old")"
+            case "$full" in
+              "$SITE_ROOT/releases/"?*) rm -rf -- "$full"; echo "pruned: $full" ;;
+              *) echo "refused to prune: $full" ;;
+            esac
+          done
+          REMOTE
+
+      - name: Verify live
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$SITE_URL/")
+          echo "$SITE_URL returned HTTP $code"
+          test "$code" = "200"
