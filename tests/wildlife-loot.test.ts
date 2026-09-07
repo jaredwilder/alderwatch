@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {LocalAuthority,makePlayer,quantity} from '../src/state';
+import {LocalAuthority,makePlayer,quantity,addItem} from '../src/state';
+import {stats} from '../src/definitions';
 import {seedNature} from '../src/nature';
 import {animalAlive,bearBite,bearMaul,corpseId,damageAnimal,ensureAnimalVitals,resolveWildlifeStrike} from '../src/wildlife-rules';
 import {beginAction,WEAPONS} from '../src/combat-rules';
@@ -8,7 +9,7 @@ import './wildlife-behavior.test';
 
 test('animals gain persistent health without resetting existing saves',()=>{
  const a=new LocalAuthority(),p=makePlayer('Warden');a.state.players[p.id]=p;seedNature(a.state);
- const deer=Object.values(a.state.animals!).find(x=>x.kind==='deer')!;assert.equal(deer.maxHealth,62);assert.equal(deer.health,62);deer.health=31;seedNature(a.state);assert.equal(deer.health,31);assert.equal(animalAlive(deer),true);
+ const deer=Object.values(a.state.animals!).find(x=>x.kind==='deer')!,bison=Object.values(a.state.animals!).find(x=>x.kind==='bison')!;assert.equal(deer.maxHealth,62);assert.equal(deer.health,62);assert.equal(bison.maxHealth,240);assert.equal(Object.values(a.state.animals!).filter(x=>x.kind==='bison').length,5);deer.health=31;seedNature(a.state);assert.equal(deer.health,31);assert.equal(animalAlive(deer),true);
 });
 
 test('lethal hunting creates one persistent lootable carcass container',()=>{
@@ -16,6 +17,19 @@ test('lethal hunting creates one persistent lootable carcass container',()=>{
  ensureAnimalVitals(deer);const hit=damageAnimal(a.state,deer,999,'player',p.id);assert.equal(hit.killed,true);assert.equal(deer.dead,true);const id=corpseId(deer.id),corpse=a.state.containers[id];assert.ok(corpse);assert.equal(corpse.name,'Deer carcass');assert.equal(corpse.inventory.find(s=>s.item==='venison')?.count,4);assert.equal(corpse.inventory.find(s=>s.item==='hide')?.count,2);
  damageAnimal(a.state,deer,999,'player',p.id);assert.equal(Object.keys(a.state.containers).filter(k=>k===id).length,1);
  assert.ok(a.dispatch({type:'open_container',playerId:p.id,containerId:id}).ok);assert.ok(a.dispatch({type:'transfer',playerId:p.id,containerId:id,item:'venison',count:4,direction:'withdraw'}).ok);assert.equal(quantity(p,'venison'),6);assert.equal(corpse.inventory.some(s=>s.item==='venison'),false);
+});
+
+test('bison are durable herd wildlife with substantial carcass yield',()=>{
+ const a=new LocalAuthority(),p=makePlayer('Hunter');a.state.players[p.id]=p;seedNature(a.state);const bison=Object.values(a.state.animals!).find(x=>x.kind==='bison')!;p.position=[...bison.position];
+ assert.equal(bison.maxHealth,240);const hit=damageAnimal(a.state,bison,999,'player',p.id);assert.equal(hit.killed,true);const corpse=a.state.containers[corpseId(bison.id)];assert.equal(corpse.name,'Bison carcass');assert.equal(corpse.inventory.find(s=>s.item==='venison')?.count,8);assert.equal(corpse.inventory.find(s=>s.item==='hide')?.count,6);
+});
+
+test('crow carcasses provide the ingredient required to craft crow milk',()=>{
+ const a=new LocalAuthority(),p=makePlayer('Warden');a.state.players[p.id]=p;seedNature(a.state);const crow=Object.values(a.state.animals!).find(x=>x.kind==='crow')!;p.position=[...crow.position];
+ assert.equal(damageAnimal(a.state,crow,999,'player',p.id).killed,true);const id=corpseId(crow.id),corpse=a.state.containers[id];assert.equal(corpse.inventory.find(s=>s.item==='crow_crop')?.count,1);
+ assert.ok(a.dispatch({type:'open_container',playerId:p.id,containerId:id}).ok);assert.ok(a.dispatch({type:'transfer',playerId:p.id,containerId:id,item:'crow_crop',count:1,direction:'withdraw'}).ok);assert.equal(quantity(p,'crow_crop'),1);
+ p.position=[...a.state.stations['alderbrook-fire'].position];addItem(a.state,p,'herb',1);const craft=a.dispatch({type:'craft',playerId:p.id,recipeId:'crow_milk',stationId:'alderbrook-fire'});assert.equal(craft.ok,true);assert.equal(quantity(p,'crow_crop'),0);assert.equal(quantity(p,'herb'),0);assert.equal(quantity(p,'crow_milk'),1);
+ assert.equal(a.dispatch({type:'eat',playerId:p.id,item:'crow_milk'}).ok,true);assert.equal(stats(p).health,125);assert.equal(stats(p).stamina,125);
 });
 
 test('bear bites can actually kill prey and leave a carcass',()=>{
