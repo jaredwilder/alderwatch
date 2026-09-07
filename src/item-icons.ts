@@ -19,6 +19,7 @@ if(typeof document!=='undefined'){
  style.dataset.alderwatchItemIcons='1';
  style.textContent=`
 .aw-item-icon{display:inline-block;width:2.35rem;height:2.35rem;flex:0 0 auto;background-image:url('/assets/ui/item-icons.svg');background-size:600% 400%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0008);vertical-align:middle}
+.aw-item-icon[data-item="wild_honey"]{background-image:url('/assets/ui/honey-icon.svg');background-size:100% 100%;background-position:center}
 .pack-item strong>.aw-item-icon{width:2.8rem;height:2.8rem;margin-right:.55rem}.pack-item strong{display:flex;align-items:center}
 .loot-icon.aw-item-icon{width:2.8rem;height:2.8rem;font-size:0}
 .recipe h3>.aw-item-icon{width:2.25rem;height:2.25rem;margin-right:.5rem}.recipe h3{display:flex;align-items:center}
