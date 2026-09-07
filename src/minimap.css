@@ -1,0 +1,7 @@
+.minimap{position:absolute;right:25px;top:130px;width:190px;padding:5px 8px 10px;background:linear-gradient(145deg,#10221dec,#18251fe3);border:1px solid #bcaa795c;box-shadow:0 8px 24px #0004;border-radius:8px;pointer-events:none;text-align:center;font-family:Inter,Arial,sans-serif}
+.minimap canvas{display:block;width:100%;height:auto}
+.minimap-route{font-size:13px;color:#ffe2a5;min-height:18px;margin:3px -3px 4px;font-weight:600}
+.minimap small{font-size:10px;color:#c1c6b3;white-space:nowrap}
+.quest{max-width:min(370px,38vw)}
+@media(max-width:850px){.minimap{top:18px;right:14px;width:146px;padding:4px 5px 8px}.minimap-route{font-size:11px}.minimap small{font-size:8px}.location{max-width:45vw}.location span{font-size:17px}}
+@media(max-height:620px) and (min-width:851px){.minimap{width:146px;top:120px}.minimap small{font-size:8px}}

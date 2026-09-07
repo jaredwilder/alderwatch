@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.log
+assets/source/*.blend1
+
+# Local authoring masters and downloaded source packs; shipped assets are in public/.
+assets/source/
+art/captures/*
+!art/captures/procedural-southwood.png
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
