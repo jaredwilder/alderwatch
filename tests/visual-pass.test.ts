@@ -5,11 +5,18 @@ import {createHash} from 'node:crypto';
 import {NodeIO} from '@gltf-transform/core';
 import {ALL_EXTENSIONS} from '@gltf-transform/extensions';
 import * as T from 'three';
-import {meadowBlades} from '../src/visual-surfaces';
+import {meadowBlades,architecturalSurface} from '../src/visual-surfaces';
 import {softenedAnimalGeometry} from '../src/animal-surface';
 import {humanoidVisualBounds} from '../src/visual-culling';
 import {model} from './load-assets';
+import {Assets} from '../src/assets';
 const io=new NodeIO().registerExtensions(ALL_EXTENSIONS);
+test('architectural grain is world-metre scaled, not multiplied by imported source units',()=>{
+ const material=new T.MeshStandardMaterial();architecturalSurface(material,{});const shader={vertexShader:'#include <begin_vertex>',fragmentShader:'#include <map_fragment>',uniforms:{}};
+ material.onBeforeCompile(shader as any,undefined as any);assert.match(shader.vertexShader,/modelMatrix\*surfacePosition/);assert.match(shader.vertexShader,/instanceMatrix\*surfacePosition/);
+});
+test('architectural upgrade preserves authored PBR atlases instead of repainting them as wood',()=>{const map=new T.Texture(),normal=new T.Texture(),material=new T.MeshStandardMaterial({map,normalMap:normal});const shader=material.onBeforeCompile;architecturalSurface(material,{});assert.equal(material.map,map);assert.equal(material.normalMap,normal);assert.equal(material.onBeforeCompile,shader);});
+test('assembled longhouse closes both roof ends with fitted authored gables',async()=>{const assets=new Assets();assets.kit=await model('frontier-kit');assets.medieval.roof_roundtiles_6x6=new T.Mesh(new T.BoxGeometry(6.35,2.5,6.35));assets.medieval.window_wide_flat1=new T.Group();const house=assets.authoredLonghouse(),ends=house.getObjectsByProperty('name','Finished longhouse gable');assert.equal(ends.length,2);for(const end of ends){const box=new T.Box3().setFromObject(end);assert.ok(box.max.x-box.min.x<6.36);assert.ok(Math.abs(box.min.y-3.1)<.001);assert.ok(box.max.y<5.61);}});
 
 test('user-generated props ship with UVs, normals and embedded texture under sensible budgets',async()=>{
  for(const [name,triLimit,maxBytes,height] of [['market_stall',33000,1600000,2.7],['barrel',10000,650000,.9]] as const){
