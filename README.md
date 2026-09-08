@@ -40,3 +40,24 @@ Reference art lives in `art/concepts/` and `art/direction-v2/`. It is a visual t
 Source, tests, lockfile, optimized runtime GLBs/WebPs, generated source textures and reference art, asset-authoring scripts. Large Blender masters/raw exports/downloaded source packs under `assets/source/` remain on the original workstation and are excluded. Authoring scripts are archival/local tools with workstation-specific paths; asset rebuilding needs those sources. See the handoff before using them.
 
 CI checks test/build on pushes and pull requests. Passing tests is not visual acceptance or a complete playthrough. Art polish, performance validation, house/camp walkthroughs and the broader game vision remain unfinished.
+
+## Villager dialogue
+
+Three villagers stand in Alderbrook — Rowan Ash (blacksmith), Maerin Vale (cook) and
+Hallis Crow (warden). Walk within a couple of paces and press `E` to speak; they answer
+in their own words.
+
+The browser holds no credential. It posts an npc id and a line of player speech to
+`/api/npc`, and `server/npc-server.mjs` attaches the persona and the OpenRouter key.
+Personas live in `server/personas.mjs` and never reach the bundle, so a player cannot
+substitute a prompt of their own.
+
+Run it locally alongside `npm run dev` (Vite proxies `/api` to port 5011):
+
+```
+npm run npc          # reads OPENROUTER_API_KEY from .env.local, which is gitignored
+```
+
+In production the service is a systemd unit (`alderwatch-npc.service`) reading
+`/etc/alderwatch/secrets.env`, which only root can read; Caddy routes `/api/*` to it.
+Requests are capped at 20 per minute per IP.

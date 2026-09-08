@@ -5,8 +5,12 @@ import {Building} from './building';
 import {EXPEDITION_STOPS,bearing,expeditionProgress,expeditionObjective} from './expedition';
 import {frontierObjective,REGIONS} from './worldgen';
 import {BOUNTIES,bountyObjective} from './bounties';
+import {askVillager,type DialogueTurn} from './dialogue';
+import type {Villager} from './npc';
 export class GamePanels {
  containerId='';
+ /** Transcripts persist for the session so stepping away and back resumes the conversation. */
+ conversations=new Map<string,DialogueTurn[]>();
  constructor(public ui:HTMLElement,public authority:LocalAuthority,public player:()=>PlayerState,public building:()=>Building,public resume:()=>void,public command:(c:Command)=>{ok:boolean;message:string}){}
  button(label:string,action:()=>void,parent:Element,disabled=false){const b=document.createElement('button');b.textContent=label;b.disabled=disabled;b.onclick=action;parent.append(b);return b;}
  shell(title:string,subtitle:string){this.ui.innerHTML='<section class="menu-card game-panel"><button class="back">← Return to the March</button><div class="eyebrow"></div><h2></h2><div class="panel-content"></div></section>';this.ui.querySelector<HTMLElement>('.back')!.onclick=this.resume;this.ui.querySelector('.eyebrow')!.textContent=subtitle;this.ui.querySelector('h2')!.textContent=title;return this.ui.querySelector<HTMLElement>('.panel-content')!;}
@@ -37,6 +41,35 @@ export class GamePanels {
   if(!progress.accepted)this.button('Accept · Follow the couriers',()=>{this.command({type:'expedition',playerId:p.id,action:'accept'});this.journal();},actions);
   else if(!progress.completed&&progress.recovered.length===EXPEDITION_STOPS.length)this.button('Report to Alderbrook · claim reward',()=>{this.command({type:'expedition',playerId:p.id,action:'report'});this.journal();},actions,Math.hypot(p.position[0]-7,p.position[2]+31)>3.2);
   this.button('Return to the road',this.resume,actions);const note=document.createElement('p');note.className='muted';note.textContent=objective.text+(objective.position?' · '+bearing(p.position,objective.position):'')+' · Q quick food · F heavy sword strike · RMB timed guard / parry · Space dodge';content.append(note);
+ }
+ dialogue(villager:Villager){
+  let history=this.conversations.get(villager.id);
+  if(!history){history=[{role:'assistant',content:villager.greeting}];this.conversations.set(villager.id,history);}
+  const turns=history;
+  const content=this.shell(villager.name,villager.role.toUpperCase()+' · ALDERBROOK');content.classList.add('dialogue-content');
+  const log=document.createElement('div');log.className='dialogue-log';log.setAttribute('role','log');log.setAttribute('aria-live','polite');
+  const form=document.createElement('form');form.className='dialogue-form';
+  const field=document.createElement('input');field.type='text';field.maxLength=400;field.autocomplete='off';field.placeholder='Say something…';field.setAttribute('aria-label','Speak to '+villager.name);
+  // The global key handler ignores events aimed at inputs, so Escape needs its own way out.
+  field.onkeydown=event=>{if(event.key==='Escape'){event.preventDefault();this.resume();}};
+  const send=document.createElement('button');send.type='submit';send.textContent='Speak';
+  form.append(field,send);content.append(log,form);
+  const note=document.createElement('p');note.className='muted';note.textContent='They answer in their own words. Esc or ← returns to the March.';content.append(note);
+  // Model text is written with textContent, never innerHTML.
+  const render=()=>{log.replaceChildren();for(const turn of turns){const line=document.createElement('p');line.className=turn.role==='user'?'dialogue-player':'dialogue-npc';
+   line.textContent=(turn.role==='user'?'You':villager.name)+' · '+turn.content;log.append(line);}log.scrollTop=log.scrollHeight;};
+  render();field.focus();
+  let pending=false;
+  form.onsubmit=async event=>{
+   event.preventDefault();
+   const said=field.value.trim();if(!said||pending)return;
+   field.value='';turns.push({role:'user',content:said});render();
+   pending=true;send.disabled=field.disabled=true;
+   const waiting=document.createElement('p');waiting.className='dialogue-npc muted';waiting.textContent=villager.name+' considers…';log.append(waiting);log.scrollTop=log.scrollHeight;
+   try{turns.push({role:'assistant',content:await askVillager(villager.id,said,turns.slice(0,-1))});}
+   catch(error){turns.push({role:'assistant',content:(error as Error).message});}
+   pending=false;send.disabled=field.disabled=false;render();field.focus();
+  };
  }
  nearestStation(){const p=this.player();return Object.values(this.authority.state.stations).filter(s=>distance(s.position,p.position)<=3.2).sort((a,b)=>distance(a.position,p.position)-distance(b.position,p.position))[0];}
  crafting(stationId?:string){const p=this.player(),station=stationId?this.authority.state.stations[stationId]:this.nearestStation();const content=this.shell(station?.name??'Crafting & cooking',station?'STATION IN REACH':'FIND A CRAFTING STATION');
