@@ -22,9 +22,6 @@ export class Character {
   this.body=physics.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(state.position[0],state.position[1]+.9,state.position[2]));this.collider=physics.createCollider(RAPIER.ColliderDesc.capsule(.58,.3),this.body);this.controller=physics.createCharacterController(.02);this.controller.enableAutostep(.24,.1,true);this.controller.enableSnapToGround(.4);this.controller.setMaxSlopeClimbAngle(Math.PI*.28);this.controller.setApplyImpulsesToDynamicBodies(true);
   this.customize();this.play('idle');this.mixer.update(.001);this.root.updateMatrixWorld(true);this.equip(state.equipped);
   const walk=assets.survivor.animations.find(a=>a.name==='walk')!,guard=assets.survivor.animations.find(a=>a.name==='guard')!,attack=assets.survivor.animations.find(a=>a.name==='attack')!,heavy=assets.survivor.animations.find(a=>a.name==='heavy')!,chop=assets.survivor.animations.find(a=>a.name==='chop')!;
-  // The shipping moving-attack layer used to amputate the pelvis from every swing and paste gait legs under arm-only attacks.
-  // Build weapon clips around the real authored contact frames instead: preserve the impact pose, compress only excess recovery,
-  // amplify existing pelvis/spine torque, and use the two-handed downward heavy source for the pickaxe.
   const clips:[string,T.AnimationClip,number,number,number][]=[
    ['attack',attack,13/30,WEAPONS.sword!.impact,WEAPONS.sword!.duration],
    ['heavy',heavy,25/30,25/30,47/30],
@@ -34,7 +31,6 @@ export class Character {
   for(const [name,source,sourceImpact,targetImpact,duration] of clips)this.actions.set(name,this.mixer.clipAction(combatClip(source,name,sourceImpact,targetImpact,duration)));
   const tracks=[...walk.tracks.filter(t=>!upperBodyTrack(t.name)).map(t=>t.clone()),...guard.tracks.filter(t=>upperBodyTrack(t.name)).map(t=>{const track=t.clone();track.scale(walk.duration/guard.duration);return track;})];
   for(const name of ['attack','heavy','chop','mine']){const source=this.actions.get(name)!.getClip();this.actions.set(name+'_moving',this.mixer.clipAction(new T.AnimationClip(name+'_moving',source.duration,source.tracks.filter(t=>meleeBodyTrack(t.name)).map(t=>t.clone()))));}
-  // Legs/root keep the live gait, but pelvis + torso now belong to the melee action so the body actually throws the weapon.
   for(const gait of ['walk','run','sprint']){const source=assets.survivor.animations.find(c=>c.name===gait)!;const action=this.mixer.clipAction(new T.AnimationClip('swing_stride_'+gait,source.duration,source.tracks.filter(t=>!meleeBodyTrack(t.name)).map(t=>t.clone())));action.play().setEffectiveWeight(0);this.strideActions.set(gait,action);}this.strideAction=this.strideActions.get('walk');this.activeStrideAction=this.strideAction;
   this.actions.set('guard_walk',this.mixer.clipAction(new T.AnimationClip('guard_walk',walk.duration,tracks)));
  }
@@ -42,7 +38,10 @@ export class Character {
  private gripAlignment?:T.Quaternion;
  equip(name:ItemId|null){if(this.tool){this.tool.removeFromParent();this.tool=undefined;}this.equipped=name;if(name&&['axe','pickaxe','sword','fine_sword','hammer','bow'].includes(name)){
   if(!this.gripAlignment){this.root.updateMatrixWorld(true);const rootQ=this.root.getWorldQuaternion(new T.Quaternion());const shaft=new T.Vector3(0,-.98,.20).normalize().applyQuaternion(rootQ);const edge=new T.Vector3(-1,0,0).applyQuaternion(rootQ);const normal=new T.Vector3().crossVectors(edge,shaft).normalize();edge.crossVectors(shaft,normal).normalize();const worldQ=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(edge,shaft,normal));this.gripAlignment=this.grip.getWorldQuaternion(new T.Quaternion()).invert().multiply(worldQ);}
-  const t=name==='bow'?makeBow():this.assets.prop(name==='fine_sword'?'sword':name);if(name==='fine_sword'){t.scale.setScalar(1.08);t.traverse(o=>{if(o instanceof T.Mesh){const tint=(m:T.Material)=>{const n=(m as T.MeshStandardMaterial).clone();n.color.multiplyScalar(1.35);n.roughness=.26;return n;};o.material=Array.isArray(o.material)?o.material.map(tint):tint(o.material);}});}this.grip.add(t);t.position.set(0,0,0);t.quaternion.copy(this.gripAlignment);if(name==='bow'){t.scale.setScalar(1.08);t.rotateY(Math.PI/2);t.rotateZ(Math.PI/2);}this.tool=t;
+  const t=name==='bow'?makeBow():this.assets.prop(name==='fine_sword'?'sword':name);if(name==='fine_sword'){t.scale.setScalar(1.08);t.traverse(o=>{if(o instanceof T.Mesh){const tint=(m:T.Material)=>{const n=(m as T.MeshStandardMaterial).clone();n.color.multiplyScalar(1.35);n.roughness=.26;return n;};o.material=Array.isArray(o.material)?o.material.map(tint):tint(o.material);}});}this.grip.add(t);t.position.set(0,0,0);t.quaternion.copy(this.gripAlignment);
+  // The kit tools share a shaft axis but not the same head-forward basis. Keep sword/hammer unchanged,
+  // flip the axe head to the leading side of its lateral cut, and turn the pick head into the overhead strike plane.
+  if(name==='axe')t.rotateY(Math.PI);else if(name==='pickaxe')t.rotateY(Math.PI/2);else if(name==='bow'){t.scale.setScalar(1.08);t.rotateY(Math.PI/2);t.rotateZ(Math.PI/2);}this.tool=t;
  }}
  setAttackWarpTarget(position?:Vec3){if(!position){this.attackWarpTarget=undefined;return;}if(!this.attackWarpTarget)this.attackWarpTarget=new T.Vector3();this.attackWarpTarget.fromArray(position);}
  private locomotion(name:string){return name==='walk'||name==='run'||name==='sprint'||name==='guard_walk';}
@@ -56,7 +55,9 @@ export class Character {
  private startDodge(yaw:number,keys:Set<string>){if(this.state.health<=0)return false;const x=Number(keys.has('KeyD'))-Number(keys.has('KeyA')),z=Number(keys.has('KeyW'))-Number(keys.has('KeyS'));if(x||z)this.root.rotation.y=Math.atan2(Math.cos(yaw)*x+Math.sin(yaw)*z,Math.sin(yaw)*x-Math.cos(yaw)*z);this.state.yaw=this.root.rotation.y;if(!this.onActionRequest('dodge'))return false;this.syncCombatPose();return true;}
  private queue(action:CombatAction,tick:number){const ttl=action==='dodge'?24:22;if(action==='dodge'||this.bufferedAction?.action!=='dodge')this.bufferedAction={action,expires:tick+ttl};}
  preStep(dt:number,input:Pick<Input,'keys'|'take'|'secondary'> & Partial<Pick<Input,'primary'>>,yaw:number,enabled:boolean){
-  const p=this.state,tick=this.getTick();let target=new T.Vector3();this.locked=Math.max(0,this.locked-dt);if(this.locked<1e-6)this.locked=0;if(enabled&&this.locked===0&&input.take('Digit5')&&p.inventory.some(s=>s.item==='bow')){p.equipped='bow';this.equip('bow');}this.swingLocomotion=enabled&&['KeyW','KeyA','KeyS','KeyD'].some(k=>input.keys.has(k));this.syncCombatPose();if(!enabled||combatState(p).kind==='hit')this.bufferedAction=undefined;if(p.health<=0)return;
+  const p=this.state,tick=this.getTick();let target=new T.Vector3();this.locked=Math.max(0,this.locked-dt);if(this.locked<1e-6)this.locked=0;if(enabled&&this.locked===0&&input.take('Digit5')&&p.inventory.some(s=>s.item==='bow')){p.equipped='bow';this.equip('bow');}
+  const poseAtStart=combatState(p),inputTravel=enabled&&['KeyW','KeyA','KeyS','KeyD'].some(k=>input.keys.has(k)),carryingSwingMomentum=['attack','heavy'].includes(poseAtStart.kind)&&poseAtStart.until>tick&&this.velocity.length()>.12;
+  this.swingLocomotion=!!(inputTravel||carryingSwingMomentum);this.syncCombatPose();if(!enabled||combatState(p).kind==='hit')this.bufferedAction=undefined;if(p.health<=0)return;
   const before=combatState(p);this.attackTime=['attack','heavy'].includes(before.kind)?(tick-before.started)/60:0;
   if(['attack','heavy'].includes(before.kind)&&this.attackTime<(attackProfile(p)?.impact??0)-.12){this.onWindupAim(dt);p.yaw=this.root.rotation.y;}
   if(['attack','heavy'].includes(before.kind)&&tick<=before.until&&!this.attackHit&&this.attackTime>=(attackProfile(p)?.impact??.567)){this.attackHit=true;this.onImpact();}
@@ -71,9 +72,9 @@ export class Character {
    if(this.current==='dodge'&&this.locked>0)target.set(Math.sin(this.root.rotation.y),0,Math.cos(this.root.rotation.y)).multiplyScalar(5.8*Math.sin((.8-this.locked)/.8*Math.PI));
   }
   const active=combatState(p),profile=attackProfile(p);this.warpVelocity.set(0,0,0);
-  if(enabled&&this.attackWarpTarget&&profile&&active.weapon!=='bow'&&['attack','heavy'].includes(active.kind)&&active.until>tick){const v=attackWarpVelocity(p.position,this.root.rotation.y,this.attackWarpTarget.toArray() as Vec3,profile.reach,this.attackTime,profile.impact,active.kind==='heavy');this.warpVelocity.fromArray(v);const warpSpeed=this.warpVelocity.length();if(warpSpeed>0){const dir=this.warpVelocity.clone().normalize(),along=target.dot(dir);if(along>=-.15&&along<warpSpeed)target.addScaledVector(dir,warpSpeed-along);}}
+  if(enabled&&this.attackWarpTarget&&profile&&active.weapon!=='bow'&&['attack','heavy'].includes(active.kind)&&active.until>tick){const v=attackWarpVelocity(p.position,this.root.rotation.y,this.attackWarpTarget.toArray() as Vec3,profile.reach,this.attackTime,profile.impact,active.kind==='heavy');this.warpVelocity.fromArray(v);const warpSpeed=this.warpVelocity.length();if(warpSpeed>0){const dir=this.warpVelocity.clone().normalize(),along=target.dot(dir);if(along>=-.15&&along<warpSpeed)target.addScaledVector(dir,warpSpeed-along);if(!this.swingLocomotion){this.swingLocomotion=true;this.syncCombatPose();}}}
   setGuard(p,tick,enabled&&input.secondary&&this.locked===0);
-  const walkingSwing=(this.swingLocomotion||this.warpVelocity.lengthSq()>0)&&['attack','heavy'].includes(combatState(p).kind)&&combatState(p).until>tick;this.updateStride(target.length(),walkingSwing);
+  const activeSwing=['attack','heavy'].includes(combatState(p).kind)&&combatState(p).until>tick,walkingSwing=activeSwing&&(this.swingLocomotion||this.warpVelocity.lengthSq()>0||this.velocity.length()>.12);this.updateStride(Math.max(target.length(),this.velocity.length()),walkingSwing);
   target.add(this.knockback);this.knockback.multiplyScalar(Math.exp(-dt*9));
   this.velocity.lerp(target,1-Math.exp(-dt*(target.lengthSq()?14:22)));if(this.velocity.length()<.025)this.velocity.set(0,0,0);
   this.vertical=this.controller.computedGrounded()?-1:Math.max(-25,this.vertical-dt*25);this.controller.computeColliderMovement(this.collider,{x:this.velocity.x*dt,y:this.vertical*dt,z:this.velocity.z*dt});const m=this.controller.computedMovement(),b=this.body.translation();this.body.setNextKinematicTranslation({x:b.x+m.x,y:b.y+m.y,z:b.z+m.z});
