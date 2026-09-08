@@ -17,7 +17,9 @@ function driveFor(clip:string,bone:string):Drive{
  // Lateral cuts get a small head/neck tuck into contact. This is deliberately downstream of the arms,
  // so it adds intent/weight without moving the gameplay-authoritative weapon contact pose.
  if(clip==='attack')return bone==='pelvis'?{pitch:.025,yaw:.20,roll:-.025}:bone==='spine_01'?{pitch:.02,yaw:.15,roll:-.035}:bone==='spine_02'?{pitch:0,yaw:.09,roll:-.02}:neck?{pitch:.095,yaw:0,roll:0}:head?{pitch:.045,yaw:0,roll:0}:ZERO;
- if(clip==='chop')return bone==='pelvis'?{pitch:.04,yaw:.25,roll:.035}:bone==='spine_01'?{pitch:.035,yaw:.19,roll:.045}:bone==='spine_02'?{pitch:.02,yaw:.11,roll:.025}:neck?{pitch:.115,yaw:0,roll:0}:head?{pitch:.055,yaw:0,roll:0}:ZERO;
+ // The authored axe cut already has a downward component. Keep its lateral torque and a visible head tuck,
+ // but do not stack another strong forward pitch on top of the source pose.
+ if(clip==='chop')return bone==='pelvis'?{pitch:.018,yaw:.25,roll:.035}:bone==='spine_01'?{pitch:.012,yaw:.19,roll:.045}:bone==='spine_02'?{pitch:.004,yaw:.11,roll:.025}:neck?{pitch:.08,yaw:0,roll:0}:head?{pitch:.035,yaw:0,roll:0}:ZERO;
  if(clip==='mine')return bone==='pelvis'?{pitch:.20,yaw:.065,roll:0}:bone==='spine_01'?{pitch:.16,yaw:.05,roll:0}:bone==='spine_02'?{pitch:.09,yaw:.025,roll:0}:ZERO;
  if(clip==='heavy')return bone==='pelvis'?{pitch:.14,yaw:.15,roll:0}:bone==='spine_01'?{pitch:.11,yaw:.12,roll:0}:bone==='spine_02'?{pitch:.065,yaw:.07,roll:0}:ZERO;
  return ZERO;
