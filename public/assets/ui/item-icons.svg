@@ -1,37 +1,62 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="700" viewBox="0 0 600 700">
 <defs>
  <linearGradient id="iron" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8d2c1"/><stop offset=".45" stop-color="#6f756f"/><stop offset="1" stop-color="#292f2e"/></linearGradient>
  <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9b6b38"/><stop offset="1" stop-color="#3c2619"/></linearGradient>
  <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#829259"/><stop offset="1" stop-color="#35452f"/></linearGradient>
  <linearGradient id="food" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b36e46"/><stop offset="1" stop-color="#572e27"/></linearGradient>
+ <linearGradient id="raw" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c5786b"/><stop offset=".55" stop-color="#8d493f"/><stop offset="1" stop-color="#4d2927"/></linearGradient>
+ <linearGradient id="cooked" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a85c35"/><stop offset=".55" stop-color="#6b3427"/><stop offset="1" stop-color="#351f1b"/></linearGradient>
  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8b66b"/><stop offset="1" stop-color="#705329"/></linearGradient>
  <filter id="soft"><feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-opacity=".45"/></filter>
+ <g id="raw-cut" filter="url(#soft)"><path fill="url(#raw)" d="M18 58c7-26 29-39 55-27 16 8 16 27 3 42-13 15-38 18-54 7-7-5-8-13-4-22z"/><path fill="#ead0b4" d="M68 31c8-9 17-11 21-5 5 7-3 14-13 18z"/><path fill="#9e5a4d" d="M30 55c11-14 27-18 41-12-13 1-27 8-36 20z"/></g>
+ <g id="steak" filter="url(#soft)"><path fill="url(#cooked)" d="M18 58c8-24 30-38 55-27 15 7 17 27 3 42-14 14-40 18-55 5-6-5-7-12-3-20z"/><path stroke="#c9915c" stroke-width="4" d="M31 51l38 16M36 41l39 16M27 63l32 14"/><path fill="#dec0a0" d="M70 31c8-8 17-10 21-4 4 7-4 14-14 17z"/></g>
+ <g id="herb-sprig"><path stroke="#596740" stroke-width="4" d="M18 20c8 11 11 22 10 34"/><path fill="#718050" d="M20 26c-9-7-14-5-18-1 5 8 11 10 19 7zM27 37c9-7 15-6 19-1-5 8-12 10-20 6z"/></g>
 </defs>
-<!-- row 1: mushroom, herb, broth, axe, pickaxe, bow -->
+<!-- row 1 -->
 <g transform="translate(0 0)" filter="url(#soft)"><path fill="#d8c6a1" d="M28 48c3-20 40-29 51-3 2 5 1 9-4 10H25c-4-1-2-4 3-7z"/><path fill="#aa987a" d="M46 54h12l6 29H40z"/><path fill="#594332" d="M36 59h28l-3 5H39z"/></g>
 <g transform="translate(100 0)" filter="url(#soft)" fill="url(#leaf)"><path d="M51 84c-4-22-2-45 3-67l6 2c-7 25-6 45-2 64z"/><path d="M51 54C32 52 22 40 20 27c17-2 31 6 35 20zM57 43c5-17 18-26 31-25 0 16-9 29-29 32zM51 69c-16 2-27-5-32-15 14-6 27-2 35 8z"/></g>
 <g transform="translate(200 0)" filter="url(#soft)"><path fill="#5b4030" d="M20 49h60l-8 34H28z"/><path fill="#b58b55" d="M25 43c7-15 44-15 50 0l-4 8H29z"/><path fill="#ddd0a7" d="M32 38c8-9 29-10 37 0-13-4-25-2-37 0z"/><path stroke="#786039" stroke-width="5" d="M75 49l10-10"/></g>
 <g transform="translate(300 0)" filter="url(#soft)"><path fill="url(#wood)" d="M47 31h8v57h-8z" transform="rotate(-26 51 60)"/><path fill="url(#iron)" d="M27 24c17 0 32 5 49 16l-5 11c-17-10-30-14-49-15z"/><path fill="#a9a690" d="M65 41l13 8-7 8-11-9z"/></g>
 <g transform="translate(400 0)" filter="url(#soft)"><path fill="url(#wood)" d="M48 28h8v59h-8z" transform="rotate(20 52 59)"/><path fill="url(#iron)" d="M19 33c17-11 45-13 63-2l-6 10c-17-7-34-5-52 3z"/><path fill="#b3ad9b" d="M23 31l4 18-9 2-5-15z"/></g>
 <g transform="translate(500 0)" filter="url(#soft)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="url(#wood)" stroke-width="7" d="M30 15c31 17 31 53 0 71"/><path stroke="#d8c6a1" stroke-width="2.5" d="M31 17L72 50 31 84M31 17v67"/><path stroke="url(#iron)" stroke-width="4" d="M19 50h59"/><path fill="url(#iron)" stroke="none" d="M78 50l-12-7v14z"/><path fill="#7d5730" stroke="none" d="M23 46h10v8H23z"/></g>
-<!-- row 2: hammer, sword, fine sword, wood, stone, crow crop -->
+<!-- row 2 -->
 <g transform="translate(0 100)" filter="url(#soft)"><path fill="url(#wood)" d="M47 36h9v52h-9z"/><path fill="url(#iron)" d="M23 23h58v19H23z"/><path fill="#97998f" d="M17 27h14v11H17z"/></g>
 <g transform="translate(100 100)" filter="url(#soft)"><path fill="url(#iron)" d="M48 12h8l4 52-8 13-8-13z"/><path fill="url(#gold)" d="M28 62h47v8H28zM47 70h11v14H47z"/><circle cx="52" cy="87" r="6" fill="#705329"/></g>
-<g transform="translate(200 100)" filter="url(#soft)"><path fill="#d9e0df" d="M48 9h8l5 54-9 15-9-15z"/><path stroke="#f4f0c8" stroke-width="2" d="M52 17v45"/><path fill="#b89851" d="M27 61h49v8H27zM47 69h11v15H47z"/><path fill="#373b38" d="M48 84h9v8h-9z"/></g>
+<g transform="translate(200 100)" filter="url(#soft)"><path fill="#d9e0df" d="M48 9h8l5 54-9 15-9-15z"/><path stroke="#f4f0c8" stroke-width="2" d="M52 17v45"/><path fill="#b89851" d="M27 61h49v8H28zM47 69h11v15H47z"/><path fill="#373b38" d="M48 84h9v8h-9z"/></g>
 <g transform="translate(300 100)" filter="url(#soft)"><path fill="url(#wood)" d="M18 33l54-14 11 43-55 16z"/><path stroke="#c18d50" stroke-width="3" d="M29 38l40-10M32 49l40-10M35 61l39-11"/><path fill="#4b3020" d="M19 33l10 44-8 2-9-42z"/></g>
 <g transform="translate(400 100)" filter="url(#soft)"><path fill="#7e8179" d="M18 56l12-28 33-10 23 23-7 34-35 10z"/><path fill="#a9a89b" d="M30 32l30-9 15 14-33 12z"/><path fill="#5b5f59" d="M42 50l34-10-3 25-29 13z"/></g>
 <g transform="translate(500 100)" filter="url(#soft)"><path fill="#3e3338" d="M31 25c9-12 30-11 39 3 9 14 4 37-12 48-12 8-30 2-35-12-5-14-1-28 8-39z"/><path fill="#6c4b53" d="M38 31c7-7 19-7 25 2 5 8 3 19-4 26-8 7-20 6-27-2-6-7-2-19 6-26z"/><path fill="#c4b4a2" d="M51 18l8 8-8 7-8-8z"/><path stroke="#211d20" stroke-width="3" d="M26 69c8 6 31 9 45-3"/></g>
-<!-- row 3: iron, fiber, venison, berries, grilled venison, crow milk -->
+<!-- row 3 -->
 <g transform="translate(0 200)" filter="url(#soft)"><path fill="#535957" d="M18 65l15-37 37-12 17 31-18 35-36 3z"/><path fill="url(#iron)" d="M35 35l17-9 9 11-15 10zM57 52l15-7 5 9-16 10z"/></g>
 <g transform="translate(100 200)" filter="url(#soft)"><path stroke="#a59b69" stroke-width="5" fill="none" d="M22 78c25-24 23-47 20-62M51 82c17-27 14-48 10-65M76 78C61 57 68 36 75 20"/><path fill="url(#leaf)" d="M26 51c-13-5-18-14-16-24 13 1 21 7 23 18zM61 48c-11-7-15-16-11-25 12 3 18 10 18 20zM72 51c13-4 20-12 20-22-13-1-22 5-25 17z"/></g>
-<g transform="translate(200 200)" filter="url(#soft)"><path fill="url(#food)" d="M19 57c7-26 29-39 55-27 16 8 16 27 3 42-13 15-38 18-54 7-7-5-8-13-4-22z"/><path fill="#e4c7a7" d="M68 31c8-9 17-11 21-5 5 7-3 14-13 18z"/><path fill="#8f4f3e" d="M30 55c11-14 27-18 41-12-13 1-27 8-36 20z"/></g>
+<g transform="translate(200 200)"><use href="#raw-cut"/></g>
 <g transform="translate(300 200)" filter="url(#soft)"><path stroke="#596740" stroke-width="4" d="M50 57c-4-16-1-27 6-39"/><g fill="#8d3540"><circle cx="35" cy="50" r="13"/><circle cx="56" cy="56" r="14"/><circle cx="67" cy="38" r="12"/><circle cx="43" cy="32" r="11"/></g><path fill="#6f8050" d="M52 26c-11-11-22-11-29-6 7 10 17 14 29 11z"/></g>
-<g transform="translate(400 200)" filter="url(#soft)"><path fill="#69352a" d="M18 58c8-24 30-38 55-27 15 7 17 27 3 42-14 14-40 18-55 5-6-5-7-12-3-20z"/><path stroke="#c18859" stroke-width="4" d="M31 51l38 16M36 41l39 16M27 63l32 14"/><path fill="#d8b293" d="M70 31c8-8 17-10 21-4 4 7-4 14-14 17z"/></g>
+<g transform="translate(400 200)"><use href="#steak"/></g>
 <g transform="translate(500 200)" filter="url(#soft)"><path fill="#43372f" d="M33 18h35l5 13-6 56H34l-7-56z"/><path fill="#e8dfc7" d="M32 40h38l-4 40H36z"/><path fill="#c7b793" d="M39 49h25l-2 22H41z"/><path fill="#73634e" d="M35 18h31l2 9H33z"/><path fill="none" stroke="#d6c8a9" stroke-width="3" d="M30 34c-12 3-12 24 3 26"/></g>
-<!-- row 4: stew, hide, health, stamina, speed -->
+<!-- row 4 -->
 <g transform="translate(0 300)" filter="url(#soft)"><path fill="#43352d" d="M17 45h66l-9 38H26z"/><path fill="#6f4c33" d="M22 39c9-15 48-16 57 0l-5 9H27z"/><circle cx="39" cy="39" r="6" fill="#8b3d3e"/><circle cx="55" cy="37" r="7" fill="#718050"/><circle cx="66" cy="42" r="5" fill="#b28758"/></g>
 <g transform="translate(100 300)" filter="url(#soft)"><path fill="#8f6542" d="M20 27c16-15 24-7 31-16 8 10 18 6 28 17-8 13-2 27-8 45-18 11-38 10-52-1 8-15 0-29 1-45z"/><path stroke="#c69a69" stroke-width="3" fill="none" d="M30 36c13 5 28 5 40-1M27 51c15 5 29 5 45 0"/></g>
 <g transform="translate(200 300)" filter="url(#soft)"><path fill="#8e3541" d="M50 82C9 58 22 22 43 25c8 1 12 6 15 12 5-9 12-13 21-11 22 5 23 37-29 56z"/><path fill="#d59092" d="M37 32c7-4 13-1 17 5-8-2-14 1-19 7z"/></g>
 <g transform="translate(300 300)" filter="url(#soft)"><path fill="#718c82" d="M52 13c22 27 30 42 26 56-5 20-23 23-29 22-21-2-31-20-22-39 5-11 14-23 25-39z"/><path fill="#b8d0c3" d="M48 31c8 11 13 20 15 29-8-6-15-6-22-1 0-10 3-19 7-28z"/></g>
 <g transform="translate(400 300)" filter="url(#soft)"><path stroke="#d4c392" stroke-width="7" stroke-linecap="round" d="M22 68c18-2 26-14 32-29M42 76c20-4 31-18 37-39"/><path fill="#87926d" d="M54 36l-13-13 17-8 10 15zM78 35l-8-14 16-3 6 14z"/></g>
+<g transform="translate(500 300)" filter="url(#soft)"><path fill="#c58b39" d="M24 51c0-20 14-34 31-34 21 0 31 17 25 36-5 18-24 30-42 24-10-3-14-12-14-26z"/><path fill="#e8c864" d="M34 43c8-15 22-17 34-8-13 2-22 10-29 22z"/><path stroke="#5b4029" stroke-width="4" d="M52 17c0-8 6-12 13-12"/></g>
+<!-- row 5: raw species meats -->
+<g transform="translate(0 400)"><use href="#raw-cut"/><path fill="#d8c6a1" d="M28 26c-8-14-5-22 1-25 7 6 8 14 5 25zm13-3c-2-16 3-22 10-22 4 8 1 16-4 24z"/></g>
+<g transform="translate(100 400)"><use href="#raw-cut"/><path fill="#34343a" d="M22 25c12-8 25-8 37-2-14 2-25 8-33 18z"/></g>
+<g transform="translate(200 400)"><use href="#raw-cut"/><path fill="none" stroke="#d7c79c" stroke-width="5" d="M23 34c-10-12-9-22-4-28 8 3 12 12 9 25M79 34c10-12 9-22 4-28-8 3-12 12-9 25"/></g>
+<g transform="translate(300 400)"><use href="#raw-cut"/><g fill="#eee5ce"><circle cx="24" cy="28" r="6"/><circle cx="34" cy="22" r="7"/><circle cx="44" cy="26" r="6"/></g></g>
+<g transform="translate(400 400)"><use href="#raw-cut"/><path stroke="#39231f" stroke-width="5" stroke-linecap="round" d="M30 36l10 12m2-18 8 13m4-17 7 13"/></g>
+<g transform="translate(500 400)"><use href="#raw-cut"/><path fill="none" stroke="#d2c18f" stroke-width="5" d="M22 31c-14-7-18-15-15-21 9-1 17 5 22 15M77 31c14-7 18-15 15-21-9-1-17 5-22 15"/></g>
+<!-- row 6: wolf/eagle raw + cooked hare/crow/goat/mutton -->
+<g transform="translate(0 500)"><use href="#raw-cut"/><path fill="#e3d9c5" d="M25 24l9-16 7 19zM48 20l8-17 8 20z"/></g>
+<g transform="translate(100 500)"><use href="#raw-cut"/><path fill="#5b5147" d="M22 27c18-14 38-15 58-2-20-3-37 4-52 18z"/><path fill="#d9cdb0" d="M35 20l8-13 6 16z"/></g>
+<g transform="translate(200 500)"><use href="#steak"/><use href="#herb-sprig" transform="translate(52 4)"/><path fill="#d8c6a1" d="M28 26c-8-14-5-22 1-25 7 6 8 14 5 25z"/></g>
+<g transform="translate(300 500)" filter="url(#soft)"><path stroke="#8d6237" stroke-width="5" stroke-linecap="round" d="M18 79L80 18"/><path fill="url(#cooked)" d="M25 62c-5-11 4-23 15-20l11 9-14 16zM47 42c-5-11 4-23 15-20l11 9-14 16z"/><path fill="#303039" d="M23 29c14-8 24-8 35-2-13 2-23 7-31 16z"/></g>
+<g transform="translate(400 500)"><use href="#steak"/><use href="#herb-sprig" transform="translate(55 2)"/><path fill="none" stroke="#d7c79c" stroke-width="4" d="M23 33c-9-11-8-20-3-25 7 3 10 11 8 22"/></g>
+<g transform="translate(500 500)" filter="url(#soft)"><path fill="#4c3528" d="M16 53h68l-10 30H26z"/><path fill="url(#cooked)" d="M24 48c8-18 48-22 57 0l-5 11H29z"/><g fill="#e6dfc9"><circle cx="34" cy="43" r="6"/><circle cx="47" cy="38" r="7"/><circle cx="60" cy="42" r="6"/></g></g>
+<!-- row 7: bear steak, bison roast, smoked wolf, eagle roast -->
+<g transform="translate(0 600)"><use href="#steak"/><path stroke="#2f211d" stroke-width="5" stroke-linecap="round" d="M30 36l10 12m4-17 8 13m5-17 7 12"/></g>
+<g transform="translate(100 600)" filter="url(#soft)"><path fill="#4c3528" d="M15 56h70l-8 27H24z"/><path fill="url(#cooked)" d="M22 53c6-23 49-30 60-4l-6 14H28z"/><use href="#herb-sprig" transform="translate(50 2)"/><path fill="none" stroke="#d2c18f" stroke-width="4" d="M24 31c-11-5-15-12-13-18 8-1 15 4 19 12"/></g>
+<g transform="translate(200 600)" filter="url(#soft)"><path fill="#593227" d="M21 29h59l-7 12H27zM17 48h62l-7 12H23zM25 67h52l-7 12H31z"/><path stroke="#d1b48a" stroke-width="3" d="M26 34h45M24 53h46M33 72h36"/><path fill="#e3d9c5" d="M21 20l9-15 7 18z"/></g>
+<g transform="translate(300 600)" filter="url(#soft)"><path fill="#4c3528" d="M17 57h66l-9 26H26z"/><path fill="url(#cooked)" d="M24 52c7-20 43-26 55-5l-5 14H29z"/><use href="#herb-sprig" transform="translate(51 2)"/><path fill="#d9cdb0" d="M28 27c14-10 31-11 46-2-16-1-29 4-40 14z"/></g>
 </svg>
