@@ -2,10 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {CITIZEN_PHASES,histogramPopulation,type PopulationHistogram} from '../src/population-morphism';
 import {REALM_LOGICAL_POPULATION,ensureRealmPopulation} from '../src/realm-population';
-import {REALM_HOUSEHOLDS} from '../src/realm-society';
+import {GATEWATCH_SHARD,REALM_HOUSEHOLDS} from '../src/realm-society';
 import {SOCIAL_BOUNDARY_STATE_COUNT,SocialSeparatorTree,applySocialCertificate,sequentialWardBoundary,socialDeltaKey,socialSignalFromIndex,socialSignalKey,summarizeSocialCertificates,wardBoundaryCertificate,type SocialSignal} from '../src/social-separator';
-import {BidirectionalSocialRouter,GATEWATCH_SHARD as _unused, RUMOR_TTL_DAYS,advanceRealmHistoryToDay,buildHistoricalSocialRouter,causalParents,effectiveHouseholdShard,ensureRealmHistory,historicalRank,historicalWardCertificates,historicalWardPopulationHistogram,historyAccounting,liftProvenance,migrationAffectedWards,repairHistoricalSocialTree,routeRumor,validateHistoryDag} from '../src/provenance-frontier';
-import {GATEWATCH_SHARD} from '../src/realm-society';
+import {BidirectionalSocialRouter,RUMOR_TTL_DAYS,advanceRealmHistoryToDay,buildHistoricalSocialRouter,causalParents,effectiveHouseholdShard,ensureRealmHistory,historicalWardCertificates,historicalWardPopulationHistogram,historyAccounting,liftProvenance,migrationAffectedWards,repairHistoricalSocialTree,routeRumor,validateHistoryDag} from '../src/provenance-frontier';
 import {makePlayer,seedState} from '../src/state';
 
 function signature(code:number):SocialSignal{return {kin:(code&3) as 0|1|2|3,market:((code>>2)&3) as 0|1|2|3,watch:((code>>4)&3) as 0|1|2|3,guild:((code>>6)&3) as 0|1|2|3};}
