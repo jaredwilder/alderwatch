@@ -1,6 +1,6 @@
 import type {WorldState} from './state';
 import {worldBits,worldInt} from './world-address';
-import {CITIZEN_PHASES,zeroPopulationHistogram,type CitizenPhase,type PopulationHistogram} from './population-morphism';
+import {zeroPopulationHistogram,type CitizenPhase,type PopulationHistogram} from './population-morphism';
 import {REALM_POPULATION_SHARDS,ensureRealmPopulation,type RealmPopulationState} from './realm-population';
 import {GATEWATCH_SHARD,HOUSEHOLDS_PER_SHARD,REALM_HOUSEHOLDS,SOCIAL_FACTIONS,describeHousehold,householdName,householdRelationOrdinal,wardPopulationHistogram,wardSocialSignature,type SocialFaction} from './realm-society';
 import {SOCIAL_CHANNELS,SocialSeparatorTree,applySocialCertificate,wardBoundaryCertificate,zeroSocialSignal,type SocialBoundaryCertificate,type SocialDelta,type SocialSignal} from './social-separator';
@@ -69,14 +69,15 @@ export function advanceRealmHistoryToTick(world:WorldState):RealmHistoryState{re
 /** Unique provenance is a product label: the compressed social map transforms only the finite signal. */
 export function liftProvenance<P>(certificate:SocialBoundaryCertificate,carrier:ProvenanceCarrier<P>):ProvenanceTransition<P>{const step=applySocialCertificate(certificate,carrier.signal);return {provenance:carrier.provenance,signal:step.signal,delta:step.delta,segmentCount:certificate.segmentCount};}
 
+function applyMigrationToHistograms(out:PopulationHistogram[],population:RealmPopulationState,history:RealmHistoryState,seed:number,patch:HouseholdHistoryPatch){if(patch.migratedShard===undefined)return;const origin=Math.floor(patch.householdOrdinal/HOUSEHOLDS_PER_SHARD),target=patch.migratedShard;if(origin===target)return;const household=describeHousehold(population,seed,patch.householdOrdinal);for(const member of household.members){if(out[origin][member.phase]<=0)throw new Error('historical migration underflow');out[origin][member.phase]--;out[target][member.phase]++;}}
+export function historicalWardPopulationHistograms(world:WorldState):PopulationHistogram[]{const population=ensureRealmPopulation(world),history=ensureRealmHistory(world),seed=world.worldSeed??197709,out=Array.from({length:REALM_POPULATION_SHARDS},(_,shard)=>({...wardPopulationHistogram(population,seed,shard)}));for(const patch of Object.values(history.households))applyMigrationToHistograms(out,population,history,seed,patch);for(const person of Object.values(history.bornPeople)){if(person.adultAtDay>history.lastProcessedDay)continue;out[effectiveHouseholdShard(history,person.householdOrdinal)].laborer++;}return out;}
 export function historicalWardPopulationHistogram(world:WorldState,shard:number):PopulationHistogram{
- const population=ensureRealmPopulation(world),history=ensureRealmHistory(world),seed=world.worldSeed??197709,out={...wardPopulationHistogram(population,seed,shard)};
- for(const patch of Object.values(history.households)){if(patch.migratedShard===undefined)continue;const origin=Math.floor(patch.householdOrdinal/HOUSEHOLDS_PER_SHARD),target=patch.migratedShard;if(origin===target)continue;const household=describeHousehold(population,seed,patch.householdOrdinal);for(const member of household.members){if(shard===origin){if(out[member.phase]<=0)throw new Error('historical migration underflow');out[member.phase]--;}if(shard===target)out[member.phase]++;}}
- for(const person of Object.values(history.bornPeople)){if(person.adultAtDay>history.lastProcessedDay)continue;const target=effectiveHouseholdShard(history,person.householdOrdinal);if(target===shard)out.laborer++;}
- return out;
+ if(!Number.isInteger(shard)||shard<0||shard>=REALM_POPULATION_SHARDS)throw new Error('historical ward outside realm');const population=ensureRealmPopulation(world),history=ensureRealmHistory(world),seed=world.worldSeed??197709,out={...wardPopulationHistogram(population,seed,shard)};
+ for(const patch of Object.values(history.households)){if(patch.migratedShard===undefined)continue;const origin=Math.floor(patch.householdOrdinal/HOUSEHOLDS_PER_SHARD),target=patch.migratedShard;if(origin!==shard&&target!==shard)continue;const household=describeHousehold(population,seed,patch.householdOrdinal);for(const member of household.members){if(shard===origin){if(out[member.phase]<=0)throw new Error('historical migration underflow');out[member.phase]--;}if(shard===target)out[member.phase]++;}}
+ for(const person of Object.values(history.bornPeople)){if(person.adultAtDay<=history.lastProcessedDay&&effectiveHouseholdShard(history,person.householdOrdinal)===shard)out.laborer++;}return out;
 }
 export function historicalWardCertificate(world:WorldState,shard:number):SocialBoundaryCertificate{return wardBoundaryCertificate(wardSocialSignature(historicalWardPopulationHistogram(world,shard)));}
-export function historicalWardCertificates(world:WorldState):SocialBoundaryCertificate[]{return Array.from({length:REALM_POPULATION_SHARDS},(_,shard)=>historicalWardCertificate(world,shard));}
+export function historicalWardCertificates(world:WorldState):SocialBoundaryCertificate[]{return historicalWardPopulationHistograms(world).map(histogram=>wardBoundaryCertificate(wardSocialSignature(histogram)));}
 
 export class BidirectionalSocialRouter{
  readonly forward:SocialSeparatorTree;readonly reverse:SocialSeparatorTree;readonly wardCount:number;lastRangeNodes=0;
@@ -95,8 +96,4 @@ export function bornAdultPhase(_person:BornPerson):CitizenPhase{return 'laborer'
 export function zeroHistoricalHistogram():PopulationHistogram{return zeroPopulationHistogram();}
 export function causalParents(state:RealmHistoryState,atomId:string):string[]{return state.atoms[atomId]?.parents??[];}
 export function validateHistoryDag(state:RealmHistoryState):boolean{for(const atom of Object.values(state.atoms)){for(const parent of atom.parents){const p=state.atoms[parent];if(!p||p.day>atom.day)return false;}}return true;}
-export function validateStructuralHistory(state:RealmHistoryState):boolean{
- for(const patch of Object.values(state.households)){if(patch.marriageTo!==undefined&&state.households[String(patch.marriageTo)]?.marriageTo!==patch.householdOrdinal)return false;for(const grudge of patch.grudges){if(!state.households[String(grudge)]?.grudges.includes(patch.householdOrdinal))return false;}for(const child of patch.children){const person=state.bornPeople[child];if(!person||person.householdOrdinal!==patch.householdOrdinal)return false;}}
- for(const person of Object.values(state.bornPeople)){if(!state.atoms[person.id.slice('born:'.length)])return false;if(person.parentHouseholds[0]<0||person.parentHouseholds[1]<0)return false;}
- return true;
-}
+export function validateStructuralHistory(state:RealmHistoryState):boolean{for(const patch of Object.values(state.households)){if(patch.marriageTo!==undefined&&state.households[String(patch.marriageTo)]?.marriageTo!==patch.householdOrdinal)return false;for(const grudge of patch.grudges){if(!state.households[String(grudge)]?.grudges.includes(patch.householdOrdinal))return false;}for(const child of patch.children){const person=state.bornPeople[child];if(!person||person.householdOrdinal!==patch.householdOrdinal)return false;}}for(const person of Object.values(state.bornPeople)){if(!state.atoms[person.id.slice('born:'.length)])return false;if(person.parentHouseholds[0]<0||person.parentHouseholds[1]<0)return false;}return true;}
