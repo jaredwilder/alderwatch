@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="500" viewBox="0 0 600 500">
+<defs>
+ <linearGradient id="meat" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c67865"/><stop offset=".55" stop-color="#8c453b"/><stop offset="1" stop-color="#482522"/></linearGradient>
+ <linearGradient id="cook" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b46b3b"/><stop offset=".55" stop-color="#71392b"/><stop offset="1" stop-color="#351f1b"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f0d58a"/><stop offset=".55" stop-color="#c0903e"/><stop offset="1" stop-color="#75501f"/></linearGradient>
+ <linearGradient id="broth" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ad7448"/><stop offset="1" stop-color="#4b3126"/></linearGradient>
+ <filter id="soft"><feDropShadow dx="1" dy="2" stdDeviation="1.6" flood-opacity=".48"/></filter>
+ <g id="bowl" filter="url(#soft)"><path fill="#40312a" d="M16 47h68l-9 36H25z"/><ellipse cx="50" cy="47" rx="34" ry="12" fill="#765039"/><ellipse cx="50" cy="44" rx="28" ry="8" fill="url(#broth)"/></g>
+ <g id="steak" filter="url(#soft)"><path fill="url(#cook)" d="M18 58c8-25 31-39 56-27 16 8 17 28 3 43-14 15-40 18-56 5-7-5-7-13-3-21z"/><path stroke="#d0a06d" stroke-width="4" d="M31 51l39 16M37 41l38 16M27 64l32 14"/><path fill="#ead1b6" d="M70 31c8-8 17-10 21-4 4 7-4 14-14 17z"/></g>
+ <g id="rarecut" filter="url(#soft)"><path fill="url(#meat)" stroke="url(#gold)" stroke-width="4" d="M18 58c7-26 29-39 55-27 16 8 16 27 3 42-13 15-38 18-54 7-7-5-8-13-4-22z"/><path fill="#f0d9bc" d="M68 31c8-9 17-11 21-5 5 7-3 14-13 18z"/><path fill="#f1cf76" d="M22 25l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z"/></g>
+ <g id="feast" filter="url(#soft)"><ellipse cx="50" cy="69" rx="38" ry="14" fill="#3c3028"/><ellipse cx="50" cy="64" rx="34" ry="12" fill="url(#gold)"/><ellipse cx="50" cy="61" rx="29" ry="9" fill="#5a3b2b"/><path fill="url(#cook)" d="M24 54c7-17 24-25 42-16 12 6 13 19 3 29-10 9-30 10-41 2-5-4-6-9-4-15z"/><path stroke="#e2b26e" stroke-width="3" d="M33 50l27 11M38 44l28 11"/></g>
+ <g id="herb"><path stroke="#596740" stroke-width="4" d="M13 17c9 12 12 24 11 37"/><path fill="#748453" d="M16 25c-9-7-14-5-18-1 5 8 11 10 19 7zM23 37c9-7 15-6 19-1-5 8-12 10-20 6z"/></g>
+ <g id="berries" fill="#8d3540"><circle cx="20" cy="22" r="6"/><circle cx="31" cy="27" r="6"/><circle cx="27" cy="16" r="5"/></g>
+ <g id="mush"><path fill="#d4c19d" d="M9 20c2-10 19-14 24-1 1 3 0 5-2 5H8c-2 0-1-2 1-4z"/><path fill="#9d8a70" d="M18 24h7l3 15H15z"/></g>
+ <g id="honey"><path fill="#d39c39" d="M24 13c9 12 13 19 10 27-4 10-17 10-21 2-5-9 2-18 11-29z"/></g>
+</defs>
+
+<!-- row 1: expanded everyday recipes -->
+<g transform="translate(0 0)"><use href="#bowl"/><g transform="translate(57 14)"><use href="#mush"/></g><g transform="translate(62 42)"><use href="#herb"/></g></g>
+<g transform="translate(100 0)"><use href="#bowl"/><g transform="translate(54 14)"><use href="#berries"/></g><path fill="#34272a" d="M34 37c8-11 24-9 30 2l-7 12-21-2z"/></g>
+<g transform="translate(200 0)"><use href="#bowl"/><path fill="#9c5b45" d="M31 39c13-10 31-6 38 7-10 10-29 11-41 2z"/><g transform="translate(61 39)"><use href="#herb"/></g></g>
+<g transform="translate(300 0)"><use href="#bowl"/><path fill="#a46548" d="M29 40c12-9 32-5 42 8-13 8-32 9-44 1z"/><circle cx="50" cy="43" r="5" fill="#e7d6bb"/></g>
+<g transform="translate(400 0)"><use href="#steak"/><g transform="translate(55 10)"><use href="#berries"/></g><g transform="translate(8 8)"><use href="#honey"/></g></g>
+<g transform="translate(500 0)"><use href="#bowl"/><path fill="#6f382e" d="M28 38c15-10 35-4 43 8-13 9-31 10-45 2z"/><g transform="translate(58 10)"><use href="#mush"/></g></g>
+
+<!-- row 2: richer stews and multi-meat feasts -->
+<g transform="translate(0 100)"><use href="#bowl"/><path fill="#754130" d="M27 38c16-9 35-4 45 9-14 9-34 10-47 2z"/><g transform="translate(57 11)"><use href="#berries"/></g></g>
+<g transform="translate(100 100)"><use href="#bowl"/><path stroke="#8c4e3e" stroke-width="7" stroke-linecap="round" d="M28 39l37 18M35 34l31 15"/><g transform="translate(60 39)"><use href="#herb"/></g></g>
+<g transform="translate(200 100)"><use href="#bowl"/><path fill="#7a4938" d="M30 39c15-8 32-3 40 8-12 8-30 9-42 2z"/><g transform="translate(58 40)"><use href="#herb"/></g></g>
+<g transform="translate(300 100)"><use href="#feast"/><circle cx="28" cy="47" r="6" fill="#8d3540"/><path fill="#885040" d="M48 38l24 11-8 14-25-11z"/></g>
+<g transform="translate(400 100)"><use href="#feast"/><path fill="#a35f42" d="M24 42l19-8 13 7 17-3 5 16-21 10-31-8z"/><g transform="translate(61 34)"><use href="#herb"/></g></g>
+<g transform="translate(500 100)"><use href="#feast"/><path fill="#5b302a" d="M26 40c12-8 23-5 29 3 8-8 18-9 26-2l-9 18-36 5z"/><g transform="translate(8 5)"><use href="#honey"/></g></g>
+
+<!-- row 3: rare raw cuts -->
+<g transform="translate(0 200)"><use href="#rarecut"/><path stroke="#ead2b6" stroke-width="5" d="M68 30l16-12"/></g>
+<g transform="translate(100 200)"><use href="#rarecut"/><path fill="#3f3035" d="M36 37c8-7 19-7 28 2l-8 17-23-5z"/></g>
+<g transform="translate(200 200)"><use href="#rarecut"/><path stroke="#f1d2b0" stroke-width="4" d="M31 61c12-16 25-20 39-13"/></g>
+<g transform="translate(300 200)"><use href="#rarecut"/><path fill="none" stroke="#f0d8bb" stroke-width="5" d="M34 38c15-7 29-5 39 6M29 51c16-7 31-5 42 5"/></g>
+<g transform="translate(400 200)"><use href="#rarecut"/><path fill="#7e3e35" d="M31 50c13-12 29-14 43-6-12 2-25 8-36 18z"/></g>
+<g transform="translate(500 200)"><use href="#rarecut"/><path fill="none" stroke="#ead0b4" stroke-width="7" d="M28 39c18 2 31 11 43 27"/></g>
+
+<!-- row 4: more rare cuts + first rare feasts -->
+<g transform="translate(0 300)"><use href="#rarecut"/><ellipse cx="49" cy="51" rx="26" ry="20" fill="#9e5944" opacity=".7"/><path fill="#e2c198" d="M35 37c8 6 17 8 27 6-7 6-17 9-29 7z"/></g>
+<g transform="translate(100 300)"><use href="#rarecut"/><path stroke="#6f302d" stroke-width="4" d="M31 44l40 19M37 35l36 17"/></g>
+<g transform="translate(200 300)"><use href="#rarecut"/><path fill="#4b3130" d="M33 37c13-8 30-4 38 8l-9 16-33-6z"/></g>
+<g transform="translate(300 300)"><use href="#feast"/><g transform="translate(7 8)"><use href="#honey"/></g><g transform="translate(62 32)"><use href="#herb"/></g></g>
+<g transform="translate(400 300)"><use href="#feast"/><g transform="translate(8 8)"><use href="#honey"/></g><g transform="translate(58 12)"><use href="#berries"/></g></g>
+<g transform="translate(500 300)"><use href="#feast"/><g transform="translate(8 6)"><use href="#honey"/></g><g transform="translate(62 31)"><use href="#herb"/></g><path fill="#a96a42" d="M29 43l41 15-9 11-39-14z"/></g>
+
+<!-- row 5: remaining rare feasts -->
+<g transform="translate(0 400)"><use href="#feast"/><path fill="none" stroke="#ead3a0" stroke-width="5" d="M28 45c15-8 31-8 45 2M27 55c16-7 31-7 45 1"/><g transform="translate(60 29)"><use href="#herb"/></g></g>
+<g transform="translate(100 400)"><use href="#feast"/><g transform="translate(8 7)"><use href="#honey"/></g><g transform="translate(58 12)"><use href="#berries"/></g><path fill="#7e3d32" d="M30 39l42 17-10 14-38-16z"/></g>
+<g transform="translate(200 400)"><use href="#feast"/><path fill="none" stroke="#e8ccb0" stroke-width="7" d="M27 42c19 2 33 10 45 24"/><g transform="translate(7 7)"><use href="#honey"/></g></g>
+<g transform="translate(300 400)"><use href="#feast"/><ellipse cx="48" cy="47" rx="24" ry="14" fill="#9d5941"/><g transform="translate(60 12)"><use href="#berries"/></g><g transform="translate(7 7)"><use href="#honey"/></g></g>
+<g transform="translate(400 400)"><use href="#feast"/><path stroke="#6d302b" stroke-width="5" d="M29 42l42 19M34 34l39 18"/><g transform="translate(61 31)"><use href="#herb"/></g></g>
+<g transform="translate(500 400)"><use href="#feast"/><path fill="#493033" d="M29 40c15-8 32-3 41 9l-8 14-34-8z"/><g transform="translate(8 7)"><use href="#honey"/></g><g transform="translate(59 12)"><use href="#berries"/></g></g>
+</svg>

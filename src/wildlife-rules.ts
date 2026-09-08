@@ -15,6 +15,11 @@ export function ensureAnimalVitals(animal:AnimalState){
 }
 export function animalAlive(animal:AnimalState){return !ensureAnimalVitals(animal).dead&&animal.health!>0;}
 export function corpseId(animalId:string){return 'corpse-'+animalId;}
+export function rareLootHit(world:WorldState,animal:AnimalState,oneIn:number){
+ let hash=2166136261>>>0;const text=`${world.worldSeed??0}:${animal.kind}:${animal.id}:rare-cut-v1`;
+ for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619)>>>0;}
+ return oneIn>0&&hash%oneIn===0;
+}
 
 function completeTrackedBeastBounty(world:WorldState,animal:AnimalState){
  const player=animal.lastAttackerId?world.players[animal.lastAttackerId]:undefined,progress=player?.bounties;
@@ -37,7 +42,8 @@ export function killAnimal(world:WorldState,animal:AnimalState,killer:WildlifeKi
  animal.health=0;animal.dead=true;animal.killedBy=killer;animal.diedAt=world.tick;animal.airborne=false;
  const id=corpseId(animal.id);
  if(!world.containers[id]){
-  const inventory=Object.entries(species(animal.kind).loot).flatMap(([item,count])=>count?[{id:'item-'+world.nextId++,item:item as ItemId,count,quality:1}]:[]);
+  const profile=species(animal.kind),inventory=Object.entries(profile.loot).flatMap(([item,count])=>count?[{id:'item-'+world.nextId++,item:item as ItemId,count,quality:1}]:[]),rare=profile.rareLoot;
+  if(rare&&rareLootHit(world,animal,rare.oneIn))inventory.push({id:'item-'+world.nextId++,item:rare.item,count:rare.count,quality:2});
   world.containers[id]={id,name:`${animal.kind[0].toUpperCase()+animal.kind.slice(1)} carcass`,position:[...animal.position],inventory,looted:false};
  }
  if(killer==='player')completeTrackedBeastBounty(world,animal);
