@@ -12,8 +12,9 @@ async function actorFixture(){
 }
 function rotationSpan(clip:T.AnimationClip,name:string){const track=clip.tracks.find(t=>t.name===name);assert.ok(track,`${clip.name} missing ${name}`);const v=track.values,base=new T.Quaternion().fromArray(v,0).normalize(),q=new T.Quaternion();let max=0;for(let i=0;i<v.length;i+=4){q.fromArray(v,i).normalize();max=Math.max(max,base.angleTo(q));}return max;}
 
-test('moving melee keeps authored pelvis/torso while gait owns the legs',async()=>{
- const f=await actorFixture();for(const name of ['attack','chop','mine','heavy']){const tracks=f.actor.actions.get(name+'_moving')!.getClip().tracks.map(t=>t.name);assert.ok(tracks.includes('pelvis.quaternion'),name+' moving clip lost its hips');assert.ok(tracks.includes('spine_01.quaternion'),name+' moving clip lost its torso');assert.ok(!tracks.includes('thigh_l.quaternion'),name+' moving clip stole locomotion legs');assert.ok(!tracks.includes('root.quaternion'),name+' moving clip stole controller/root locomotion');}f.physics.free();
+test('moving melee keeps hip torque but gait owns pelvis travel and legs',async()=>{
+ const f=await actorFixture();for(const name of ['attack','chop','mine','heavy']){const tracks=f.actor.actions.get(name+'_moving')!.getClip().tracks.map(t=>t.name);assert.ok(tracks.includes('pelvis.quaternion'),name+' moving clip lost its hip torque');assert.ok(!tracks.includes('pelvis.position'),name+' moving clip stole gait pelvis travel');assert.ok(tracks.includes('spine_01.quaternion'),name+' moving clip lost its torso');assert.ok(!tracks.includes('thigh_l.quaternion'),name+' moving clip stole locomotion legs');assert.ok(!tracks.includes('root.quaternion'),name+' moving clip stole controller/root locomotion');}
+ const strideTracks=((f.actor as any).strideActions.get('run') as T.AnimationAction).getClip().tracks.map((t:T.KeyframeTrack)=>t.name);assert.ok(strideTracks.includes('pelvis.position'),'run stride lost pelvis translation/bob and will treadmill under attacks');assert.ok(!strideTracks.includes('pelvis.quaternion'),'run stride is fighting melee hip rotation');f.physics.free();
 });
 
 test('sword and axe attacks visibly rotate the pelvis instead of arm-flapping',async()=>{
