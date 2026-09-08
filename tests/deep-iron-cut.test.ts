@@ -10,7 +10,7 @@ function reachable(start:string){const seen=new Set([start]),queue=[start];while
 
 test('Deep Iron room graph is fully connected and physically cardinal',()=>{
  assert.equal(DEEP_IRON_ROOMS.length,24);assert.equal(reachable('entrance').size,DEEP_IRON_ROOMS.length);
- for(const room of DEEP_IRON_ROOMS)for(const id of DEEP_IRON_GRAPH[room.id].neighbors){const other=DEEP_IRON_ROOM_BY_ID[id],dx=Math.abs(room.position[0]-other.position[0]),dz=Math.abs(room.position[2]-other.position[2]);assert.ok((dx===18&&dz===0)||(dx===0&&dz===18),`${room.id} -> ${id} must be one room corridor`);}
+ for(const room of DEEP_IRON_ROOMS)for(const id of DEEP_IRON_GRAPH[room.id].neighbors){const other=DEEP_IRON_ROOM_BY_ID[id],dx=Math.abs(room.position[0]-other.position[0]),dz=Math.abs(room.position[2]-other.position[2]);assert.ok((dx===14&&dz===0)||(dx===0&&dz===14),`${room.id} -> ${id} must be one contiguous room corridor`);}
 });
 
 test('graph streamer obeys a hard active-room budget independent of dungeon size',()=>{
@@ -40,5 +40,5 @@ test('Deep Iron persistent catch-up remains compact and idempotent',()=>{
 });
 
 test('Basin and Deep Iron preserve independent local positions across realm cuts',()=>{
- const world=seedState(),player=makePlayer('Hunter');world.players[player.id]=player;migrateRealmSave(world);player.areaId=IRONWARD_BASIN;player.position=[3,.03,149];player.yaw=.2;enterSavedArea(world,DEEP_IRON_MINE);assert.deepEqual(player.position,[0,.03,4]);player.position=[-18,.03,72];player.yaw=2.4;enterSavedArea(world,IRONWARD_BASIN);assert.deepEqual(player.position,[3,.03,149]);enterSavedArea(world,DEEP_IRON_MINE);assert.deepEqual(player.position,[-18,.03,72]);assert.equal(player.yaw,2.4);
+ const world=seedState(),player=makePlayer('Hunter');world.players[player.id]=player;migrateRealmSave(world);player.areaId=IRONWARD_BASIN;player.position=[3,.03,149];player.yaw=.2;enterSavedArea(world,DEEP_IRON_MINE);assert.deepEqual(player.position,[0,.03,4]);player.position=[-14,.03,56];player.yaw=2.4;enterSavedArea(world,IRONWARD_BASIN);assert.deepEqual(player.position,[3,.03,149]);enterSavedArea(world,DEEP_IRON_MINE);assert.deepEqual(player.position,[-14,.03,56]);assert.equal(player.yaw,2.4);
 });
