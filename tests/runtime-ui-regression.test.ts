@@ -12,7 +12,8 @@ test('Far March installs core player UI before optional runtime extensions',()=>
  assert.ok(main>=0,'Far March must load main');
  assert.ok(essential>main,'core player UI must install after GamePanels/main exists');
  assert.ok(runtime>essential,'optional runtime extensions must not gate core player UI');
- for(const id of ['./ui-stack','./backpack-ui','./item-icons','./recipe-book-ui'])assert.ok(bootstrap.includes(`import('${id}')`),`${id} must be an independently protected core UI import`);
+ for(const id of ['./ui-stack','./backpack-ui','./item-icons-module','./recipe-book-ui'])assert.ok(bootstrap.includes(`import('${id}')`),`${id} must be an independently protected core UI import`);
+ assert.ok(source('src/item-icons-module.ts').includes("import './item-icons'"),'item icon wrapper must install the existing side-effect icon system');
  assert.ok(bootstrap.includes("catch(error){console.error('Alderwatch optional runtime extensions failed to install'"),'optional extension failure must not abort the loaded Far March');
 });
 
