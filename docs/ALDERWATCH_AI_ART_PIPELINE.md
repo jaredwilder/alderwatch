@@ -1,465 +1,466 @@
-# ALDERWATCH AI ART + 3D ASSET PIPELINE
+# ALDERWATCH AI ART PRODUCTION RUNBOOK
 
-**Status:** Canonical production workflow for Alderwatch art generation and handoff.
+**Purpose:** This is the operator work order for Jared to create Alderwatch art in parallel with game development.
 
-**Purpose:** Jared can art-direct and generate large amounts of coherent game art in parallel while the game code continues moving. If later casual advice conflicts with this document, **this document wins until we deliberately revise it**.
+**Rule:** Follow the steps in order. Do not skip ahead. A later step may only use an input that an earlier step explicitly created.
 
----
-
-## 0. THE ONE-SENTENCE PIPELINE
-
-**LOCK THE ALDERWATCH STYLE → GENERATE CONTROLLED MULTIVIEW REFERENCE ART → GENERATE/REMESH PBR GLB → PACKAGE WITH SCALE + LICENSE METADATA → UPLOAD THE ZIP → INTEGRATE, OPTIMIZE, TEST IN-GAME, REJECT ANYTHING THAT DOES NOT LOOK BETTER IN THE ACTUAL GAME.**
-
-That is the pipeline. Do not mass-generate random isolated 3D objects directly from text.
+**Canonical status:** If casual chat advice conflicts with this file, this file wins until we deliberately revise it.
 
 ---
 
-# 1. THE VISUAL TARGET
+# PHASE 1 — LOCK THE VISUAL LANGUAGE
 
-Alderwatch is:
+## STEP 1 — Create the Alderwatch Master Style Board
 
-- adult medieval frontier fantasy
-- grounded rather than chibi, voxel, toy, or mobile-game fantasy
-- stylized hand-painted PBR rather than photorealistic
-- bright, readable daylight by default
-- believable human scale and construction
-- weathered timber, fieldstone, lime plaster, iron, leather, linen, wool, thatch, mud, moss, soot, smoke and embers
-- rich natural color without oversaturation
-- moderately chunky/readable silhouettes for gameplay, but never Fisher-Price proportions
-- handmade irregularity without looking broken
-- visibly old-world, practical and inhabited
+Create **one image** called:
 
-**Do not prompt with other game names.** We can borrow design lessons from games we love, but generated assets should be described by material, proportion, silhouette and mood so Alderwatch develops its own identity.
+`alderwatch_master_style_board_v1.png`
 
-## Non-negotiable negative style list
+Use your best image generator.
 
-Every major generation prompt should include the equivalent of:
+### Prompt
 
-> NOT chibi. NOT voxel. NOT Minecraft. NOT low-detail mobile game. NOT Fisher-Price fantasy. NOT giant-headed. NOT plastic. NOT glossy toy materials. NOT ornate high-fantasy palace design. NOT random steampunk. NOT photoreal scan. NOT baked cinematic lighting. NOT exaggerated impossible proportions.
+> ALDERWATCH MASTER STYLE BOARD. Adult grounded medieval frontier fantasy for a commercial third-person survival action RPG. Bright readable daylight. Rich natural color. Stylized hand-painted PBR, not photorealistic. Show a coherent material and shape-language board containing: weathered oak, rough-sawn pine, whitewashed lime plaster, irregular fieldstone, worn hand-forged iron, aged steel, brown vegetable-tanned leather, undyed linen, dirty natural wool, straw/thatch, moss, damp mud, soot and ash. Include examples of thick load-bearing timber, visible joinery, plausible roof construction, heavy practical doors, hand-forged hardware, modest medieval ornament, asymmetric handmade construction, believable adult proportions, market clutter, workshop clutter and frontier survival objects. Palette: warm brown wood, cream plaster, charcoal iron, moss/fern greens, straw ochres, muted linen colors, restrained rust reds, cold gray stone, blue daylight sky. Weathering is restrained and believable: rain streaks, ground-level mud, soot near fires, split timber, mild oxidation, moss only where moisture makes sense. NOT chibi. NOT voxel. NOT Minecraft. NOT low-detail mobile fantasy. NOT Fisher-Price. NOT plastic. NOT giant-headed. NOT ornate palace fantasy. NOT steampunk. NOT photoreal scan. NOT baked cinematic lighting.
 
----
+### Acceptance gate
 
-# 2. LOCK THE MASTER STYLE BOARD BEFORE MASS PRODUCTION
+Do **not** proceed until the board looks like one coherent game rather than a collage of unrelated styles.
 
-Before generating dozens of assets, make **one Alderwatch Master Style Board**. This is the visual DNA that should be fed back into later image/texture generations whenever possible.
+Reject it if any of these are true:
 
-The board should show these material swatches and object examples under neutral daylight:
+- toy-like proportions
+- plastic materials
+- excessive fantasy ornament
+- cartoon/chibi people
+- unrelated architectural styles
+- photorealism
+- dark grim-brown lighting instead of readable daylight
 
-### Materials
+When approved, freeze that exact image as **v1**. Do not keep regenerating it during the first asset test.
 
-- weathered oak
-- rough-sawn pine
-- whitewashed lime plaster
-- irregular fieldstone
-- worn hand-forged iron
-- aged steel
-- brown vegetable-tanned leather
-- undyed linen
-- dirty natural wool
-- straw/thatch
-- moss
-- damp mud
-- soot/ash
+**OUTPUT OF STEP 1:**
 
-### Shape language
-
-- thick load-bearing timber
-- visible joinery
-- plausible roof support
-- heavy practical doors
-- hand-forged hardware
-- modest medieval ornament
-- asymmetric handmade construction
-- believable adult proportions
-- silhouettes readable at gameplay distance
-
-### Weathering language
-
-- subtle edge wear
-- rain streaks on plaster
-- mud/darkening near ground level
-- soot near chimneys/fire
-- restrained moss on wet/shaded surfaces
-- split/sun-checked timber
-- light iron oxidation
-- no universal apocalypse grime
-
-### Palette
-
-- warm brown wood
-- cream/off-white plaster
-- charcoal iron
-- moss/fern greens
-- straw ochres
-- muted linen colors
-- restrained rust reds
-- cold gray stone
-- blue daylight sky
-
-Save the approved board in every art pack under `references/alderwatch_master_style_board.png` or include a copy/link to the same canonical image.
+`alderwatch_master_style_board_v1.png`
 
 ---
 
-# 3. THE GOLDEN RULE FOR 3D GENERATION
+## STEP 2 — Create the three benchmark hero references
 
-## DO NOT generate each camera angle independently from text.
+Using `alderwatch_master_style_board_v1.png` as the style reference, create exactly three individual hero-reference images:
 
-That causes the front, side and rear to quietly become different objects.
+1. `benchmark_barrel_hero.png`
+2. `benchmark_market_stall_hero.png`
+3. `benchmark_mature_oak_hero.png`
 
-Instead:
+These three objects deliberately test easy, architectural, and organic generation.
 
-1. Generate one excellent **hero reference** for the object.
-2. Approve its design.
-3. Use that hero image as the identity reference to generate a turnaround/multiview sheet of **the exact same object**.
-4. Crop/export the individual views.
-5. Feed those views to the 3D generator as multiview conditioning.
+### 2A — Barrel prompt
 
-For important assets, this is dramatically more reliable than text-to-3D.
+> ALDERWATCH WEATHERED BARREL. One practical medieval coopered oak barrel, approximately 0.9 meters tall, iron hoops, believable construction, subtle wear, grounded adult medieval frontier design, stylized hand-painted PBR, natural materials, neutral daylight, entire object visible, simple neutral background. Use the attached Alderwatch Master Style Board as the visual language. NOT cartoon, chibi, voxel, plastic, ornate fantasy, steampunk, photoreal product photography or cinematic scene lighting.
 
-## Required multiview sheet
+### 2B — Market-stall prompt
 
-Prefer:
+> ALDERBROOK TIMBER MARKET STALL. One freestanding medieval frontier market stall approximately 3 meters wide, 2 meters deep and 2.6 meters tall. Weathered structural timber, believable joinery, linen or wool awning, practical counter and shelving, readable adult medieval proportions, subtle handmade asymmetry, stylized hand-painted PBR, neutral daylight, entire structure visible, simple neutral background. Use the attached Alderwatch Master Style Board as the visual language. NOT cartoon, chibi, voxel, plastic, ornate high fantasy, steampunk or photoreal.
+
+### 2C — Mature-oak prompt
+
+> ALDERWATCH MATURE OAK. One large believable frontier oak approximately 14 to 16 meters tall, broad irregular crown, massive old trunk, visible roots, natural branching, gameplay-readable silhouette, grounded stylized hand-painted PBR, rich natural bark and leaf color, neutral daylight, whole tree visible, simple neutral background. Use the attached Alderwatch Master Style Board as the visual language. NOT tiny toy tree, spherical canopy, voxel, plastic, fantasy glowing tree or photoreal scan.
+
+### Acceptance gate
+
+Approve **one exact design** for each object.
+
+Do not proceed until each image clearly belongs to the same Alderwatch visual world.
+
+**OUTPUTS OF STEP 2:**
+
+- `benchmark_barrel_hero.png`
+- `benchmark_market_stall_hero.png`
+- `benchmark_mature_oak_hero.png`
+
+---
+
+## STEP 3 — Create multiview sheets for those exact three objects
+
+For each approved hero image from Step 2, use image-reference/editing mode to generate the **same exact object** from multiple views.
+
+Create:
+
+- `benchmark_barrel_turnaround.png`
+- `benchmark_market_stall_turnaround.png`
+- `benchmark_mature_oak_turnaround.png`
+
+Each turnaround must contain:
 
 - FRONT
 - LEFT
 - BACK
 - RIGHT
-- optional 3/4 beauty view for human review only
 
-All orthographic or near-orthographic, same scale, same object, same materials, neutral background, no props occluding the asset.
+Optional: one 3/4 view for human inspection only.
 
-### Turnaround prompt template
+### Turnaround prompt
 
-Use this as the base and replace the bracketed fields:
+> Create a production 3D asset turnaround of the EXACT SAME OBJECT shown in the attached approved hero reference. Show FRONT, LEFT, BACK and RIGHT views. Orthographic or near-orthographic. Identical proportions, construction, materials and details in every panel. Same scale in every panel. Neutral mid-gray background. Flat soft neutral illumination. Entire object visible. No environmental props. No perspective drama. No depth of field. No new design changes. No text except tiny FRONT / LEFT / BACK / RIGHT labels.
 
-> **ALDERWATCH 3D ASSET TURNAROUND — [ASSET NAME].** Create a production model sheet of the exact same object shown in FRONT, LEFT, BACK and RIGHT orthographic views. Adult grounded medieval frontier design. Hand-painted stylized PBR material language. [MATERIALS]. [IMPORTANT STRUCTURAL DETAILS]. Realistic practical proportions. Neutral mid-gray studio background. Flat soft neutral illumination. Entire object visible in every view. Identical dimensions and construction in every panel. No perspective distortion. No depth of field. No environmental props. No cast shadow obscuring the silhouette. No text except tiny view labels if necessary. NOT chibi, voxel, toy, mobile-game, plastic, ornate high fantasy, steampunk or photoreal scan.
+### Acceptance gate
 
-If the image tool supports editing/reference images, use the approved hero reference as the image input so identity is preserved.
+Reject a turnaround if the views disagree about:
 
----
+- silhouette
+- number or placement of structural pieces
+- roof shape
+- barrel hoops
+- branch structure
+- proportions
+- material identity
 
-# 4. PRIMARY 3D TOOL STRATEGY — LOCKED
+**OUTPUTS OF STEP 3:**
 
-The pipeline is **provider-independent**, but our default starting stack is:
-
-## Primary generation: TRIPO MULTIVIEW
-
-Use Tripo first for static props, structures and many environment assets because its current multiview workflow explicitly accepts labeled views of one object and can output PBR GLB.
-
-Recommended intent:
-
-- multiview/image-to-3D, not pure text-to-3D
-- texture on
-- PBR on
-- detailed geometry for the source generation
-- UVs enabled
-- GLB output
-
-Do not obsess over final polycount inside the first generation if the shape is excellent; geometry can be remeshed afterward.
-
-## Cleanup/remesh/texturing: MESHY
-
-Use Meshy as the first cleanup tool when a generated model has good shape but poor topology or texture treatment.
-
-Useful operations:
-
-- remesh to target polygon count
-- quad or triangle topology depending on asset
-- AI texturing from the Alderwatch style reference
-- **Remove Lighting = ON**
-- **Generate PBR Maps = ON**
-- GLB export
-
-Meshy is especially useful as a second-stage processor even when the original geometry came from another generator.
-
-## Precision/fallback generation: RODIN
-
-Use Rodin when:
-
-- Tripo shape reconstruction is weak
-- physical bounding dimensions matter strongly
-- a multi-image object needs another reconstruction approach
-- we need a specific target face count or bounding box during generation
-
-Preferred settings:
-
-- multi-image mode treating images as views of the **same object** (`concat` conceptually)
-- PBR material, not baked shaded material
-- GLB
-- target face count appropriate to the asset class
-- use bounding-box control when dimensions are known and important
-
-## ONE-TIME BAKEOFF BEFORE MASS PRODUCTION
-
-Before generating 200 assets, generate the exact same three references through Tripo, Meshy and Rodin:
-
-1. simple: **Alderwatch weathered barrel**
-2. medium: **Alderbrook timber market stall**
-3. hard: **mature Alderwatch oak**
-
-Upload all nine GLBs in one ZIP. We judge them **inside Alderwatch**, not by each vendor's preview render. Then we lock a primary generator for each asset class.
-
-After that bakeoff, do not keep randomly changing tools because another site produced one pretty marketing image.
+- three approved turnaround sheets
 
 ---
 
-# 5. TECHNICAL ASSET CONTRACT
+# PHASE 2 — CHOOSE THE 3D PIPELINE EMPIRICALLY
 
-For normal static world assets, the preferred handoff is:
+## STEP 4 — Generate the three benchmarks in Tripo
 
-- **glTF 2.0 GLB**
+Use the Step 3 multiviews as the input.
+
+For each asset:
+
+- use multiview / same-object image-to-3D
+- enable textures
+- enable PBR if offered
+- export GLB
+- preserve UVs
+- do not intentionally bake dramatic directional lighting
+
+Export:
+
+- `barrel_tripo.glb`
+- `market_stall_tripo.glb`
+- `mature_oak_tripo.glb`
+
+Do not judge final quality only from Tripo's beauty render.
+
+**OUTPUT OF STEP 4:** three GLBs.
+
+---
+
+## STEP 5 — Generate the same three benchmarks in Meshy
+
+Use the same approved Step 3 reference material.
+
+For each asset:
+
+- generate/reconstruct the same object
+- remesh if needed
+- use PBR maps
+- use Remove Lighting if available
+- export GLB
+
+Export:
+
+- `barrel_meshy.glb`
+- `market_stall_meshy.glb`
+- `mature_oak_meshy.glb`
+
+**OUTPUT OF STEP 5:** three GLBs.
+
+---
+
+## STEP 6 — Generate the same three benchmarks in Rodin
+
+Use the same approved Step 3 multiview references.
+
+For each asset:
+
+- treat all views as the same object
+- request PBR materials
+- export GLB
+- use bounding-size control if available
+- keep physical scale close to the dimensions specified in Step 2
+
+Export:
+
+- `barrel_rodin.glb`
+- `market_stall_rodin.glb`
+- `mature_oak_rodin.glb`
+
+**OUTPUT OF STEP 6:** three GLBs.
+
+---
+
+## STEP 7 — Package the benchmark bakeoff
+
+Create this exact folder:
+
+```text
+alderwatch_3d_bakeoff_v1/
+  references/
+    alderwatch_master_style_board_v1.png
+    benchmark_barrel_hero.png
+    benchmark_barrel_turnaround.png
+    benchmark_market_stall_hero.png
+    benchmark_market_stall_turnaround.png
+    benchmark_mature_oak_hero.png
+    benchmark_mature_oak_turnaround.png
+  models/
+    barrel_tripo.glb
+    barrel_meshy.glb
+    barrel_rodin.glb
+    market_stall_tripo.glb
+    market_stall_meshy.glb
+    market_stall_rodin.glb
+    mature_oak_tripo.glb
+    mature_oak_meshy.glb
+    mature_oak_rodin.glb
+  README.md
+```
+
+Put this in `README.md`:
+
+```md
+# Alderwatch 3D Bakeoff v1
+
+Barrel intended height: 0.9 m
+Market stall intended size: 3.0 m W × 2.0 m D × 2.6 m H
+Mature oak intended height: 14–16 m
+
+All models were generated from the same approved Alderwatch references.
+
+Generator/account license status:
+- Tripo: [fill in]
+- Meshy: [fill in]
+- Rodin: [fill in]
+```
+
+Zip the folder as:
+
+`alderwatch_3d_bakeoff_v1.zip`
+
+Upload that ZIP to this chat.
+
+### STOP GATE
+
+**STOP HERE. Do not mass-produce 3D assets yet.**
+
+I will inspect all nine models, normalize them, test them in the actual game and tell you which pipeline wins for:
+
+- props
+- architecture
+- organic/nature assets
+
+That decision becomes the production generator assignment.
+
+---
+
+# PHASE 3 — START REAL PRODUCTION AFTER THE BAKEOFF
+
+Do not begin this phase until I return the bakeoff result.
+
+## STEP 8 — Freeze the generator assignment
+
+After I evaluate the bakeoff, record the result at the top of your working notes:
+
+```text
+PROP GENERATOR = [winner]
+ARCHITECTURE GENERATOR = [winner]
+NATURE GENERATOR = [winner]
+CLEANUP/REMESH TOOL = [winner or none]
+```
+
+Use those assignments until we deliberately run a new bakeoff.
+
+---
+
+## STEP 9 — Produce Alderbrook Village Life Pack v1
+
+Generate this exact first production pack:
+
+1. large weathered barrel
+2. small barrel
+3. wooden crate
+4. lidded crate
+5. grain sack
+6. produce basket
+7. bucket
+8. chopping block
+9. split-firewood stack
+10. long timber bench
+11. small stool
+12. hand cart
+13. two-wheel goods cart
+14. laundry line with cloth
+15. wooden shop sign blank
+16. wall lantern
+17. planter/herb box
+18. wood rack
+19. rain barrel
+20. roadside notice board
+
+For **each** asset, execute Steps 10–13 below before moving to the next asset.
+
+---
+
+## STEP 10 — Make the production hero reference
+
+For the asset you are currently making:
+
+1. attach `alderwatch_master_style_board_v1.png` as the style reference
+2. generate one clean hero reference
+3. show the entire object
+4. use neutral daylight
+5. use a plain neutral background
+6. specify real dimensions in the prompt
+7. approve one design
+
+Save it as:
+
+`references/[asset_name]_hero.png`
+
+Do not generate 3D until that exact hero design is approved.
+
+---
+
+## STEP 11 — Make the production turnaround
+
+Use the Step 10 hero image as the identity reference.
+
+Generate FRONT / LEFT / BACK / RIGHT of the exact same object using the Step 3 turnaround prompt.
+
+Save it as:
+
+`references/[asset_name]_turnaround.png`
+
+Do not proceed if the views disagree structurally.
+
+---
+
+## STEP 12 — Generate the production GLB
+
+Use the generator assigned to that asset class in Step 8.
+
+Required handoff:
+
+- glTF 2.0 GLB
 - meters
 - +Y up
 - +Z forward
-- object bottom-centered at or near world origin
+- bottom of object at or near origin
 - real-world scale
-- UV unwrapped
+- UVs
 - PBR metallic/roughness workflow
-- base color/albedo
+- base color
 - roughness
-- metallic where relevant
 - normal map
-- alpha mask for foliage where needed
-- no directional sunlight baked into base color
-- no giant hidden collision meshes
-- no mystery 100x parent scaling
+- metallic only where appropriate
+- no directional sunlight baked into albedo
 
-Alderwatch uses Three.js `GLTFLoader`, so GLB is the clean default runtime format.
+### Triangle targets
 
-## Material rule
+- tiny clutter: 300–1,500
+- barrel/crate/chair/bucket: 1,000–4,000
+- weapon/tool: 2,000–6,000
+- cart/stall/large prop: 3,000–10,000
+- ordinary tree: 3,000–10,000
+- hero mature tree: 8,000–20,000
+- modular building piece: 1,000–6,000
+- important complete building: roughly 15,000–40,000
 
-Base color should describe the material itself, **not the material plus a studio photograph of lighting**.
+### Texture targets
 
-Dynamic game lighting supplies the sun, shadow, fog and atmosphere. If the source albedo contains a giant fake highlight or directional shadow, it will look wrong as soon as the real sun moves relative to it.
+- tiny clutter: 512 px
+- normal props: 1K
+- hero props/trees/buildings: 2K
+- do not use 8K textures
 
----
+Save as:
 
-# 6. PRACTICAL POLYGON + TEXTURE BUDGETS
-
-These are targets, not religious laws. A beautiful source can be optimized after upload.
-
-| Asset class | Suggested triangle range | Typical texture |
-|---|---:|---:|
-| tiny clutter / food / small bottle | 300–1,500 | 512 px |
-| barrel / crate / chair / bucket | 1k–4k | 1K |
-| weapon / hand tool | 2k–6k | 1K |
-| large prop / cart / market stall | 3k–10k | 1K–2K |
-| ordinary tree | 3k–10k | 1K–2K |
-| hero mature tree | 8k–20k | 2K |
-| modular wall / roof / gate piece | 1k–6k | 1K–2K |
-| important complete building | ~15k–40k | 2K |
-| background building | lower than hero equivalent | 1K |
-
-Avoid 8K textures unless there is an extraordinary reason. A browser survival RPG benefits far more from coherent art, good material response, strong silhouettes, instancing/LOD and sane draw-call behavior than from microscopic texture resolution.
+`models/[asset_name].glb`
 
 ---
 
-# 7. REAL-WORLD SCALE CONTRACT
+## STEP 13 — Record the asset metadata
 
-Every asset pack must state intended dimensions.
+For every finished GLB, add one record to `asset-manifest.json`:
 
-Use meters.
+```json
+{
+  "id": "alderbrook_large_barrel_v1",
+  "file": "models/alderbrook_large_barrel_v1.glb",
+  "generator": "TRIPO_OR_MESHY_OR_RODIN",
+  "license": "GENERATED_ASSET_LICENSE_STATUS",
+  "dimensions_m": [0.7, 0.9, 0.7],
+  "hero_reference": "references/alderbrook_large_barrel_v1_hero.png",
+  "turnaround_reference": "references/alderbrook_large_barrel_v1_turnaround.png"
+}
+```
 
-Useful Alderwatch reference dimensions:
-
-- adult human: ~1.7–1.9 m
-- normal door opening: ~1.0 m wide × 2.1 m tall
-- modular wall bay: **2.0 m wide × ~2.7 m tall**
-- floor/foundation module: **2 × 2 m**
-- heavy timber support: roughly 0.18–0.28 m thick
-- workbench: ~0.9 m tall
-- table: ~0.75 m tall
-- barrel: ~0.85–1.0 m tall
-- mature oak: usually ~12–18 m tall for hero gameplay trees
-
-Do not rely on the generator's visual sense of scale. State the intended dimensions in the manifest/README.
+Do not omit dimensions or license status.
 
 ---
 
-# 8. WHAT AI SHOULD OWN VS WHAT IT SHOULD NOT RANDOMIZE
+## STEP 14 — Package and upload Alderbrook Village Life Pack v1
 
-## A. MASS-PRODUCE WITH AI NOW
-
-Excellent candidates:
-
-- barrels
-- crates
-- sacks
-- baskets
-- buckets
-- carts
-- wagon clutter
-- tables/chairs/benches
-- beds/cupboards
-- anvils
-- forge clutter
-- chopping blocks
-- wood piles
-- coal piles
-- hay bales
-- cooking pots
-- cauldrons
-- lanterns
-- torches
-- signs
-- market stalls
-- palisade pieces
-- fence pieces
-- gravestones
-- road markers
-- ruined debris
-- weapon racks
-- shields
-- helmets
-- swords
-- axes
-- picks
-- hammers
-- bows
-- spears
-- antlers
-- trophies
-- camps and occupation clutter
-
-## B. GENERATE AS MODULAR FAMILIES
-
-Do not make 40 unrelated complete houses.
-
-Make one coherent construction language:
-
-- 2 m plaster wall
-- 2 m timber wall
-- door wall
-- window wall
-- interior/exterior corner
-- support beam
-- floor
-- foundation
-- straight roof
-- roof ridge
-- roof end/gable
-- roof corner
-- stairs
-- door
-- shutter
-- chimney
-- porch/awning
-
-Then use the same family to build houses, workshops, barns, inns and fortified compounds.
-
-## C. NATURE MUST BE FAMILIES TOO
-
-Example oak family:
-
-- mature oak A/B/C
-- young oak A/B
-- dead oak
-- stump A/B
-- fallen trunk A/B
-- chopped log variants
-
-Do the same for pines/birches if introduced.
-
-Rocks, mushrooms, flowers and bushes should also arrive as coherent variation sets, not isolated snowflakes.
-
-## D. HUMAN CHARACTERS: DO NOT RANDOMLY REPLACE THE RIG
-
-The live game already has a coherent adult survivor skeleton/animation/equipment-socket system. Do not mass-generate fully unrelated NPC bodies with random skeletons.
-
-For now, use AI to design/generate:
-
-- clothing reference sheets
-- armor reference sheets
-- helmets
-- capes/cloaks
-- backpacks
-- belts/pouches
-- hair concepts
-- shields
-- weapons
-- NPC portraits
-
-We should deliberately build compatible wearable geometry around a stable human rig rather than repeatedly throwing away animation compatibility.
-
-## E. ANIMALS
-
-AI can generate animal base meshes/reference art, but rigging and locomotion consistency are a separate production step. A beautiful deer with an incompatible skeleton is not automatically a useful game deer.
-
-Treat animals species-by-species and preserve a stable rig/animation family once approved.
-
----
-
-# 9. TWO-DIMENSIONAL ART LANE — GO VERY FAST HERE
-
-This should run in parallel with 3D.
-
-Generate directly with image generation:
-
-- item icons
-- resource icons
-- food icons
-- armor icons
-- weapon icons
-- buff/debuff icons
-- skill icons
-- achievement crests
-- reputation emblems
-- faction heraldry
-- bounty seals
-- map ornaments
-- parchment panel textures
-- slot frames
-- separators
-- dialogue portraits later
-- shop signs
-- banners
-- decals
-- stains/scorch/mud/moss overlays
-
-## Canonical inventory icon prompt
-
-> **ALDERWATCH INVENTORY ICON — [ITEM].** One centered medieval game item on transparent background. Grounded adult frontier aesthetic. Slightly painterly hand-painted PBR illustration. Natural material detail. Strong readable silhouette at 48–64 px. Consistent 3/4 isometric-ish camera used across the entire icon family. Soft neutral key light only. No text. No UI border baked into the image. No environment. No hands. No dramatic background. NOT cartoon, chibi, mobile-game candy art, voxel, neon, photoreal catalog photography or ornate high fantasy.
-
-Generate large (for example 512 or 1024 square) and downsample for the game.
-
-**Important:** keep the border/frame separate from the item image. That lets rarity frames, selection states and disabled states work without regenerating every item.
-
----
-
-# 10. PACK-FIRST PRODUCTION ROADMAP
-
-Do not generate assets in random order. Work in packs that visibly transform one place/system at a time.
-
-Recommended order:
-
-1. **Alderbrook Village Pack** — doors, shutters, awnings, signs, benches, carts, barrels, baskets, wood piles, laundry, crates, planters, small household clutter.
-2. **Market Pack** — stalls, counters, scales, baskets, produce, awnings, trade signs, coin chest, merchant clutter.
-3. **Blacksmith Pack** — forge, anvil, bellows, quench barrel, hammer rack, coal bin, tongs, weapon blanks.
-4. **Hunter/Fletcher Pack** — bow rack, arrow bundles, hide frames, tanning clutter, traps, trophy rack.
-5. **Woodcutter Pack** — splitting block, saw bench, log stacks, axe rack, timber sled/cart, wood sheds.
-6. **Farm Pack** — fences, troughs, carts, hay, sacks, produce baskets, scarecrow, simple field tools.
-7. **Frontier Camp Pack** — believable shelters, bedrolls, cookfire gear, supply stacks, defensive clutter.
-8. **Bandit/Outlaw Pack** — rougher variants, barricades, cages, stolen goods, trophy stakes, dirty tents.
-9. **Road/Ruin Pack** — milestones, shrines, broken carts, grave markers, collapsed masonry, abandoned camps.
-10. **Nature Pack** — tree families, stumps, logs, rock families, mushrooms, bushes, flowers, wetlands clutter.
-11. **Weapons + Armor Pack** — coherent progression families rather than unrelated hero weapons.
-12. **Household/Interior Pack** — beds, tables, shelves, chests, lamps, rugs, kitchen clutter.
-13. **UI/Icon Pack** — complete core item/resource/food/skill/buff set using one consistent image language.
-
-Finish one pack, upload it, integrate it, look at the live game, then use those screenshots to decide the next pack.
-
----
-
-# 11. EXACT STEP-BY-STEP WORKFLOW FOR ONE ASSET PACK
-
-## STEP 1 — Define the pack
-
-Write the list of 10–30 assets before generating.
-
-Example:
+Package:
 
 ```text
-Alderwatch Blacksmith Pack v1
+alderbrook_village_life_v1/
+  references/
+    alderwatch_master_style_board_v1.png
+    ...all hero references...
+    ...all turnarounds...
+  models/
+    ...all GLBs...
+  asset-manifest.json
+  README.md
+```
+
+Zip as:
+
+`alderbrook_village_life_v1.zip`
+
+Upload it to this chat.
+
+### STOP GATE
+
+Stop generating more village assets until I integrate this pack and we look at Alderbrook in the actual game.
+
+If the screenshot does not materially improve, we revise the pack before generating fifty more assets in the wrong direction.
+
+---
+
+# PHASE 4 — CONTINUE PACK BY PACK
+
+After Alderbrook Village Life Pack v1 is integrated and visually accepted, produce packs in this order:
+
+## STEP 15 — Market Pack
+
+Generate:
+
+- merchant counter
+- weighing scale
+- produce crates
+- hanging goods
+- awning variants
+- coin chest
+- fabric rolls
+- basket stacks
+- trade sign family
+- merchant stool
+- price slate/sign blank
+- small lockbox
+
+Integrate and visually accept before proceeding.
+
+---
+
+## STEP 16 — Blacksmith Pack
+
+Generate:
+
 - forge
 - anvil
 - bellows
@@ -467,447 +468,298 @@ Alderwatch Blacksmith Pack v1
 - coal bin
 - hammer rack
 - tongs
-- sword blank
-- axe blank
+- weapon blanks
+- ingot stack
 - grinding wheel
-- firewood pile
-- smithing stool
-```
+- smithing table
+- scrap-metal pile
 
-## STEP 2 — Gather the style inputs
-
-Use:
-
-- the Alderwatch Master Style Board
-- one or two approved live Alderwatch screenshots
-- any approved concept art relevant to this pack
-
-## STEP 3 — Generate the pack beauty/concept board
-
-Generate the items together once so the **family** is established.
-
-The board is for design consistency, not 3D reconstruction.
-
-## STEP 4 — Approve individual designs
-
-Pick the version of each asset that belongs in Alderwatch.
-
-Reject anything that looks:
-
-- too cute
-- too clean
-- too ornate
-- too fantasy-royal
-- structurally impossible
-- visually inconsistent with neighboring assets
-
-## STEP 5 — Make turnaround sheets
-
-For each important object, generate FRONT/LEFT/BACK/RIGHT from the approved image reference.
-
-Do not independently re-prompt four views from scratch.
-
-## STEP 6 — Generate 3D
-
-Default: Tripo multiview.
-
-Use the four views of the same object. Generate the best geometry first.
-
-## STEP 7 — Inspect the 3D model before polishing
-
-Check:
-
-- silhouette
-- proportions
-- missing backside geometry
-- accidental holes
-- bizarre duplicate surfaces
-- symmetry where appropriate
-- whether thin parts survived
-- whether it actually resembles the approved reference
-
-If geometry is fundamentally wrong, regenerate now. Do not spend time texturing a bad mesh.
-
-## STEP 8 — Remesh/optimize if needed
-
-Use Meshy remesh or equivalent to reach the asset's budget while preserving silhouette.
-
-Small props can be aggressively reduced. Hero assets can stay heavier.
-
-## STEP 9 — PBR texture
-
-Use the approved Alderwatch style/material reference.
-
-- remove baked lighting
-- generate base color
-- generate normal
-- generate roughness
-- generate metallic when applicable
-
-Preview under multiple neutral HDRI/light directions if your tool allows it. If the model only looks good under one baked-light angle, the material is wrong.
-
-## STEP 10 — Export GLB
-
-Prefer one self-contained `.glb` per normal asset.
-
-## STEP 11 — Prepare a preview
-
-Save one simple PNG preview for quick human browsing.
-
-## STEP 12 — Write the manifest
-
-At minimum include:
-
-- asset filename
-- intended dimensions in meters
-- generated-with tool/version
-- license/commercial-rights note
-- whether it is hero/normal/background
-- any known issue
-
-## STEP 13 — ZIP THE PACK
-
-Use the handoff structure below.
-
-## STEP 14 — Upload the ZIP here
-
-Send the actual ZIP, not only screenshots.
-
-Then the integration side can:
-
-- inspect geometry
-- inspect material maps
-- normalize scale/orientation
-- optimize/compress
-- add collision/LOD/instancing rules
-- register assets cleanly
-- replace placeholders
-- run build/tests
-- judge actual gameplay screenshots
+Integrate and visually accept before proceeding.
 
 ---
 
-# 12. PERFECT HANDOFF ZIP
+## STEP 17 — Hunter / Fletcher Pack
 
-```text
-alderwatch_blacksmith_pack_v1/
-    README.md
-    asset-manifest.json
-    references/
-        alderwatch_master_style_board.png
-        blacksmith_pack_concept.png
-        forge_turnaround.png
-        anvil_turnaround.png
-    models/
-        aw_blacksmith_forge_a.glb
-        aw_blacksmith_anvil_a.glb
-        aw_blacksmith_bellows_a.glb
-        aw_blacksmith_quench_barrel_a.glb
-        ...
-    previews/
-        aw_blacksmith_forge_a.png
-        aw_blacksmith_anvil_a.png
-        ...
-    source_optional/
-        # only if there is useful source material worth retaining
-```
+Generate:
 
-## README template
+- bow rack
+- arrow bundles
+- quiver rack
+- hide frame
+- tanning rack
+- trap family
+- antler trophy
+- target butt
+- skinning table
+- hunting stool
+- trophy wall pieces
 
-```md
-# Alderwatch Blacksmith Pack v1
-
-Generated with: [tool + version]
-Date: YYYY-MM-DD
-Commercial-use status: [brief statement based on your account/tool terms]
-
-Visual target:
-Adult grounded medieval frontier, Alderwatch master style board.
-
-Scale anchors:
-- forge: 1.8 m wide
-- anvil: 0.75 m tall
-- door reference if present: 2.1 m tall
-
-Notes:
-- forge is hero prop
-- coal bin is ordinary clutter
-- bellows animation is NOT included
-```
-
-## `asset-manifest.json` example
-
-```json
-{
-  "pack": "alderwatch_blacksmith_pack_v1",
-  "generator": "Tripo",
-  "units": "meters",
-  "upAxis": "+Y",
-  "forwardAxis": "+Z",
-  "assets": [
-    {
-      "file": "models/aw_blacksmith_anvil_a.glb",
-      "intendedSizeMeters": [0.55, 0.75, 1.05],
-      "class": "normal-prop",
-      "notes": "Hand-forged iron; no baked lighting"
-    }
-  ]
-}
-```
+Integrate and visually accept before proceeding.
 
 ---
 
-# 13. NAMING RULES
+## STEP 18 — Woodcutter Pack
 
-Use lowercase predictable runtime-friendly names.
+Generate:
 
-Pattern:
+- saw bench
+- splitting block variants
+- large log stacks
+- timber sled
+- axe rack
+- lumber cart
+- simple wood shed
+- wedge pile
+- saw rack
 
-```text
-aw_[pack]_[asset]_[variant].glb
-```
-
-Examples:
-
-```text
-aw_market_stall_a.glb
-aw_market_stall_b.glb
-aw_blacksmith_anvil_a.glb
-aw_forest_oak_mature_a.glb
-aw_forest_oak_stump_a.glb
-aw_bandit_barricade_a.glb
-```
-
-Avoid:
-
-```text
-final_final_good_blacksmithTHING(2).glb
-```
+Integrate and visually accept before proceeding.
 
 ---
 
-# 14. MODULAR BUILDING KIT CONTRACT
+## STEP 19 — Farm Pack
 
-For a construction family, **consistency matters more than individual beauty**.
+Generate:
 
-Use a common grid:
+- trough
+- hay stacks
+- produce baskets
+- farm cart
+- scarecrow
+- hand tools
+- grain sacks
+- feed bins
+- fence variants
+- simple field storage
 
-- 2 m horizontal wall bays
-- ~2.7 m story height
-- 2 × 2 m floor/foundation modules
-- matching roof widths
-- matching timber dimensions
-- consistent plaster/wood material scale
-- doors/windows aligned to the same structural grid
-
-Every module should be shown next to the same scale figure or meter grid during concept approval.
-
-When possible, create small **assembled test buildings** from the modules before mass-producing variants. If the pieces do not form believable architecture together, fix the kit before making 30 pieces.
-
----
-
-# 15. TREE + FOLIAGE SPECIAL RULES
-
-Trees are not ordinary props.
-
-For hero trees:
-
-- strong trunk silhouette
-- readable branching structure
-- plausible crown mass
-- avoid hundreds of tiny modeled leaves
-- use game-friendly leaf cards/clusters where appropriate
-- generate trunk/branch geometry separately from foliage if the pipeline supports it
-- create stump and fallen-log companions from the same tree family
-
-Alderwatch gameplay needs trees to chop and fall, so source geometry must be compatible with runtime interaction. The prettiest static AI tree is useless if it cannot be sensibly separated into trunk/log/stump states.
+Integrate and visually accept before proceeding.
 
 ---
 
-# 16. WEAPONS + EQUIPMENT SPECIAL RULES
+## STEP 20 — Frontier / Outlaw Camp Packs
 
-Weapons must be designed around believable dimensions and a stable hand grip.
+Create two visually related but distinct packs.
 
-Include intended total length and grip region in the manifest.
+Frontier camp should look practical and survivable.
 
-Examples:
+Outlaw camp should look stolen, improvised and hostile.
 
-- one-handed sword: roughly 0.9–1.1 m total
-- hand axe: roughly 0.55–0.75 m
-- bow: roughly 1.4–1.8 m depending on type
+Both should include:
 
-The runtime will attach them to verified hand sockets. Do not generate floating hands or characters as part of the weapon mesh.
+- shelters
+- bedrolls
+- cook gear
+- supply piles
+- barricades
+- weapon storage
+- crates
+- trophies / personal clutter
 
----
-
-# 17. LICENSE / PROVENANCE RULE
-
-For every generated pack, record:
-
-- generator/provider
-- generation date
-- account/plan or license basis if relevant
-- whether the provider terms grant the commercial use we need
-- any third-party source image/reference that carries its own license obligations
-
-Do not casually mix scraped copyrighted 3D assets into a supposedly generated pack.
-
-If a pack contains external CC0/CC-BY assets, identify them individually and preserve attribution requirements where applicable.
+Integrate and visually accept each pack.
 
 ---
 
-# 18. THE ACCEPTANCE GATE
+## STEP 21 — Road / Ruin Pack
 
-An asset is **not accepted because the generator says success**.
+Generate:
 
-It is accepted when:
+- milestones
+- shrines
+- broken carts
+- grave markers
+- collapsed masonry
+- abandoned fire pits
+- ruined fence sections
+- abandoned packs
+- roadside memorials
 
-1. GLB loads correctly.
-2. Scale is sane.
-3. Orientation is sane.
-4. Materials respond correctly under Alderwatch lighting.
-5. Geometry does not explode or create giant slabs.
-6. Performance is reasonable for its role.
-7. It looks coherent beside existing approved assets.
-8. **The actual in-game screenshot is materially better.**
-
-If it is technically integrated but the screenshot looks the same or worse, the art request remains open.
+Integrate and visually accept.
 
 ---
 
-# 19. WHAT JARED SHOULD DO FIRST
+## STEP 22 — Nature Families
 
-Do **not** begin with 100 assets.
+Do not create one-off trees.
 
-Do this exact sequence:
+Create complete families.
 
-### Experiment A — generator bakeoff
+### Oak family
 
-Create Alderwatch references for:
+- mature oak A/B/C
+- young oak A/B
+- dead oak
+- stump A/B
+- fallen trunk A/B
+- chopped log A/B/C
 
-- weathered barrel
-- timber market stall
-- mature oak
+Then repeat the family method for any additional tree species.
 
-Generate each through Tripo, Meshy and Rodin. Package all nine GLBs plus the reference art. Upload them here.
+Also create coherent families for:
 
-We select the winning pipeline per class.
+- rocks
+- mushrooms
+- bushes
+- flowers
+- wetland plants
 
-### Experiment B — first real transformation pack
+Integrate and visually accept each family.
 
-After the bakeoff, make:
+---
 
-**ALDERBROOK VILLAGE LIFE PACK v1**
+# PHASE 5 — UI / ICON ART
 
-Suggested 20 assets:
+This lane may begin **after Step 1 is approved**, because it only needs the Master Style Board and does not depend on the 3D bakeoff.
 
-- market stall A/B
-- produce table
-- bench A/B
-- barrel A/B
-- crate A/B
-- basket A/B
-- sack pile
-- handcart
-- wagon
-- wood pile A/B
-- chopping block
-- wash tub
-- hanging sign
-- lantern
-- planter/herb box
+## STEP 23 — Create the canonical item-icon camera/style sample
 
-This pack has extremely high screenshot impact and low integration risk.
+Using the Master Style Board as the style reference, generate exactly six sample icons:
 
-### Experiment C — UI beauty pack in parallel
+- axe
+- bow
+- grilled venison
+- wood
+- iron ore
+- crow milk
 
-Generate the complete core icon family in one locked style:
+Use this prompt:
+
+> ALDERWATCH INVENTORY ICON — [ITEM]. One centered medieval game item on transparent background. Grounded adult frontier aesthetic. Slightly painterly hand-painted PBR illustration. Natural material detail. Strong readable silhouette at 48–64 px. Consistent 3/4 camera. Soft neutral key light only. No text. No UI border baked into the image. No environment. No hands. NOT cartoon, chibi, mobile-game candy art, voxel, neon, photoreal catalog photography or ornate high fantasy. Use the attached Alderwatch Master Style Board for material and palette language.
+
+Generate at 512×512 or 1024×1024 with transparency.
+
+### Acceptance gate
+
+Do not generate the full icon library until all six look like the same artist made them.
+
+---
+
+## STEP 24 — Generate the first complete icon set
+
+After the six-sample icon style is approved, generate these in that exact style:
+
+### Tools / weapons
 
 - axe
 - pickaxe
 - sword
 - bow
-- spear
 - hammer
+- spear when available
+
+### Resources
+
 - wood
 - stone
-- ore
 - fiber
 - hide
 - leather
-- berries
+- iron ore
+- coal
 - herbs
-- venison
+- clay
+- antlers
+- crow crop
+- honey
+
+### Food
+
+- grilled venison
+- berries
 - cooked meat
+- stew
 - crow milk
 - wild honey
+
+### Buff / character
+
 - health
 - stamina
-- regen
-- move speed
+- health regeneration
+- movement speed
 - damage
+- armor
 - warmth
 - satiety
+- karma
+- fame
+- reputation
 
-Do not bake frames into them.
+Save as transparent PNG files with no baked UI frame.
 
----
-
-# 20. FINAL OPERATOR CHECKLIST
-
-Before uploading any pack, ask:
-
-- [ ] Does this look unmistakably Alderwatch?
-- [ ] Did I use the approved master style board?
-- [ ] Did I approve a hero design before generating 3D?
-- [ ] Are multiview images the same object, not four independent inventions?
-- [ ] Is the asset adult/grounded rather than toy-like?
-- [ ] Is the scale stated in meters?
-- [ ] Is the model GLB?
-- [ ] Are materials PBR?
-- [ ] Is baked directional lighting removed from base color?
-- [ ] Are textures reasonably sized?
-- [ ] Is the polygon count sane or at least remeshable?
-- [ ] Did I keep coherent variants/families together?
-- [ ] Did I record generator/license provenance?
-- [ ] Did I include preview/reference images?
-- [ ] Did I ZIP the actual model files, not merely send screenshots?
-
-If those are true: **upload the ZIP.**
+Upload them as one ZIP.
 
 ---
 
-# 21. RESEARCH BASIS / CURRENT TOOL CAPABILITIES
+# PHASE 6 — HUMANS AND ANIMALS
 
-This workflow is grounded in the current documented capabilities of the target runtime and generation tools as of 2026-09-08:
+## STEP 25 — Do not replace the player/NPC skeleton with random generated characters
 
-- glTF 2.0 uses meters, +Y up and +Z forward.
-- Three.js `GLTFLoader` directly supports glTF/GLB and can be configured for Meshopt, Draco and KTX2 pipelines.
-- Tripo's current multiview generation supports view-labeled image conditioning and PBR GLB output.
-- Meshy currently supports GLB remeshing to target polygon counts and AI PBR texturing with baked-light removal.
-- Rodin currently supports multi-image same-object conditioning, PBR GLB output, target face counts and bounding-box control.
+The live game already has an adult survivor skeleton, locomotion, combat animation and verified hand socket behavior.
 
-Primary references:
+For human art, generate/reference-design these instead:
 
-- Khronos glTF 2.0 specification: https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
-- Three.js GLTFLoader: https://threejs.org/docs/pages/GLTFLoader.html
-- Tripo Multiview to 3D: https://developers.tripo3d.ai/en/docs/generation-multiview-to-model
-- Meshy Remesh API: https://docs.meshy.ai/en/api/remesh
-- Meshy AI Texturing: https://docs.meshy.ai/en/webapp/guides/3d-model/ai-texturing
-- Hyper3D Rodin: https://docs.hyper3d.ai/en/api-specification/rodin-gen1-1-5
+- clothing sets
+- armor sets
+- helmets
+- cloaks
+- backpacks
+- belts
+- pouches
+- hairstyles
+- shields
+- weapons
+- NPC portraits
+
+Any wearable model intended for gameplay must ultimately be conformed to the existing humanoid rig. Do not assume a random generated rig can replace it.
 
 ---
 
-# 22. THE PRODUCTION PHILOSOPHY
+## STEP 26 — Treat each animal species as its own production family
 
-Jared is the **art director and asset factory**.
+For a species upgrade:
 
-The integration side is the **technical art / engine / optimization / visual QA layer**.
+1. create the species hero reference using the Master Style Board
+2. create matching multiviews
+3. generate one approved base mesh
+4. do not generate ten unrelated specimens
+5. preserve one rig/animation family once the species is working
+6. create visual variants by texture/material/proportion changes around that approved family
 
-The fastest route to a beautiful game is not to ask the engine to procedurally invent visual quality. It is to feed the engine **coherent authored art in disciplined families**, then make the runtime place, light, animate, optimize and reuse it intelligently.
+Do not replace a working animal rig just because another generator makes a prettier static preview.
 
-We should be able to repeat this loop indefinitely:
+---
 
-**ART DIRECT → GENERATE → PACKAGE → UPLOAD → INTEGRATE → PLAY → SCREENSHOT → REJECT/KEEP → GENERATE NEXT PACK.**
+# FINAL OPERATOR CHECKLIST
 
-That loop is now the canonical Alderwatch art-production pipeline.
+Before uploading any production pack, verify all of these:
+
+- [ ] Step 1 Master Style Board is included or referenced
+- [ ] every 3D asset has an approved hero reference
+- [ ] every important 3D asset has a consistent turnaround
+- [ ] every model is GLB
+- [ ] dimensions are stated in meters
+- [ ] origin/grounding is sensible
+- [ ] no obvious baked directional lighting
+- [ ] textures are not absurdly large
+- [ ] models are not absurdly dense
+- [ ] asset names are unique and descriptive
+- [ ] generator provenance is recorded
+- [ ] license/commercial-use status is recorded
+- [ ] `asset-manifest.json` is included
+- [ ] ZIP contains actual models, not only screenshots
+
+---
+
+# WHAT TO DO RIGHT NOW
+
+Do only these actions now:
+
+1. Complete **STEP 1** and freeze `alderwatch_master_style_board_v1.png`.
+2. Complete **STEP 2** for barrel, market stall and mature oak.
+3. Complete **STEP 3** for those same three objects.
+4. Complete **STEPS 4–6** to create nine GLBs.
+5. Complete **STEP 7** and upload `alderwatch_3d_bakeoff_v1.zip` here.
+6. Stop.
+
+While the 3D bakeoff is processing, you may independently complete **STEP 23** and send me the six sample inventory icons.
+
+Everything after that waits for in-game acceptance of the bakeoff.
