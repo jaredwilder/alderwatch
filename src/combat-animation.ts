@@ -15,7 +15,19 @@ function driveFor(clip:string,bone:string):Drive{
  return ZERO;
 }
 function smooth01(x:number){x=T.MathUtils.clamp(x,0,1);return x*x*(3-2*x);}
-function driveWeight(t:number,impact:number,duration:number){const load=Math.max(.04,impact*.55);if(t<=load)return-smooth01(t/load);if(t<=impact)return-1+2*smooth01((t-load)/Math.max(.001,impact-load));return 1-smooth01((t-impact)/Math.max(.001,duration-impact));}
+/**
+ * Load the body against the strike, return to the authored pose exactly at contact,
+ * then carry momentum through a smaller follow-through before settling. Keeping
+ * weight=0 at impact is important: weapon contact is gameplay-authoritative and
+ * must not be pushed sideways by cosmetic hip torque.
+ */
+function driveWeight(t:number,impact:number,duration:number){
+ const load=Math.max(.04,impact*.55),follow=impact+(duration-impact)*.42;
+ if(t<=load)return-smooth01(t/load);
+ if(t<=impact)return-1+smooth01((t-load)/Math.max(.001,impact-load));
+ if(t<=follow)return .72*smooth01((t-impact)/Math.max(.001,follow-impact));
+ return .72*(1-smooth01((t-follow)/Math.max(.001,duration-follow)));
+}
 
 function amplifyRotation(track:T.KeyframeTrack){
  const gain=rotationGain(track.name),out=track.clone();if(gain===1||!track.name.endsWith('.quaternion'))return out;
@@ -26,8 +38,8 @@ function amplifyRotation(track:T.KeyframeTrack){
 
 function addBodyDrive(track:T.KeyframeTrack,clip:string,impact:number,duration:number){
  if(!track.name.endsWith('.quaternion'))return track;const bone=track.name.slice(0,-'.quaternion'.length),drive=driveFor(clip,bone);if(!drive.pitch&&!drive.yaw&&!drive.roll)return track;
- const load=Math.max(.04,impact*.55),settle=impact+(duration-impact)*.55;
- const times=[...Array.from(track.times),0,load,impact,settle,duration].sort((a,b)=>a-b).filter((t,i,a)=>i===0||Math.abs(t-a[i-1])>1e-5);
+ const load=Math.max(.04,impact*.55),follow=impact+(duration-impact)*.42;
+ const times=[...Array.from(track.times),0,load,impact,follow,duration].sort((a,b)=>a-b).filter((t,i,a)=>i===0||Math.abs(t-a[i-1])>1e-5);
  const interpolant=track.createInterpolant(new Float32Array(4)),values:number[]=[],q=new T.Quaternion(),extra=new T.Quaternion(),euler=new T.Euler();
  for(const t of times){q.fromArray(interpolant.evaluate(t) as ArrayLike<number>).normalize();const w=driveWeight(t,impact,duration);euler.set(drive.pitch*w,drive.yaw*w,drive.roll*w,'YXZ');extra.setFromEuler(euler);q.multiply(extra).normalize();values.push(q.x,q.y,q.z,q.w);}
  return new T.QuaternionKeyframeTrack(track.name,times,values);
