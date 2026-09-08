@@ -1,4 +1,4 @@
-import './wildlife-stories.css';
+if(typeof document!=='undefined')void import('./wildlife-stories.css');
 import {Nature} from './nature';
 import type {WorldState} from './state';
 import type {AnimalState} from './wildlife-species';
