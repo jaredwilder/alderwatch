@@ -4,7 +4,7 @@ Forward-ported onto current main `d03c466`; no combat, inventory, save, quest or
 
 ## Real shipped assets, not concept overlays
 
-- User-provided market stall (`13cda14c-033c-4da9-9791-b3a2db249e55.glb`): 80,000 → 31,323 triangles, normalized to 2.7 m high, embedded 2K WebP, about 1.37 MB. Removed 667 near-ground faces forming a white generated backdrop fringe.
+- User-provided market stall (`13cda14c-033c-4da9-9791-b3a2db249e55.glb`): 80,000 → 31,037 triangles, normalized to 2.7 m high, embedded 2K WebP, about 1.36 MB. Removed 667 ground faces and 286 low white backdrop faces; moved the decorative stall clear of the neighboring house roof.
 - User-provided barrel (`798e97dc-fe2d-4d11-982b-139f65d255a4.glb`): 80,000 → 9,589 triangles, 0.9 m high, embedded 2K WebP, about 518 KB.
 - Three curved, rooted oak variants and three fractured-rock replacements. Kit material names, UVs, vertex colors and all unrelated assets preserved.
 - Refined survivor head, hood, legs, shoulder cowl and jerkin hem. Original skin bind matrices checked before geometry replacement; all 14 animation clips and every channel target/value byte preserved. Anatomical sockets unchanged.
