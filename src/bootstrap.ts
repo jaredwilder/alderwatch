@@ -37,7 +37,7 @@ async function installFarMarchPlayerUI(){
   const essential=[
     ['UI stack',()=>import('./ui-stack')],
     ['Backpack',()=>import('./backpack-ui')],
-    ['Item icons',()=>import('./item-icons')],
+    ['Item icons',()=>import('./item-icons-module')],
     ['Recipe Book',()=>import('./recipe-book-ui')],
   ] as const;
   for(const [name,load] of essential){
