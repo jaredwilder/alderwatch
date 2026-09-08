@@ -4,9 +4,9 @@ export type DressingPlacement=readonly [name:string,x:number,z:number,yaw:number
 export interface DressingCluster {x:number;z:number;yaw:number;items:readonly (readonly [name:string,lx:number,lz:number,scale:number,extraYaw:number])[]}
 export interface DressingZone {x:number;z:number;r:number;label:string}
 
-/** Close-camera layouts use the detailed MegaKit assemblies and compact props. */
+/** Close-camera layouts use complete bounded buildings and compact props only. */
 export const SOUTH_GATE_PLACEMENTS:readonly DressingPlacement[]=[
- ['village_details',-11,-4,.10,.92,.01],['village_details',10,-6,-.10,.86,.01],
+ ['hut_d',-11,-4,.10,.82,.01],['hut_c',10,-6,-.10,.86,.01],
  ['palisade',-7.2,4,.04,.92,.01],['palisade',7.2,4,-.04,.92,.01],
  ['market',-17,-5,.12,.95,.01],['storage',7,-3,-.18,.92,.01],['well',-5,-1,.15,1,.01],
  ['wood_pile',-6.4,8,.2,1,.01],['barrel',7.3,8,-.2,1,.01],['barrel',8.4,8.4,.36,.9,.01],
@@ -14,14 +14,15 @@ export const SOUTH_GATE_PLACEMENTS:readonly DressingPlacement[]=[
 ];
 
 /**
- * Alderbrook is a close-up playable settlement. Do not put the simplified RTS
- * skyline pieces here: they are useful at landmark distance, but their broad
- * silhouette meshes read as enormous slabs when the player walks underneath.
+ * Alderbrook is a close-up playable settlement. Nested modular longhouse roots
+ * are deliberately excluded here: complete normalized buildings are safer and
+ * more readable at player distance, while the original stable cottage kit owns
+ * the four interactive homes.
  */
 export const ALDERBROOK_PLACEMENTS:readonly DressingPlacement[]=[
  ['well',1.5,-29,.05,1,.01],['market',-6,-28,.12,1,.01],['storage',22,-40,-.2,1,.01],
- ['village_details',25,-68,3.1,.88,.01],['village_details',-27,-49,.15,.90,.01],['village_details',-26,-67,.08,.86,.01],
- ['village_details',3,-77,Math.PI,.92,.01],['hut_d',29,-90,-.15,.82,.01],['farm',-31,-82,.08,.9,.01],['crops',-23,-84,.08,.9,.01],
+ ['hut_a',25,-68,3.1,.82,.01],['hut_b',-27,-49,.15,.84,.01],['hut_c',-26,-67,.08,.88,.01],
+ ['hut_d',3,-77,Math.PI,.84,.01],['hut_d',29,-90,-.15,.82,.01],['farm',-31,-82,.08,.9,.01],['crops',-23,-84,.08,.9,.01],
  ['wood_pile',-2,-35,.1,1,.01],['hay',7,-37,-.15,1,.01],['barrel',10,-30,.4,1,.01],['barrel',11,-31,-.2,.9,.01],
 ];
 
