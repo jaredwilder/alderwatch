@@ -17,6 +17,10 @@ test('moving melee keeps hip torque but gait owns pelvis travel and legs',async(
  const strideTracks=((f.actor as any).strideActions.get('run') as T.AnimationAction).getClip().tracks.map((t:T.KeyframeTrack)=>t.name);assert.ok(strideTracks.includes('pelvis.position'),'run stride lost pelvis translation/bob and will treadmill under attacks');assert.ok(!strideTracks.includes('pelvis.quaternion'),'run stride is fighting melee hip rotation');f.physics.free();
 });
 
+test('melee body tracks interpolate continuously instead of stop-motion stepping',async()=>{
+ const f=await actorFixture();for(const name of ['attack','chop','mine','heavy']){const clip=f.actor.actions.get(name)!.getClip();const body=clip.tracks.filter(t=>(t.name==='pelvis.quaternion'||/^(spine_|clavicle_|upperarm_|lowerarm_|hand_)/.test(t.name))&&t.name.endsWith('.quaternion'));assert.ok(body.length>8,name+' lost its skeletal body tracks');for(const track of body)assert.notEqual(track.getInterpolation(),T.InterpolateDiscrete,`${name} ${track.name} is discrete/stop-motion`);}f.physics.free();
+});
+
 test('sword and axe attacks visibly rotate the pelvis instead of arm-flapping',async()=>{
  for(const item of ['sword','axe'] as const){const f=await actorFixture();f.p.equipped=item;f.actor.equip(item);const actionName=item==='axe'?'chop':'attack',curve=rotationSpan(f.actor.actions.get(actionName)!.getClip(),'pelvis.quaternion');assert.ok(curve>.10,`${item} synthesized pelvis curve is still dead before playback: ${curve}`);const pelvis=f.actor.model.getObjectByName('pelvis')!,start=pelvis.quaternion.clone();let max=0;f.actor.startAttack();for(let i=0;i<42;i++){f.step();max=Math.max(max,start.angleTo(pelvis.quaternion));}assert.ok(max>.10,`${item} pelvis curve exists but is not reaching the live skeleton: curve=${curve} runtime=${max}`);f.physics.free();}
 });
