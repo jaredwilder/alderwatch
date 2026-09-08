@@ -11,6 +11,7 @@ test('full March projection is north-up and covers the entire 768 metre realm',(
  assert.equal(worldMapPoint([385,0,0]).inside,false);
 });
 
+// Player-facing contract: M must make the existing big wildlife findable without changing spawn authority.
 test('world map surfaces every live bison and bear, including the discoverable Massive bison',()=>{
  const w=seedState(),p=makePlayer('Hunter');p.position=[0,0,0];w.players[p.id]=p;seedNature(w);
  const sightings=largeGameSightings(w,p);
