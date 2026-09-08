@@ -1,16 +1,23 @@
 import * as T from 'three';
 
-const UPPER=/^(spine_|clavicle_|upperarm_|lowerarm_|hand_|index_|middle_|ring_|pinky_|thumb_)/;
-export const upperBodyTrack=(name:string)=>UPPER.test(name);
+// A committed melee strike owns the entire kinetic chain above the hips, including neck/head.
+// Asset pipelines do not guarantee literal `head` / `neck_01` names, so detect those semantic bones
+// case-insensitively instead of silently dropping the top of the kinetic chain.
+const CORE_UPPER=/^(spine_|clavicle_|upperarm_|lowerarm_|hand_|index_|middle_|ring_|pinky_|thumb_)/;
+const HEAD_NECK=/head|neck/i;
+export const upperBodyTrack=(name:string)=>CORE_UPPER.test(name)||HEAD_NECK.test(name);
 /** Moving melee owns hip rotation and the upper-body strike, while gait keeps pelvis translation/bob and the legs. */
-export const meleeBodyTrack=(name:string)=>name==='pelvis.quaternion'||UPPER.test(name);
+export const meleeBodyTrack=(name:string)=>name==='pelvis.quaternion'||upperBodyTrack(name);
 
 const rotationGain=(name:string)=>name.startsWith('pelvis.quaternion')?1.55:name.startsWith('spine_01.quaternion')?1.38:name.startsWith('spine_02.quaternion')?1.22:name.startsWith('spine_03.quaternion')?1.10:1;
 type Drive={pitch:number;yaw:number;roll:number};
 const ZERO:Drive={pitch:0,yaw:0,roll:0};
 function driveFor(clip:string,bone:string):Drive{
- if(clip==='attack')return bone==='pelvis'?{pitch:.025,yaw:.20,roll:-.025}:bone==='spine_01'?{pitch:.02,yaw:.15,roll:-.035}:bone==='spine_02'?{pitch:0,yaw:.09,roll:-.02}:ZERO;
- if(clip==='chop')return bone==='pelvis'?{pitch:.04,yaw:.25,roll:.035}:bone==='spine_01'?{pitch:.035,yaw:.19,roll:.045}:bone==='spine_02'?{pitch:.02,yaw:.11,roll:.025}:ZERO;
+ const b=bone.toLowerCase(),neck=b.includes('neck'),head=b.includes('head');
+ // Lateral cuts get a small head/neck tuck into contact. This is deliberately downstream of the arms,
+ // so it adds intent/weight without moving the gameplay-authoritative weapon contact pose.
+ if(clip==='attack')return bone==='pelvis'?{pitch:.025,yaw:.20,roll:-.025}:bone==='spine_01'?{pitch:.02,yaw:.15,roll:-.035}:bone==='spine_02'?{pitch:0,yaw:.09,roll:-.02}:neck?{pitch:.095,yaw:0,roll:0}:head?{pitch:.045,yaw:0,roll:0}:ZERO;
+ if(clip==='chop')return bone==='pelvis'?{pitch:.04,yaw:.25,roll:.035}:bone==='spine_01'?{pitch:.035,yaw:.19,roll:.045}:bone==='spine_02'?{pitch:.02,yaw:.11,roll:.025}:neck?{pitch:.115,yaw:0,roll:0}:head?{pitch:.055,yaw:0,roll:0}:ZERO;
  if(clip==='mine')return bone==='pelvis'?{pitch:.20,yaw:.065,roll:0}:bone==='spine_01'?{pitch:.16,yaw:.05,roll:0}:bone==='spine_02'?{pitch:.09,yaw:.025,roll:0}:ZERO;
  if(clip==='heavy')return bone==='pelvis'?{pitch:.14,yaw:.15,roll:0}:bone==='spine_01'?{pitch:.11,yaw:.12,roll:0}:bone==='spine_02'?{pitch:.065,yaw:.07,roll:0}:ZERO;
  return ZERO;
@@ -19,8 +26,7 @@ function smooth01(x:number){x=T.MathUtils.clamp(x,0,1);return x*x*(3-2*x);}
 /**
  * Load the body against the strike, return to the authored pose exactly at contact,
  * then carry momentum through a smaller follow-through before settling. Keeping
- * weight=0 at impact is important: weapon contact is gameplay-authoritative and
- * must not be pushed sideways by cosmetic hip torque.
+ * weight=0 at impact is important for pelvis/spine: weapon contact is gameplay-authoritative.
  */
 function driveWeight(t:number,impact:number,duration:number){
  const load=Math.max(.04,impact*.55),follow=impact+(duration-impact)*.42;
@@ -28,6 +34,13 @@ function driveWeight(t:number,impact:number,duration:number){
  if(t<=impact)return-1+smooth01((t-load)/Math.max(.001,impact-load));
  if(t<=follow)return .72*smooth01((t-impact)/Math.max(.001,follow-impact));
  return .72*(1-smooth01((t-follow)/Math.max(.001,duration-follow)));
+}
+/** Neck/head dip *into* the hit instead of returning upright at contact. */
+function headDriveWeight(t:number,impact:number,duration:number){
+ const begin=Math.max(.02,impact*.38),release=impact+(duration-impact)*.58;
+ if(t<=begin)return 0;
+ if(t<=impact)return smooth01((t-begin)/Math.max(.001,impact-begin));
+ return 1-smooth01((t-impact)/Math.max(.001,release-impact));
 }
 
 function amplifyRotation(track:T.KeyframeTrack){
@@ -63,8 +76,8 @@ function addBodyDrive(track:T.KeyframeTrack,clip:string,impact:number,duration:n
  if(!track.name.endsWith('.quaternion'))return track;const bone=track.name.slice(0,-'.quaternion'.length),drive=driveFor(clip,bone);if(!drive.pitch&&!drive.yaw&&!drive.roll)return track;
  const load=Math.max(.04,impact*.55),follow=impact+(duration-impact)*.42;
  const times=[...Array.from(track.times),0,load,impact,follow,duration].sort((a,b)=>a-b).filter((t,i,a)=>i===0||Math.abs(t-a[i-1])>1e-5);
- const values:number[]=[],q=new T.Quaternion(),extra=new T.Quaternion(),euler=new T.Euler();
- for(const t of times){sampleQuaternion(track,t,q);const w=driveWeight(t,impact,duration);euler.set(drive.pitch*w,drive.yaw*w,drive.roll*w,'YXZ');extra.setFromEuler(euler);q.multiply(extra).normalize();values.push(q.x,q.y,q.z,q.w);}
+ const values:number[]=[],q=new T.Quaternion(),extra=new T.Quaternion(),euler=new T.Euler(),head=HEAD_NECK.test(bone);
+ for(const t of times){sampleQuaternion(track,t,q);const w=head?headDriveWeight(t,impact,duration):driveWeight(t,impact,duration);euler.set(drive.pitch*w,drive.yaw*w,drive.roll*w,'YXZ');extra.setFromEuler(euler);q.multiply(extra).normalize();values.push(q.x,q.y,q.z,q.w);}
  return new T.QuaternionKeyframeTrack(track.name,times,values,T.InterpolateLinear);
 }
 
