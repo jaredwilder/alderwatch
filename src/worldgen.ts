@@ -1,12 +1,23 @@
 import {height,roadX} from './terrain';
 import type {WorldState,Vec3,PlayerState} from './state';
-export const WORLD_SIZE=768;
-export const REGIONS=[{name:'Southwood',x:0,z:190},{name:'Ironward Heights',x:210,z:35},{name:'Briar Heath',x:-195,z:85}];
+export const WORLD_SIZE=1408;
+export const REGIONS=[
+ {name:'Southwood',x:0,z:190},{name:'Ironward Heights',x:210,z:35},{name:'Briar Heath',x:-195,z:85},
+ {name:'Greymoor',x:-410,z:260},{name:'Wolfpine',x:360,z:330},{name:'Blackfen',x:-330,z:470},{name:'Giant’s Step',x:330,z:500},{name:'Stonewake',x:0,z:535},
+];
 export interface FrontierSite {id:string;name:string;kind:'camp'|'cache'|'rest';position:Vec3;enemies:string[]}
 export interface Frontier {version:1;seed:number;sites:Record<string,FrontierSite>}
 export function seeded(seed:number){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
-export function regionAt(x:number,z:number){return Math.abs(x)<85&&z<65?'The Far March':x>95?'Ironward Heights':x<-95?'Briar Heath':'Southwood';}
-export function frontierArea(x:number,z:number){return Math.abs(x)<335&&z>-95&&z<335&&(Math.abs(x)>95||z>75);}
+export function regionAt(x:number,z:number){
+ if(Math.abs(x)<85&&z<65)return 'The Far March';
+ if(z>455&&Math.abs(x)<180)return 'Stonewake';
+ if(x>280&&z>430)return 'Giant’s Step';
+ if(x<-265&&z>405)return 'Blackfen';
+ if(x>285&&z>190)return 'Wolfpine';
+ if(x<-285&&z>170)return 'Greymoor';
+ if(x>95)return 'Ironward Heights';if(x<-95)return 'Briar Heath';return 'Southwood';
+}
+export function frontierArea(x:number,z:number){return Math.abs(x)<620&&z>-175&&z<620&&(Math.abs(x)>95||z>75);}
 export function trailZ(x:number){return 65+Math.sin(x*.027)*13;}
 export function trailDistance(x:number,z:number){return Math.min(Math.abs(x-roadX(z)),Math.abs(z-trailZ(x)));}
 const distance=(a:Vec3,b:Vec3)=>Math.hypot(a[0]-b[0],a[2]-b[2]);
@@ -23,7 +34,8 @@ export function seedFrontier(w:WorldState,seed=w.worldSeed??197709){
   w.containers[id]??={id,name:site.name+' supplies',position:[...position],inventory:[{id:id+'-iron',item:'iron',count:kind==='camp'?14:6,quality:1},{id:id+'-hide',item:'hide',count:kind==='camp'?8:4,quality:1},{id:id+'-meal',item:'hearty_stew',count:2,quality:1}],looted:false};
   const fire=id+'-fire';w.stations[fire]??={id:fire,name:site.name+' fire',kind:'campfire',position:[position[0]+3,height(position[0]+3,position[2]+2),position[2]+2]};
  }
- // Stable grid cells, jittered and culled into groves / open heath; roads and sites stay clear.
+ // Stable inner frontier remains byte-for-byte in spirit; world-expansion.ts adds
+ // the outer regions additively so old saves and new saves share the same map.
  let index=0;
  for(let x=-330;x<335;x+=13)for(let z=-90;z<335;z+=13){
   const px=x+rng()*9,pz=z+rng()*9;if(!frontierArea(px,pz)||trailDistance(px,pz)<5)continue;
@@ -33,7 +45,7 @@ export function seedFrontier(w:WorldState,seed=w.worldSeed??197709){
   w.resources[id]??={id,kind:rock?'rock':'tree',position:p,variant:Math.floor(rng()*3),health:rock?4:6,phase:'standing',rotation:rng()*Math.PI*2,scale:.82+rng()*.28};
   if(index%4===0){const id='nature-forage-wild-'+index,fx=px+3,fz=pz+2;w.forage[id]??={id,kind:(['mushroom','berries','herb','wood'] as const)[index/4%4],position:[fx,height(fx,fz),fz],harvested:false};}
  }
- w.animals??={};REGIONS.forEach((region,i)=>{for(let j=0;j<2;j++){const id=`frontier-wildlife-${i}-${j}`,x=region.x+8+j*6,z=region.z+4,p:Vec3=[x,height(x,z),z];w.animals![id]??={id,kind:j?'crow':'hare',position:p,home:[...p],yaw:rng()*6.28,phase:rng()*5};}});
+ w.animals??={};REGIONS.slice(0,3).forEach((region,i)=>{for(let j=0;j<2;j++){const id=`frontier-wildlife-${i}-${j}`,x=region.x+8+j*6,z=region.z+4,p:Vec3=[x,height(x,z),z];w.animals![id]??={id,kind:j?'crow':'hare',position:p,home:[...p],yaw:rng()*6.28,phase:rng()*5};}});
  w.frontier={version:1,seed,sites};
 }
 export function frontierObjective(w:WorldState,p:PlayerState){const site=p.frontierTarget?w.frontier?.sites[p.frontierTarget]:undefined;if(!site)return;const guards=site.enemies.filter(id=>w.enemies[id]?.health>0).length;return {title:site.name.toUpperCase(),text:guards?`Defeat ${guards} guards, then E at the supply chest`:'E at the supply chest · campfire nearby',position:site.position};}
