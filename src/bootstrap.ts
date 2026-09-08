@@ -3,6 +3,7 @@ import {consumePendingArea,currentPlayer,DEEP_IRON_MINE,enterSavedArea,IRONWARD_
 import {advanceRealmPopulationToTick,ensureRealmPopulation} from './realm-population';
 import {advanceRealmSocietyToTick,ensureRealmSocial} from './realm-society';
 import {advanceRealmHistoryToTick,ensureRealmHistory} from './provenance-frontier';
+import {applyRealmConsequences,ensureRealmConsequences} from './realm-consequences';
 
 const SAVE_KEY='alderwatch.realm.v1';
 
@@ -17,9 +18,11 @@ function prepareSavedArea(){
   advanceRealmSocietyToTick(world);
   ensureRealmHistory(world);
   advanceRealmHistoryToTick(world);
+  ensureRealmConsequences(world);
+  applyRealmConsequences(world);
   const pending=consumePendingArea();
   if(pending)enterSavedArea(world,pending);
-  // Population, society and causal history catch-up are authoritative before an area materializes.
+  // Population, society, causal history and its compiled consequences are authoritative before an area materializes.
   localStorage.setItem(SAVE_KEY,JSON.stringify(world));
   return currentPlayer(world)?playerArea(currentPlayer(world)!):'far-march';
 }
