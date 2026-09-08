@@ -37,6 +37,20 @@ function amplifyRotation(track:T.KeyframeTrack){
  return out;
 }
 
+/**
+ * Some imported melee tracks are STEP samplers. Preserve their exact gameplay
+ * contact pose as a protected key, then slerp between keys so the visible body
+ * no longer snaps frame-to-frame like stop motion.
+ */
+function smoothDiscreteQuaternion(track:T.KeyframeTrack,impact:number){
+ if(!track.name.endsWith('.quaternion')||track.getInterpolation()!==T.InterpolateDiscrete)return track;
+ const oldTimes=Array.from(track.times),oldValues=track.values,times=[...oldTimes],values:number[]=[];
+ let exact=oldTimes.findIndex(t=>Math.abs(t-impact)<1e-5),sampleIndex=0;
+ if(exact<0){for(let i=0;i<oldTimes.length;i++){if(oldTimes[i]<=impact)sampleIndex=i;else break;}times.push(impact);times.sort((a,b)=>a-b);}
+ for(const t of times){let i=oldTimes.findIndex(k=>Math.abs(k-t)<1e-5);if(i<0)i=sampleIndex;const q=new T.Quaternion().fromArray(oldValues,i*4).normalize();values.push(q.x,q.y,q.z,q.w);}
+ return new T.QuaternionKeyframeTrack(track.name,times,values,T.InterpolateLinear);
+}
+
 /** Sample a quaternion key track with normalized slerp so injected body keys stay smooth and type-safe. */
 function sampleQuaternion(track:T.KeyframeTrack,t:number,out:T.Quaternion){
  const times=track.times,values=track.values,count=times.length;if(!count)return out.identity();
@@ -55,9 +69,9 @@ function addBodyDrive(track:T.KeyframeTrack,clip:string,impact:number,duration:n
 }
 
 function retime(track:T.KeyframeTrack,clip:string,sourceImpact:number,targetImpact:number,targetDuration:number,sourceDuration:number){
- const out=amplifyRotation(track),times=out.times,beforeScale=sourceImpact>1e-6?targetImpact/sourceImpact:1,sourceTail=Math.max(1e-6,sourceDuration-sourceImpact),targetTail=Math.max(0,targetDuration-targetImpact);
+ let out=amplifyRotation(track);const times=out.times,beforeScale=sourceImpact>1e-6?targetImpact/sourceImpact:1,sourceTail=Math.max(1e-6,sourceDuration-sourceImpact),targetTail=Math.max(0,targetDuration-targetImpact);
  for(let i=0;i<times.length;i++){const t=times[i];times[i]=t<=sourceImpact?t*beforeScale:targetImpact+(t-sourceImpact)*(targetTail/sourceTail);}
- return addBodyDrive(out,clip,targetImpact,targetDuration);
+ out=smoothDiscreteQuaternion(out,targetImpact);return addBodyDrive(out,clip,targetImpact,targetDuration);
 }
 
 /** Preserve authored contact while compressing dead recovery and adding the missing kinetic chain. */
