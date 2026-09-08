@@ -18,9 +18,20 @@ export const SOUTH_GATE_PLACEMENTS:readonly DressingPlacement[]=[
  * are deliberately excluded here: complete normalized buildings are safer and
  * more readable at player distance, while the original stable cottage kit owns
  * the four interactive homes.
+ *
+ * Mara's market gets a deliberately dense working-yard composition. It uses
+ * assets already exercised by the close-camera test fixture, keeping the art
+ * pass visible without coupling streaming tests to a larger decorative set.
  */
 export const ALDERBROOK_PLACEMENTS:readonly DressingPlacement[]=[
- ['well',1.5,-29,.05,1,.01],['market',-6,-28,.12,1,.01],['storage',22,-40,-.2,1,.01],
+ ['well',1.5,-29,.05,1,.01],
+ ['market',-6,-28,.12,1,.01],
+ ['barrel',-2.55,-27.25,.28,1,.01],['barrel',-3.15,-28.08,-.22,.86,.01],
+ ['barrel',-8.85,-25.25,-.18,.95,.01],['barrel',-9.55,-25.58,.28,.78,.02],
+ ['hay',-10.35,-24.1,-.22,.92,.01],['hay',-10.85,-30.8,.18,.82,.01],
+ ['wood_pile',-2.1,-31.55,.1,.95,.01],['cauldron',-1.65,-29.9,.2,.82,.02],
+ ['lantern',-3.0,-25.45,.05,1,.02],['lantern',-9.0,-24.9,-.05,1,.02],
+ ['storage',22,-40,-.2,1,.01],
  ['hut_a',25,-68,3.1,.82,.01],['hut_b',-27,-49,.15,.84,.01],['hut_c',-26,-67,.08,.88,.01],
  ['hut_d',3,-77,Math.PI,.84,.01],['hut_d',29,-90,-.15,.82,.01],['farm',-31,-82,.08,.9,.01],['crops',-23,-84,.08,.9,.01],
  ['wood_pile',-2,-35,.1,1,.01],['hay',7,-37,-.15,1,.01],['barrel',10,-30,.4,1,.01],['barrel',11,-31,-.2,.9,.01],
