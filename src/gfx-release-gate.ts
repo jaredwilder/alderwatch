@@ -2,8 +2,19 @@ import * as T from 'three';
 import {Assets} from './assets';
 import {MEDIEVAL_ASSET_SPECS} from './medieval-asset-specs';
 import {sanitizeWorldProp} from './world-sanity';
+import './runtime-safety';
 
-if(typeof document!=='undefined'){void import('./overnight-overdrive');void import('./outlaw-legends');void import('./adventure-secrets');void import('./scavenger-chaos');}
+/** Optional expansion modules must never own the boot path. Runtime safety is
+ * installed synchronously above; feature packs then install independently so a
+ * bad bonus system can fail closed without taking the March loading screen down. */
+if(typeof document!=='undefined'){
+ const boot=(path:string,load:()=>Promise<unknown>)=>load().catch(error=>console.error(`[Alderwatch] optional module failed: ${path}`,error));
+ void boot('overnight-overdrive',()=>import('./overnight-overdrive'));
+ void boot('outlaw-legends',()=>import('./outlaw-legends'));
+ void boot('adventure-secrets',()=>import('./adventure-secrets'));
+ void boot('scavenger-chaos',()=>import('./scavenger-chaos'));
+ void boot('mega-overnight',()=>import('./mega-overnight'));
+}
 
 /**
  * LIVE ACCEPTANCE GATE.
