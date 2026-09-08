@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {seedState,makePlayer} from '../src/state';
 import {DungeonGraphWindow} from '../src/dungeon-graph-stream';
 import {DEEP_IRON_GRAPH,DEEP_IRON_ROOMS,DEEP_IRON_ROOM_BY_ID,DEEP_IRON_DAY_TICKS,advanceDeepIronToTick,ensureDeepIron,lowerWorksInput} from '../src/deep-iron-dungeon';
-import {DEEP_MINE_CERTIFICATE_COUNT,DEEP_MINE_INPUTS,DEEP_MINE_STATES,deepMineCertificateFor,deepMineOutputKey,deepMineQuotient,deepMineStep,stepDeepMineCertificate} from '../src/deep-iron-boundary';
+import {DEEP_MINE_CERTIFICATE_COUNT,DEEP_MINE_INPUTS,DEEP_MINE_STATES,deepMineCertificateFor,deepMineOutputKey,deepMineQuotient,deepMineStep,stepDeepMineCertificate,type MineBoundaryOutput} from '../src/deep-iron-boundary';
 import {DEEP_IRON_MINE,IRONWARD_BASIN,enterSavedArea,migrateRealmSave} from '../src/realm-save';
 
 function reachable(start:string){const seen=new Set([start]),queue=[start];while(queue.length){const id=queue.shift()!;for(const next of DEEP_IRON_GRAPH[id].neighbors)if(!seen.has(next)){seen.add(next);queue.push(next);}}return seen;}
@@ -32,7 +32,7 @@ test('automatic partition refinement proves the runtime certificate never merges
 
 test('cut certificate and full hidden mine remain trace-equivalent for a simulated year',()=>{
  const starts=DEEP_MINE_STATES.filter((_,i)=>i%2053===0).slice(0,8);
- for(const start of starts){let micro=structuredClone(start),certificate=deepMineCertificateFor(start),last={oreExport:0,casualties:0,alarm:'quiet' as const,passage:'open' as const};for(let day=1;day<=365;day++){const input=lowerWorksInput(day,last),a=deepMineStep(micro,input),b=stepDeepMineCertificate(certificate,input);assert.equal(deepMineOutputKey(a.output),deepMineOutputKey(b.output));micro=a.state;certificate=b.certificate;last=a.output;}assert.equal(certificate,deepMineCertificateFor(micro));}
+ for(const start of starts){let micro=structuredClone(start),certificate=deepMineCertificateFor(start);let last:MineBoundaryOutput={oreExport:0,casualties:0,alarm:'quiet',passage:'open'};for(let day=1;day<=365;day++){const input=lowerWorksInput(day,last),a=deepMineStep(micro,input),b=stepDeepMineCertificate(certificate,input);assert.equal(deepMineOutputKey(a.output),deepMineOutputKey(b.output));micro=a.state;certificate=b.certificate;last=a.output;}assert.equal(certificate,deepMineCertificateFor(micro));}
 });
 
 test('Deep Iron persistent catch-up remains compact and idempotent',()=>{
