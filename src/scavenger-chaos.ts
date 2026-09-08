@@ -1,0 +1,15 @@
+import {Nature} from './nature';
+import {animalAlive,corpseId} from './wildlife-rules';
+import {ACHIEVEMENTS,ensureRenown,type AchievementDefinition} from './renown';
+import type {AnimalState} from './wildlife-species';
+import type {Vec3,WorldState} from './state';
+
+const installed=Symbol.for('alderwatch.scavenger-chaos.v1');
+const ACH:AchievementDefinition={id:'crow_congress',title:'THE MEETING HAS BEGUN',description:'Three crows attended the same carcass. Minutes were not recorded.',test:r=>(r.counters.crow_congress??0)>=1};
+function popup(title:string,text:string){let host=document.querySelector<HTMLElement>('.overdrive-feed');if(!host){host=document.createElement('div');host.className='overdrive-feed';document.body.append(host);}const c=document.createElement('div');c.className='overdrive-card';c.innerHTML='<small>SCAVENGER EVENT</small><strong></strong><span></span>';c.querySelector('strong')!.textContent=title;c.querySelector('span')!.textContent=text;host.prepend(c);setTimeout(()=>c.remove(),8000);}
+const dist=(a:Vec3,b:Vec3)=>Math.hypot(a[0]-b[0],a[2]-b[2]);
+type Crow=AnimalState&{odCrowHome?:Vec3};
+function prepare(w:WorldState){const animals=Object.values(w.animals??{}),players=Object.values(w.players).filter(p=>p.health>0);if(!players.length)return;const carcasses=animals.filter(a=>a.dead&&!w.containers[corpseId(a.id)]?.looted);for(const a of animals){if(a.kind!=='crow'||!animalAlive(a))continue;const crow=a as Crow,nearby=carcasses.filter(dead=>dist(crow.position,dead.position)<38&&players.some(p=>dist(p.position,dead.position)<110)).sort((x,y)=>dist(crow.position,x.position)-dist(crow.position,y.position))[0];if(nearby){crow.odCrowHome??=[...crow.home];crow.home=[...nearby.position];}else if(crow.odCrowHome){crow.home=[...crow.odCrowHome];delete crow.odCrowHome;}}}
+function inspect(w:WorldState){const p=Object.values(w.players)[0];if(!p)return;for(const dead of Object.values(w.animals??{})){if(!dead.dead||w.containers[corpseId(dead.id)]?.looted)continue;const crows=Object.values(w.animals??{}).filter(a=>a.kind==='crow'&&animalAlive(a)&&dist(a.position,dead.position)<5.5);if(crows.length<3||dist(p.position,dead.position)>85)continue;const key='crow-congress-'+dead.id;if(w.progress.includes(key))continue;w.progress.push(key);const r=ensureRenown(p);r.counters.crow_congress=(r.counters.crow_congress??0)+1;if(!r.achievements[ACH.id]&&ACH.test(r))r.achievements[ACH.id]=w.tick||Date.now();popup('THE CROWS HAVE FORMED A COMMITTEE',`${crows.length} crows are reviewing the ${dead.kind} situation. No action items are expected.`);try{localStorage.setItem('alderwatch.realm.v1',JSON.stringify(w));}catch{}}}
+function install(){const g=globalThis as any;if(g[installed])return;g[installed]=true;if(!ACHIEVEMENTS.some(a=>a.id===ACH.id))(ACHIEVEMENTS as AchievementDefinition[]).push(ACH);const proto=Nature.prototype as any,original=proto.update;if(proto.__awScavengerChaos)return;proto.update=function(dt:number){prepare(this.w);const out=original.call(this,dt);inspect(this.w);return out;};proto.__awScavengerChaos=true;}
+if(typeof window!=='undefined'&&typeof document!=='undefined')install();
