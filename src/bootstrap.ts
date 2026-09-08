@@ -1,4 +1,5 @@
 import {consumePendingArea,currentPlayer,DEEP_IRON_MINE,enterSavedArea,IRONWARD_BASIN,IRONWARD_CROSSING,migrateRealmSave,playerArea} from './realm-save';
+import {advanceRealmPopulationToTick,ensureRealmPopulation} from './realm-population';
 
 const SAVE_KEY='alderwatch.realm.v1';
 
@@ -7,11 +8,12 @@ function prepareSavedArea(){
   try{world=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');}catch{world=null;}
   if(!world?.players)return 'far-march';
   migrateRealmSave(world);
+  ensureRealmPopulation(world);
+  advanceRealmPopulationToTick(world);
   const pending=consumePendingArea();
-  if(pending){
-    enterSavedArea(world,pending);
-    localStorage.setItem(SAVE_KEY,JSON.stringify(world));
-  }
+  if(pending)enterSavedArea(world,pending);
+  // Realm migration/population catch-up is authoritative even when no area transition occurred.
+  localStorage.setItem(SAVE_KEY,JSON.stringify(world));
   return currentPlayer(world)?playerArea(currentPlayer(world)!):'far-march';
 }
 
