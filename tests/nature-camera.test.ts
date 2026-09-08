@@ -43,7 +43,7 @@ test('extended wildlife seeds additively without replacing existing animal state
 
 test('forage is reach-checked, cannot duplicate, and regrows after saved game-time delay',()=>{
  const a=new LocalAuthority(),p=makePlayer('Warden');a.state.players[p.id]=p;seedNature(a.state);const initial=JSON.stringify(a.state);seedNature(a.state);assert.equal(JSON.stringify(a.state),initial);
- const f=Object.values(a.state.forage).find(f=>f.kind==='mushroom')!;const gather=()=>a.dispatch({type:'forage',playerId:p.id,forageId:f.id});p.position=[100,0,100];assert.equal(gather().ok,false);p.position=[...f.position];assert.ok(gather().ok);assert.equal(quantity(p,'mushroom'),2);assert.equal(gather().ok,false);assert.equal(forageAvailable(f,a.state.tick),false);
+ const f=Object.values(a.state.forage).find(f=>(f.item??f.kind)==='mushroom')!;const gather=()=>a.dispatch({type:'forage',playerId:p.id,forageId:f.id});p.position=[100,0,100];assert.equal(gather().ok,false);p.position=[...f.position];assert.ok(gather().ok);assert.equal(quantity(p,'mushroom'),2);assert.equal(gather().ok,false);assert.equal(forageAvailable(f,a.state.tick),false);
  const loaded=JSON.parse(JSON.stringify(a.state));loaded.tick+=60*300;const b=new LocalAuthority(loaded);assert.ok(b.dispatch({type:'forage',playerId:p.id,forageId:f.id}).ok);assert.equal(quantity(b.state.players[p.id],'mushroom'),4);
 });
 test('gathered mushrooms and herbs cook into real timed stamina food',()=>{
