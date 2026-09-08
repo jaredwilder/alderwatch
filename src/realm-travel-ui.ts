@@ -1,0 +1,7 @@
+import {IRONWARD_CROSSING,requestAreaTravel} from './realm-save';
+import './realm-travel.css';
+
+let travelling=false;
+function beginTravel(){if(travelling)return;travelling=true;requestAreaTravel(IRONWARD_CROSSING);const el=document.createElement('div');el.className='realm-transition-loader';el.innerHTML='<div class="realm-loader-card"><div class="sigil"><span>A</span></div><small>THE IRONWARD ROAD</small><h2>LEAVING THE FAR MARCH</h2><div class="realm-loader-status">Following the mountain road beyond the March…</div><div class="realm-loader-track"><i></i></div></div>';document.body.append(el);requestAnimationFrame(()=>requestAnimationFrame(()=>location.reload()));}
+function update(){const hud=document.querySelector('#ui'),place=hud?.querySelector('.location span')?.textContent??'';let button=document.querySelector<HTMLButtonElement>('#realm-road-forward');const eligible=place.includes('Ironward Heights')&&!!hud?.querySelector('.hotbar');if(!eligible){button?.remove();return;}if(!button){button=document.createElement('button');button.id='realm-road-forward';button.className='realm-road-button realm-road-forward';button.innerHTML='<small>THE EASTERN ROAD</small><strong>Enter Ironward Crossing</strong><span>Travel beyond the loaded Far March</span>';button.onclick=beginTravel;hud!.append(button);}}
+const observer=new MutationObserver(update);observer.observe(document.body,{subtree:true,childList:true,characterData:true});update();
