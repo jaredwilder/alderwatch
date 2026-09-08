@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import {prepareNpcMaterials} from '../src/npcs';
 import {skinAnimalModel} from '../src/animal-models';
-import {animalDisplayName,isWantedAnimal,recordAnimalAct,WANTED_NOTORIETY} from '../src/wildlife-notoriety';
+import {animalBountyCrowns,animalDisplayName,isWantedAnimal,recordAnimalAct,WANTED_NOTORIETY} from '../src/wildlife-notoriety';
 import {WILD_BOUNTY_ID,bountyCommand,refreshWildMostWanted} from '../src/bounties';
 import {damageAnimal} from '../src/wildlife-rules';
 import {makePlayer,seedState} from '../src/state';
+import {ensureRenown} from '../src/renown';
 import type {AnimalState} from '../src/wildlife-species';
 
 const animal=(id:string,kind:AnimalState['kind']):AnimalState=>({id,kind,position:[8,0,12],home:[8,0,12],yaw:0,phase:0});
@@ -32,9 +33,10 @@ test('wild kills are less notorious than livestock theft and human attacks',()=>
  assert.ok((livestock.notoriety??0)>(wild.notoriety??0));assert.ok((human.notoriety??0)>(wild.notoriety??0));assert.ok((livestock.wildKarma??0)<(wild.wildKarma??0));
 });
 
-test('the contract board can track and resolve an infamous animal without replacing human bounties',()=>{
+test('the contract board tracks, pays, and resolves an infamous animal without replacing human bounties',()=>{
  const world=seedState(),player=makePlayer('Hunter');world.players[player.id]=player;const wolf=animal('wanted-wolf','wolf');wolf.health=1;wolf.maxHealth=74;recordAnimalAct(wolf,'livestock_kill',10);recordAnimalAct(wolf,'livestock_kill',11);world.animals={[wolf.id]:wolf};
  const target=refreshWildMostWanted(world);assert.equal(target?.id,wolf.id);assert.equal(world.bountySites?.[WILD_BOUNTY_ID]?.position[0],wolf.position[0]);
  const accepted=bountyCommand(world,player,'accept',WILD_BOUNTY_ID);assert.equal(accepted.ok,true);assert.equal(player.bounties?.active,WILD_BOUNTY_ID);assert.equal(player.bounties?.activeAnimal,wolf.id);
- const killed=damageAnimal(world,wolf,999,'player',player.id);assert.equal(killed.killed,true);assert.equal(wolf.bountyClaimed,true);assert.equal(player.bounties?.active,undefined);assert.ok(player.bounties?.completedAnimals?.includes(wolf.id));
+ const before=ensureRenown(player).gold,reward=animalBountyCrowns(wolf),killed=damageAnimal(world,wolf,999,'player',player.id);
+ assert.equal(killed.killed,true);assert.equal(wolf.bountyClaimed,true);assert.equal(player.bounties?.active,undefined);assert.ok(player.bounties?.completedAnimals?.includes(wolf.id));assert.equal(ensureRenown(player).gold,before+reward);assert.equal(ensureRenown(player).counters.complete_bounty,1);
 });
