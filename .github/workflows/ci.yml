@@ -16,9 +16,23 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - name: Probe live painted icon response
+      - name: Inspect painted atlas pixels
         run: |
-          echo '--- painted CSS ---'
-          curl -sSIL --max-time 30 https://alderwatch.167.233.105.77.sslip.io/assets/ui/painted-item-icons.css
-          echo '--- painted WebP ---'
-          curl -sSIL --max-time 30 https://alderwatch.167.233.105.77.sslip.io/assets/ui/painted-kling-icons.webp
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image, ImageStat
+          p='public/assets/ui/painted-kling-icons.webp'
+          im=Image.open(p).convert('RGBA')
+          print('atlas', im.size, im.mode)
+          for row in range(15):
+            vals=[]
+            for col in range(3):
+              cell=im.crop((col*128,row*128,(col+1)*128,(row+1)*128))
+              a=cell.getchannel('A')
+              bbox=a.getbbox()
+              extrema=a.getextrema()
+              nonzero=sum(1 for v in a.getdata() if v)
+              rgb=ImageStat.Stat(cell.convert('RGB')).mean
+              vals.append(f'c{col}:bbox={bbox},alpha={extrema},nz={nonzero},rgb={tuple(round(x,1) for x in rgb)}')
+            print(f'row{row}: ' + ' | '.join(vals))
+          PY
