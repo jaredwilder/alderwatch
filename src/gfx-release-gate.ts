@@ -3,7 +3,7 @@ import {Assets} from './assets';
 import {MEDIEVAL_ASSET_SPECS} from './medieval-asset-specs';
 import {sanitizeWorldProp} from './world-sanity';
 
-if(typeof document!=='undefined'){void import('./overnight-overdrive');void import('./outlaw-legends');}
+if(typeof document!=='undefined'){void import('./overnight-overdrive');void import('./outlaw-legends');void import('./adventure-secrets');}
 
 /**
  * LIVE ACCEPTANCE GATE.
