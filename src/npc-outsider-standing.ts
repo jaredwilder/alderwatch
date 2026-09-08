@@ -4,6 +4,7 @@ import type {PlayerState} from './state';
 export type NpcStanding='outsider'|'known'|'trusted'|'negotiator'|'ally';
 export interface StandingSignals {alderbrook:number;faction:number;fame:number;karma:number;localTrust:number}
 
+type CausalPlayer=PlayerState&{causalStanding?:{faction?:Record<string,number>}};
 const FACTION_BY_NPC:Record<string,string>={
  mara:'Free Traders',tomas:'Free Traders',
  'gate-guard':'March Wardens',
@@ -14,7 +15,8 @@ const FACTION_BY_NPC:Record<string,string>={
 function clamp(v:number,a:number,b:number){return Math.max(a,Math.min(b,v));}
 export function standingScore(s:StandingSignals){return s.alderbrook*.45+s.faction*.35+s.fame*.12+s.karma*.08+s.localTrust*3;}
 export function standingFromSignals(s:StandingSignals):NpcStanding{const score=standingScore(s);return score>=50?'ally':score>=30?'negotiator':score>=15?'trusted':score>=5?'known':'outsider';}
-export function standingForPlayer(player:PlayerState,npcId:string,localTrust=0){const r=ensureRenown(player),faction=FACTION_BY_NPC[npcId]??'Alderbrook';return standingFromSignals({alderbrook:r.reputation.Alderbrook??0,faction:r.reputation[faction]??0,fame:r.fame,karma:r.karma,localTrust});}
+export function causalFactionEcho(player:PlayerState,npcId:string){const faction=FACTION_BY_NPC[npcId]??'Alderbrook';return (player as CausalPlayer).causalStanding?.faction?.[faction]??0;}
+export function standingForPlayer(player:PlayerState,npcId:string,localTrust=0){const r=ensureRenown(player),faction=FACTION_BY_NPC[npcId]??'Alderbrook',heard=causalFactionEcho(player,npcId);return standingFromSignals({alderbrook:r.reputation.Alderbrook??0,faction:r.reputation[faction]??0,fame:r.fame,karma:r.karma,localTrust:localTrust+heard});}
 export function mayNegotiate(standing:NpcStanding){return standing==='negotiator'||standing==='ally';}
 export function standingLabel(standing:NpcStanding){return standing==='ally'?'ALLY':standing==='negotiator'?'NEGOTIATOR':standing==='trusted'?'TRUSTED OUTSIDER':standing==='known'?'KNOWN OUTSIDER':'OUTSIDER';}
 
@@ -30,7 +32,7 @@ export function npcRoleplayRegister(text:string){
 
 export function relayRoleplayContext(standing:NpcStanding,localTrust:number,canNegotiate=mayNegotiate(standing)){
  const relation=standing==='outsider'?'The speaker is an unfamiliar outsider using the public Alderbrook Relay. Be civil but suspicious; do not treat them as one of the townsfolk.':standing==='known'?'The speaker is a known outsider. You recognize the name, but trust remains limited.':standing==='trusted'?'The speaker has earned meaningful local trust. You may speak more candidly and vouch for them when appropriate.':standing==='negotiator'?'The speaker has earned standing sufficient for serious negotiation. You may discuss terms, favors, obligations, prices, access, and reciprocal commitments, while the game remains authoritative over actual state changes.':'The speaker is a proven ally of the settlement. Treat their word as carrying real weight unless your personal motives strongly disagree.';
- return `${relation} This is traditional in-world roleplay, not modern player chat. Use proper capitalization and punctuation. Avoid internet slang, typo affectations, emoji, chat abbreviations, and modern customer-service phrasing. Keep your established personality and medieval-frontier worldview. Local personal trust is ${localTrust.toFixed(1)}. ${canNegotiate?'You may entertain negotiations and propose terms, but never claim a transaction or game-state change has already occurred.':'Do not enter binding negotiation yet; if asked for special terms, explain that greater standing must be earned first.'}`;
+ return `${relation} This is traditional in-world roleplay, not modern player chat. Use proper capitalization and punctuation. Avoid internet slang, typo affectations, emoji, chat abbreviations, and modern customer-service phrasing. Keep your established personality and medieval-frontier worldview. Local personal trust plus any road-borne reputation echo is ${localTrust.toFixed(1)}. ${canNegotiate?'You may entertain negotiations and propose terms, but never claim a transaction or game-state change has already occurred.':'Do not enter binding negotiation yet; if asked for special terms, explain that greater standing must be earned first.'}`;
 }
 
 export function guardedNegotiationRefusal(name:string,standing:NpcStanding){const rank=standingLabel(standing).toLowerCase();return npcRoleplayRegister(`${name}, you are still regarded as ${rank} here. Earn greater standing in Alderbrook, and then we may speak of special terms`);}
