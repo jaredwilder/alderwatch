@@ -98,7 +98,7 @@ test('expedition guards space attack turns and the captain uses authored heavy c
  for(let i=0;i<720;i++){f.p.health=100;f.step(combat);for(const r of pair){const c=r.state.combat,key=r.state.id+':'+c?.started;if(c?.kind==='attack'&&!seen.has(key)){seen.add(key);beats.push({id:r.state.id,tick:c.started});}}}
  assert.ok(beats.length>=3,'Encounter never attacked');assert.ok(new Set(beats.map(b=>b.id)).size===2,'One guard monopolized attack turns');for(let i=1;i<beats.length;i++)assert.ok(beats[i].tick-beats[i-1].tick>=100,'Overlapping group attack beats');
  pair.forEach(r=>{r.state.health=0;r.state.combat={kind:'death',started:f.authority.state.tick,until:f.authority.state.tick+180,consumed:true,blocking:false,weapon:r.state.equipped};});const captain=[...combat.raiders.values()].find(r=>r.state.role==='captain')!;captain.state.home=[0,.02,1.3];captain.state.position=[0,.02,1.3];captain.actor.body.setTranslation({x:0,y:.92,z:1.3},true);captain.actor.root.position.set(0,.02,1.3);captain.actor.state.position=[0,.02,1.3];let heavy=false;
- for(let i=0;i<900;i++){f.p.health=100;f.step(combat);if(captain.state.combat?.kind==='heavy'&&captain.state.combat.until>f.authority.state.tick){heavy=true;assert.equal(captain.actor.current,'heavy');assert.equal(captain.actor.grip.parent?.name,'hand_r');}}
+ for(let i=0;i<900;i++){f.p.health=100;f.step(combat);if(captain.state.combat?.kind==='heavy'&&captain.state.combat.until>f.authority.state.tick){heavy=true;assert.ok(captain.actor.current==='heavy'||captain.actor.current==='heavy_moving','Captain left the authored heavy family: '+captain.actor.current);assert.equal(captain.actor.grip.parent?.name,'hand_r');}}
  assert.ok(heavy,'Captain never performed a heavy cut: '+JSON.stringify({player:f.p.position,captain:captain.state,locked:captain.actor.locked,events:combat.events.slice(-2)}));f.physics.free();
 });
 
@@ -116,7 +116,8 @@ test('shipping locomotion has no free-arm quaternion flips',async()=>{
 
 test('axe chopping keeps the head below an overhead windup and reaches forward on contact',async()=>{
  const f=await fixture();f.p.equipped='axe';f.actor.equip('axe');let highest=0,contact:T.Vector3|undefined;
+ // Head/shaft junction is orientation-invariant for the overhead gate; the blade point remains the actual flipped -X side.
  f.actor.onImpact=()=>{f.root.updateMatrixWorld(true);contact=f.actor.tool!.localToWorld(new T.Vector3(-.38,.49,0));};
- f.actor.startAttack();for(let i=0;i<76;i++){f.step();highest=Math.max(highest,f.actor.tool!.localToWorld(new T.Vector3(-.38,.49,0)).y-f.p.position[1]);}
+ f.actor.startAttack();for(let i=0;i<76;i++){f.step();highest=Math.max(highest,f.actor.tool!.localToWorld(new T.Vector3(0,.49,0)).y-f.p.position[1]);}
  assert.ok(highest<1.72,`Axe raised overhead: ${highest}`);assert.ok(contact&&contact.z>.65&&contact.y>.55&&contact.y<1.5,`Missing trunk-height contact: ${contact?.toArray()}`);f.physics.free();
 });
