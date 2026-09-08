@@ -14,6 +14,12 @@ Environment kit, equipment, original hare/crow wildlife and modifications were a
 
 These assets are intentionally downloaded at build time from the pinned mirror rather than a mutable runtime CDN. The fetcher validates GLB headers and minimum sizes and fails the build instead of silently substituting primitives.
 
+## Runtime-downloaded NPC character skins
+
+`npm run assets:characters` downloads the textured **KayKit Adventurers Character Pack 1.0** variants used by Alderbrook townsfolk into `public/assets/characters/`. Creator: **Kay Lousberg / KayKit**. License: **CC0 1.0**; the upstream license explicitly permits personal, educational and commercial use. Source pack: https://kaylousberg.itch.io/kaykit-adventurers .
+
+Alderwatch pins the public, license-preserving mirror `euuuuuuan/cairnfall-public` at commit `8ee4cfd789282c59632a9339e61564b7d6c1acfe` and downloads only `Barbarian.glb`, `Knight.glb`, `Mage.glb`, `Rogue.glb` plus their adjacent textures. The mirror keeps KayKit's `LICENSE.txt` beside those files. The build fetcher validates model/image signatures and expected minimum sizes and fails closed on a corrupt or missing payload. These NPC skins are presentation-only; the existing Alderwatch survivor remains the fallback if a skin cannot load at runtime.
+
 ## Runtime-downloaded animal models
 
 `npm run assets:animals` downloads pinned GLB files into `public/assets/animals/` for local development and production builds. These generated/downloaded binaries are not treated as Alderwatch-authored art.
