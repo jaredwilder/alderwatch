@@ -2,7 +2,8 @@ import * as T from 'three';
 
 const UPPER=/^(spine_|clavicle_|upperarm_|lowerarm_|hand_|index_|middle_|ring_|pinky_|thumb_)/;
 export const upperBodyTrack=(name:string)=>UPPER.test(name);
-export const meleeBodyTrack=(name:string)=>name.startsWith('pelvis.')||UPPER.test(name);
+/** Moving melee owns hip rotation and the upper-body strike, while gait keeps pelvis translation/bob and the legs. */
+export const meleeBodyTrack=(name:string)=>name==='pelvis.quaternion'||UPPER.test(name);
 
 const rotationGain=(name:string)=>name.startsWith('pelvis.quaternion')?1.55:name.startsWith('spine_01.quaternion')?1.38:name.startsWith('spine_02.quaternion')?1.22:name.startsWith('spine_03.quaternion')?1.10:1;
 type Drive={pitch:number;yaw:number;roll:number};
