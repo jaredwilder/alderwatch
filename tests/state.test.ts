@@ -45,7 +45,7 @@ test('strikes require authored timing, range and facing, and cannot repeat damag
  a.state.tick=160;beginAction(p,160,'attack');a.state.tick=contactTick(p,160);e.position=[0,0,-1];assert.equal(resolveStrike(a.state,p,e).outcome,'miss');
 });
 test('directional guarding spends stamina, reduces damage and can be broken',()=>{
- const {a,p,e}=fight();setGuard(e,-20,true);beginAction(p,0,'attack');a.state.tick=contactTick(p,0);assert.equal(resolveStrike(a.state,p,e).outcome,'blocked');assert.equal(e.health,86);assert.equal(e.stamina,82);
+ const {a,p,e}=fight();setGuard(e,0,true);beginAction(p,0,'attack');a.state.tick=contactTick(p,0)+1;assert.equal(resolveStrike(a.state,p,e).outcome,'blocked');assert.equal(e.health,86);assert.equal(e.stamina,82);
  a.state.tick=80;e.stamina=10;setGuard(e,80,true);beginAction(p,80,'attack');a.state.tick=contactTick(p,80);assert.equal(resolveStrike(a.state,p,e).outcome,'hit');assert.equal(e.health,62);assert.equal(combatState(e).kind,'hit');
 });
 test('a guard cannot block a strike from behind',()=>{const {a,p,e}=fight();e.yaw=0;setGuard(e,0,true);beginAction(p,0,'attack');a.state.tick=contactTick(p,0);assert.equal(resolveStrike(a.state,p,e).damage,24);});
