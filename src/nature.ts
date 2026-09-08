@@ -10,7 +10,7 @@ import {WILDLIFE_SPAWNS,type WildlifeSpawn} from './wildlife-spawns';
 import {aggroWolfPack,ambientWanderHeading,angleTo,cohesiveFleeHeading,headingVector,herdCenter,predatorTarget,predatorThreat,wildlifeDistance,wolfFlankPoint,wolfInterferer} from './wildlife-ai';
 import {aerialPreyAction,beginCarry,ensureAerialState,releaseCarry,stepAerialEnergy} from './wildlife-aerial';
 import {createBeehiveVisual} from './beehive-visual';
-import {buildForageSpatialIndex,forageCandidates,type ForageSpatialIndex} from './forage-spatial';
+import {buildForageSpatialIndex,buildResourceSpatialIndex,forageCandidates,resourceCandidates,type ForageSpatialIndex,type ResourceSpatialIndex} from './forage-spatial';
 
 export type {AnimalKind,AnimalState} from './wildlife-species';
 export {ambientWanderHeading,cohesiveFleeHeading,headingVector,herdCenter} from './wildlife-ai';
@@ -49,8 +49,8 @@ export function forageAvailable(f:ForageState,tick:number){return !f.harvested||
 
 export class Nature {
  plants=new Map<string,T.Object3D>();animals=new Map<string,AnimalVisual>();onNotice=(text:string)=>{};
- private forageIndex:ForageSpatialIndex=new Map();private nextForageRefresh=0;
- constructor(private root:T.Group,private assets:Assets,private w:WorldState,private land:Landscape){seedNature(w);this.forageIndex=buildForageSpatialIndex(w.forage);for(const a of Object.values(w.animals!))if(a.kind==='hare'||a.kind==='crow')this.spawnLegacy(a);void this.loadAuthoredAnimals();this.update(0);}
+ private forageIndex:ForageSpatialIndex=new Map();private resourceIndex:ResourceSpatialIndex=new Map();private nextForageRefresh=0;
+ constructor(private root:T.Group,private assets:Assets,private w:WorldState,private land:Landscape){seedNature(w);this.forageIndex=buildForageSpatialIndex(w.forage);this.resourceIndex=buildResourceSpatialIndex(w.resources);for(const a of Object.values(w.animals!))if(a.kind==='hare'||a.kind==='crow')this.spawnLegacy(a);void this.loadAuthoredAnimals();this.update(0);}
  private refreshForage(){
   if(this.w.tick<this.nextForageRefresh)return;this.nextForageRefresh=this.w.tick+12;
   // Only the local camera needs authored plant meshes. Simulated/offscreen players still
@@ -117,7 +117,7 @@ export class Nature {
    const airborne=!!aerial&&a.airborne===true,ambientMove=!grazing&&Math.sin(a.phase*.55+phase)>.12,moving=flee||hunting||carrying||airborne||!!carcass||homeDistance>profile.homeRadius||centerDistance>7||ambientMove,flight=(a.kind==='crow'&&moving)||airborne;
    if((a.avoidUntil??0)>this.w.tick)desired=a.yaw;if(moving)a.yaw+=T.MathUtils.clamp(T.MathUtils.euclideanModulo(desired-a.yaw+Math.PI,Math.PI*2)-Math.PI,-dt*profile.turnRate,dt*profile.turnRate);
    const speed=hostilePlayer?(a.kind==='bear'?4.6:predatorConfig?.chaseSpeed??profile.escapeSpeed):prey?predatorConfig?.chaseSpeed??profile.escapeSpeed:carrying?Math.min(6.2,predatorConfig?.chaseSpeed??6.2):carcass?1.15:moving?(flee?profile.escapeSpeed:airborne?4.4:a.kind==='crow'?2.2:profile.wanderSpeed):0,[hx,hz]=headingVector(a.yaw),x=a.position[0]+hx*speed*dt,z=a.position[2]+hz*speed*dt;
-   const clear=height(x,z)>-1&&!this.land.ambientOccupied(x,z)&&Object.values(this.w.resources).every(r=>r.phase!=='standing'||Math.hypot(x-r.position[0],z-r.position[2])>(r.kind==='tree'?1.1:1.2))&&Object.values(this.w.structures).every(s=>Math.hypot(x-s.position[0],z-s.position[2])>2);
+   const clear=height(x,z)>-1&&!this.land.ambientOccupied(x,z)&&resourceCandidates(this.resourceIndex,[x,0,z],2).every(id=>{const r=this.w.resources[id];return r.phase!=='standing'||Math.hypot(x-r.position[0],z-r.position[2])>(r.kind==='tree'?1.1:1.2);})&&Object.values(this.w.structures).every(s=>Math.hypot(x-s.position[0],z-s.position[2])>2);
    if(clear||(flight&&!Object.values(this.w.structures).some(s=>Math.hypot(x-s.position[0],z-s.position[2])<2))){a.position[0]=x;a.position[2]=z;}else{a.yaw+=Math.PI*.6;a.avoidUntil=this.w.tick+50;if(isPredator&&hunting)a.huntUntil=Math.min(a.huntUntil??this.w.tick,this.w.tick+90);}
    if(predatorConfig&&hostilePlayer&&dist(a.position,hostilePlayer.position)<predatorConfig.attackReach+.05&&this.w.tick>=(a.attackAt??0)){a.attackAt=this.w.tick+predatorConfig.attackCooldown+(a.kind==='bear'?12:0);a.attackingUntil=this.w.tick+30;const out=a.kind==='bear'?bearMaul(this.w,a,hostilePlayer):wolfMaul(this.w,a,hostilePlayer);if(out.ok)this.onNotice(out.message);}
    else if(predatorConfig&&prey&&dist(a.position,prey.position)<predatorConfig.attackReach&&this.w.tick>=(a.attackAt??0)){
