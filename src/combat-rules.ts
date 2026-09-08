@@ -46,7 +46,12 @@ export function beginAction(f:Fighter,tick:number,action:'attack'|'heavy'|'dodge
 }
 export function setGuard(f:Fighter,tick:number,wanted:boolean){const c=combatState(f),blocking=wanted&&!actionBusy(f,tick)&&f.stamina>=1&&!!f.equipped&&f.equipped!=='bow'&&!!WEAPONS[f.equipped];if(blocking&&!c.blocking)c.guardSince=tick;if(!blocking)c.guardSince=undefined;c.blocking=blocking;}
 export function faces(a:Fighter,b:Fighter,minimum=.25){const dx=b.position[0]-a.position[0],dz=b.position[2]-a.position[2],d=Math.hypot(dx,dz);return d<.01||(Math.sin(a.yaw)*dx+Math.cos(a.yaw)*dz)/d>=minimum;}
-export type StrikeResult={ok:boolean;message:string;outcome?:'hit'|'blocked'|'parried'|'dodged'|'miss'|'killed';damage?:number;targetId?:string};
+const PERFECT_DODGE_START=.12,PERFECT_DODGE_END=.24,COUNTER_STAGGER_TICKS=48;
+function guardPressure(item:ItemId|null,heavy:boolean){if(heavy)return 36;switch(item){case'hammer':return 30;case'axe':return 26;case'pickaxe':return 23;case'bow':return 14;default:return 18;}}
+function guardChip(item:ItemId|null,heavy:boolean){if(heavy)return .18;switch(item){case'hammer':return .24;case'axe':return .16;case'pickaxe':return .14;case'bow':return .08;default:return .1;}}
+function counterMultiplier(item:ItemId|null){if(item?.includes('sword'))return 1.55;if(item==='hammer')return 1.5;if(item==='axe')return 1.4;if(item==='pickaxe')return 1.35;if(item==='bow')return 1.25;return 1.3;}
+export function counterOpening(target:Fighter,tick:number){const c=combatState(target);return c.kind==='hit'&&c.until>tick&&c.until-c.started>=COUNTER_STAGGER_TICKS;}
+export type StrikeResult={ok:boolean;message:string;outcome?:'hit'|'blocked'|'parried'|'dodged'|'miss'|'killed';damage?:number;targetId?:string;counter?:boolean;perfectDodge?:boolean;guardBreak?:boolean};
 function worldDrop(w:WorldState,item:ItemId,count:number,position:Vec3,index:number){const id='drop-'+w.nextId++,angle=index*2.4;w.drops[id]={id,item,count,position:[position[0]+Math.sin(angle)*.6,position[1]+.65,position[2]+Math.cos(angle)*.6],rotation:[0,angle,Math.PI/2]};}
 export function killFighter(w:WorldState,target:Fighter){
  target.health=0;target.combat={kind:'death',started:w.tick,until:w.tick+180,consumed:true,blocking:false,weapon:target.equipped};
@@ -67,19 +72,21 @@ export function resolveStrike(w:WorldState,attacker:Fighter,target:Fighter|undef
   if(Math.abs(side+.15)>(a.kind==='heavy'?.40:.85)||forward<.25)return {ok:true,outcome:'miss',message:'The blade passed clear'};
  }
  const defense=combatState(target),dodgeAge=(w.tick-defense.started)/60;
- if(defense.kind==='dodge'&&dodgeAge>=.1&&dodgeAge<=.46)return {ok:true,outcome:'dodged',damage:0,targetId:target.id,message:'Evaded'};
- let damage=Math.round(weapon.damage*(w.players[attacker.id]?stats(w.players[attacker.id]).damage:.72));
- let blocked=false;
+ if(defense.kind==='dodge'&&dodgeAge>=.1&&dodgeAge<=.46){const perfect=dodgeAge>=PERFECT_DODGE_START&&dodgeAge<=PERFECT_DODGE_END;if(perfect)attacker.combat={kind:'hit',started:w.tick,until:w.tick+COUNTER_STAGGER_TICKS,consumed:true,blocking:false,weapon:attacker.equipped};return {ok:true,outcome:'dodged',damage:0,targetId:target.id,perfectDodge:perfect,message:perfect?'Perfect dodge · counter now':'Evaded'};}
+ const counter=counterOpening(target,w.tick);
+ let damage=Math.round(weapon.damage*(w.players[attacker.id]?stats(w.players[attacker.id]).damage:.72));if(counter)damage=Math.max(damage+1,Math.round(damage*counterMultiplier(a.weapon??attacker.equipped)));
+ let blocked=false,guardBreak=false;
  if(defense.blocking&&faces(target,attacker,.45)){
   if(a.kind!=='heavy'&&defense.guardSince!==undefined&&w.tick-defense.guardSince<=12&&target.stamina>=8){target.stamina-=8;const stagger=impactFeedback(attacker,'parried').staggerTicks;attacker.combat={kind:'hit',started:w.tick,until:w.tick+stagger,consumed:true,blocking:false,weapon:attacker.equipped};return {ok:true,outcome:'parried',damage:0,targetId:target.id,message:'Parried · counter now'};}
-  const guardCost=a.kind==='heavy'?32:18;blocked=target.stamina>=guardCost;target.stamina=Math.max(0,target.stamina-guardCost);
-  if(blocked)damage=Math.max(1,Math.round(damage*.1));
+  const guardCost=guardPressure(a.weapon??attacker.equipped,a.kind==='heavy');blocked=target.stamina>=guardCost;target.stamina=Math.max(0,target.stamina-guardCost);
+  if(blocked)damage=Math.max(1,Math.round(damage*guardChip(a.weapon??attacker.equipped,a.kind==='heavy')));else guardBreak=true;
  }
  target.health=Math.max(0,target.health-damage);
  if(target.health<=0)killFighter(w,target);
+ else if(guardBreak)target.combat={kind:'hit',started:w.tick,until:w.tick+COUNTER_STAGGER_TICKS,consumed:true,blocking:false,weapon:target.equipped};
  else if(!blocked){const stagger=impactFeedback(attacker,'hit').staggerTicks;target.combat={kind:'hit',started:w.tick,until:w.tick+stagger,consumed:true,blocking:false,weapon:target.equipped};}
  const player=w.players[attacker.id],skill=combatSkillFor(a.weapon??attacker.equipped);if(player&&skill){gainSkill(player,skill);gainSkill(player,'tactics');}
- return {ok:true,outcome:target.health<=0?'killed':blocked?'blocked':'hit',damage,targetId:target.id,message:target.health<=0?'Raider defeated — collect his supplies':blocked?'Guard held':'Strike landed'};
+ return {ok:true,outcome:target.health<=0?'killed':blocked?'blocked':'hit',damage,targetId:target.id,counter,guardBreak,message:target.health<=0?'Raider defeated — collect his supplies':guardBreak?'Guard broken · punish now':counter?'Riposte':blocked?'Guard held':'Strike landed'};
 }
 export function seedEnemies(w:WorldState){
  // Registry entries, including dead enemies, remain authoritative across reloads.
