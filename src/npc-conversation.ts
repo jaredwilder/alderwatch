@@ -1,3 +1,4 @@
+import './loading-experience';
 import './npc-conversation.css';
 import type {NpcRuntime,NpcPopulation} from './npcs';
 import {personaFor,type DialogueTurn} from './npc-dialogue';
