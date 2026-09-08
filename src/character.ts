@@ -2,16 +2,17 @@ import * as T from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Assets} from './assets';
 import type {Input} from './input';
-import type {PlayerState,ItemId} from './state';
+import type {PlayerState,ItemId,Vec3} from './state';
 import {stats} from './definitions';
 import {beginAction,combatState,setGuard,attackProfile} from './combat-rules';
+import {attackWarpVelocity} from './combat-targeting';
 import {weatheredCloth} from './character-material';
 import {makeBow} from './archery';
 type CombatAction='attack'|'heavy'|'dodge';
 export class Character {
  root=new T.Group();model:T.Object3D;mixer:T.AnimationMixer;actions=new Map<string,T.AnimationAction>();current='';body:RAPIER.RigidBody;collider:RAPIER.Collider;controller:RAPIER.KinematicCharacterController;
  grip:T.Object3D;tool?:T.Object3D;equipped:ItemId|null=null;velocity=new T.Vector3();vertical=0;locked=0;attackTime=0;attackHit=false;onImpact=()=>{};onAttackStart=()=>{};onStep=()=>{};stride=0;
- moveSpeed=1;private bufferedAction?:{action:CombatAction;expires:number};
+ moveSpeed=1;private bufferedAction?:{action:CombatAction;expires:number};private attackWarpTarget?:T.Vector3;private warpVelocity=new T.Vector3();
  getTick=()=>0;onActionRequest=(action:CombatAction)=>beginAction(this.state,this.getTick(),action).ok;onWindupAim=(_dt:number)=>{};private poseKey='';private swingLocomotion=false;private strideActions=new Map<string,T.AnimationAction>();private strideAction?:T.AnimationAction;private activeStrideAction?:T.AnimationAction;private strideActive=false;knockback=new T.Vector3();
  constructor(public assets:Assets,public physics:RAPIER.World,public state:PlayerState,scene:T.Scene|T.Group){
   this.model=assets.human();this.root.add(this.model);scene.add(this.root);this.root.position.fromArray(state.position);this.root.rotation.y=state.yaw;
@@ -32,6 +33,7 @@ export class Character {
   if(!this.gripAlignment){this.root.updateMatrixWorld(true);const rootQ=this.root.getWorldQuaternion(new T.Quaternion());const shaft=new T.Vector3(0,-.98,.20).normalize().applyQuaternion(rootQ);const edge=new T.Vector3(-1,0,0).applyQuaternion(rootQ);const normal=new T.Vector3().crossVectors(edge,shaft).normalize();edge.crossVectors(shaft,normal).normalize();const worldQ=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(edge,shaft,normal));this.gripAlignment=this.grip.getWorldQuaternion(new T.Quaternion()).invert().multiply(worldQ);}
   const t=name==='bow'?makeBow():this.assets.prop(name==='fine_sword'?'sword':name);if(name==='fine_sword'){t.scale.setScalar(1.08);t.traverse(o=>{if(o instanceof T.Mesh){const tint=(m:T.Material)=>{const n=(m as T.MeshStandardMaterial).clone();n.color.multiplyScalar(1.35);n.roughness=.26;return n;};o.material=Array.isArray(o.material)?o.material.map(tint):tint(o.material);}});}this.grip.add(t);t.position.set(0,0,0);t.quaternion.copy(this.gripAlignment);if(name==='bow'){t.scale.setScalar(1.08);t.rotateY(Math.PI/2);t.rotateZ(Math.PI/2);}this.tool=t;
  }}
+ setAttackWarpTarget(position?:Vec3){if(!position){this.attackWarpTarget=undefined;return;}if(!this.attackWarpTarget)this.attackWarpTarget=new T.Vector3();this.attackWarpTarget.fromArray(position);}
  private locomotion(name:string){return name==='walk'||name==='run'||name==='sprint'||name==='guard_walk';}
  private phase(action:T.AnimationAction){const d=action.getClip().duration;return d>0?T.MathUtils.euclideanModulo(action.time/d,1):0;}
  private setPhase(action:T.AnimationAction,phase:number){action.time=T.MathUtils.euclideanModulo(phase,1)*action.getClip().duration;}
@@ -57,8 +59,10 @@ export class Character {
    if(input.secondary&&this.locked===0&&!moving)this.root.rotation.y=Math.atan2(Math.sin(yaw),-Math.cos(yaw));
    if(this.current==='dodge'&&this.locked>0)target.set(Math.sin(this.root.rotation.y),0,Math.cos(this.root.rotation.y)).multiplyScalar(5.8*Math.sin((.8-this.locked)/.8*Math.PI));
   }
+  const active=combatState(p),profile=attackProfile(p);this.warpVelocity.set(0,0,0);
+  if(enabled&&this.attackWarpTarget&&profile&&active.weapon!=='bow'&&['attack','heavy'].includes(active.kind)&&active.until>tick){const v=attackWarpVelocity(p.position,this.root.rotation.y,this.attackWarpTarget.toArray() as Vec3,profile.reach,this.attackTime,profile.impact,active.kind==='heavy');this.warpVelocity.fromArray(v);const warpSpeed=this.warpVelocity.length();if(warpSpeed>0){const dir=this.warpVelocity.clone().normalize(),along=target.dot(dir);if(along>=-.15&&along<warpSpeed)target.addScaledVector(dir,warpSpeed-along);}}
   setGuard(p,tick,enabled&&input.secondary&&this.locked===0);
-  const walkingSwing=this.swingLocomotion&&['attack','heavy'].includes(combatState(p).kind)&&combatState(p).until>tick;this.updateStride(target.length(),walkingSwing);
+  const walkingSwing=(this.swingLocomotion||this.warpVelocity.lengthSq()>0)&&['attack','heavy'].includes(combatState(p).kind)&&combatState(p).until>tick;this.updateStride(target.length(),walkingSwing);
   target.add(this.knockback);this.knockback.multiplyScalar(Math.exp(-dt*9));
   this.velocity.lerp(target,1-Math.exp(-dt*(target.lengthSq()?14:22)));if(this.velocity.length()<.025)this.velocity.set(0,0,0);
   this.vertical=this.controller.computedGrounded()?-1:Math.max(-25,this.vertical-dt*25);this.controller.computeColliderMovement(this.collider,{x:this.velocity.x*dt,y:this.vertical*dt,z:this.velocity.z*dt});const m=this.controller.computedMovement(),b=this.body.translation();this.body.setNextKinematicTranslation({x:b.x+m.x,y:b.y+m.y,z:b.z+m.z});
