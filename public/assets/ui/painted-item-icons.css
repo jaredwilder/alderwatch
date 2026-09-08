@@ -1,0 +1,42 @@
+/* Painted Kling item art — generated from user-approved Alderwatch asset sheets. */
+/* The existing icon system still provides fallbacks for every item not listed here. */
+:root{--aw-painted-icons:url('/assets/ui/painted-kling-icons.webp')}
+.aw-item-icon{background-repeat:no-repeat}
+.aw-item-icon[data-item="woodland_broth"],.hotbar [data-item="woodland_broth"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 0%!important}
+.aw-item-icon[data-item="garlic_mushrooms"],.hotbar [data-item="garlic_mushrooms"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 0%!important}
+.aw-item-icon[data-item="truffle_broth"],.hotbar [data-item="truffle_broth"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:100% 0%!important}
+.aw-item-icon[data-item="berries"],.hotbar [data-item="berries"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 7.14286%!important}
+.aw-item-icon[data-item="crow_skewer"],.hotbar [data-item="crow_skewer"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 7.14286%!important}
+.aw-item-icon[data-item="herbed_goat"],.hotbar [data-item="herbed_goat"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:100% 7.14286%!important}
+.aw-item-icon[data-item="hearth_mutton"],.hotbar [data-item="hearth_mutton"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 14.2857%!important}
+.aw-item-icon[data-item="grilled_venison"],.hotbar [data-item="grilled_venison"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 14.2857%!important}
+.aw-item-icon[data-item="hearty_stew"],.hotbar [data-item="hearty_stew"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:100% 14.2857%!important}
+.aw-item-icon[data-item="bear_steak"],.hotbar [data-item="bear_steak"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 21.4286%!important}
+.aw-item-icon[data-item="bison_roast"],.hotbar [data-item="bison_roast"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 21.4286%!important}
+.aw-item-icon[data-item="smoked_wolf"],.hotbar [data-item="smoked_wolf"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:100% 21.4286%!important}
+.aw-item-icon[data-item="venison_berry_roast"],.hotbar [data-item="venison_berry_roast"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 42.8571%!important}
+.aw-item-icon[data-item="bear_pottage"],.hotbar [data-item="bear_pottage"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 42.8571%!important}
+.aw-item-icon[data-item="bison_stew"],.hotbar [data-item="bison_stew"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:100% 42.8571%!important}
+.aw-item-icon[data-item="wolf_broth"],.hotbar [data-item="wolf_broth"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 50%!important}
+.aw-item-icon[data-item="eagle_broth"],.hotbar [data-item="eagle_broth"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 50%!important}
+.aw-item-icon[data-item="hunter_platter"],.hotbar [data-item="hunter_platter"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:100% 50%!important}
+.aw-item-icon[data-item="frontier_mixed_grill"],.hotbar [data-item="frontier_mixed_grill"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 57.1429%!important}
+.aw-item-icon[data-item="predator_stew"],.hotbar [data-item="predator_stew"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 57.1429%!important}
+.aw-item-icon[data-item="mushroom"],.hotbar [data-item="mushroom"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 64.2857%!important}
+.aw-item-icon[data-item="wild_garlic"],.hotbar [data-item="wild_garlic"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 64.2857%!important}
+.aw-item-icon[data-item="juniper"],.hotbar [data-item="juniper"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:100% 64.2857%!important}
+.aw-item-icon[data-item="fiber"],.hotbar [data-item="fiber"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 71.4286%!important}
+.aw-item-icon[data-item="sage"],.hotbar [data-item="sage"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:100% 71.4286%!important}
+.aw-item-icon[data-item="truffle"],.hotbar [data-item="truffle"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 78.5714%!important}
+.aw-item-icon[data-item="wild_honey"],.hotbar [data-item="wild_honey"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 78.5714%!important}
+.aw-item-icon[data-item="axe"],.hotbar [data-item="axe"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 85.7143%!important}
+.aw-item-icon[data-item="pickaxe"],.hotbar [data-item="pickaxe"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 85.7143%!important}
+.aw-item-icon[data-item="hammer"],.hotbar [data-item="hammer"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:100% 85.7143%!important}
+.aw-item-icon[data-item="bow"],.hotbar [data-item="bow"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 92.8571%!important}
+.aw-item-icon[data-item="fine_sword"],.hotbar [data-item="fine_sword"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 92.8571%!important}
+.aw-item-icon[data-item="sword"],.hotbar [data-item="sword"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:100% 92.8571%!important}
+/* Let the new painted frames actually read in the places where players inspect loot and recipes. */
+.pack-item strong>.aw-item-icon{width:3.1rem!important;height:3.1rem!important;flex-basis:3.1rem!important}
+.loot-icon.aw-item-icon{width:3rem!important;height:3rem!important}
+.recipe h3>.aw-item-icon,.book-card h3 .aw-item-icon{width:2.8rem!important;height:2.8rem!important;flex:0 0 2.8rem!important}
+.aw-item-icon{border-radius:.18rem}
