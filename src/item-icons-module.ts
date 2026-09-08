@@ -1,0 +1,2 @@
+import './item-icons';
+export {};

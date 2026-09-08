@@ -31,6 +31,21 @@ function prepareSavedArea(){
   return currentPlayer(world)?playerArea(currentPlayer(world)!):'far-march';
 }
 
+async function installFarMarchPlayerUI(){
+  // These are player-critical surfaces. They must not disappear because an unrelated
+  // chat/social/realm presentation module later in runtime-extensions throws during startup.
+  const essential=[
+    ['UI stack',()=>import('./ui-stack')],
+    ['Backpack',()=>import('./backpack-ui')],
+    ['Item icons',()=>import('./item-icons-module')],
+    ['Recipe Book',()=>import('./recipe-book-ui')],
+  ] as const;
+  for(const [name,load] of essential){
+    try{await load();}
+    catch(error){console.error(`Alderwatch ${name} failed to install`,error);}
+  }
+}
+
 const area=prepareSavedArea();
 if(area===IRONWARD_CROSSING){
   await import('./ironward-crossing');
@@ -43,5 +58,7 @@ if(area===IRONWARD_CROSSING){
   await import('./crownroad-vale');
 }else{
   await import('./main');
-  await import('./runtime-extensions');
+  await installFarMarchPlayerUI();
+  try{await import('./runtime-extensions');}
+  catch(error){console.error('Alderwatch optional runtime extensions failed to install',error);}
 }

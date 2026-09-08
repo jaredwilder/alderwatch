@@ -8,7 +8,11 @@ export class Input {
  get captureCamera(){return this.capture;}
  set captureCamera(value:boolean){this.capture=value;if(!value)this.releaseCamera();else if(this.enabled)this.lockCamera();}
  constructor(public canvas:HTMLCanvasElement){
-  window.addEventListener('keydown',e=>{if((e.target as HTMLElement)?.matches('input,select,textarea'))return;if(['Tab','Space','KeyB','KeyC'].includes(e.code))e.preventDefault();if(!this.keys.has(e.code))this.pressed.add(e.code);this.keys.add(e.code);});
+  window.addEventListener('keydown',e=>{if((e.target as HTMLElement)?.matches('input,select,textarea'))return;
+   // M belongs exclusively to MiniMap's capture listener. Mirroring it into generic
+   // gameplay input lets the main frame loop consume it as Journal before/after the map opens.
+   if(e.code==='KeyM')return;
+   if(['Tab','Space','KeyB','KeyC'].includes(e.code))e.preventDefault();if(!this.keys.has(e.code))this.pressed.add(e.code);this.keys.add(e.code);});
   window.addEventListener('keyup',e=>this.keys.delete(e.code));
   window.addEventListener('blur',()=>{this.clear();this.releaseCamera();});
   // Full-screen navigation surfaces need a real cursor. Marking capture false before
