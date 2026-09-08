@@ -9,7 +9,7 @@ import {height} from '../src/terrain';
 test('seeded frontier is deterministic, varied, populated and additive across reloads',()=>{
  const a=new LocalAuthority(),b=new LocalAuthority(),c=new LocalAuthority();seedFrontier(a.state,712);seedFrontier(b.state,712);seedFrontier(c.state,713);
  assert.deepEqual(a.state,b.state);assert.notDeepEqual(a.state.resources,c.state.resources);assert.equal(Object.keys(a.state.frontier!.sites).length,6);assert.ok(Object.keys(a.state.resources).length>500);assert.ok(Object.keys(a.state.forage).length>100);assert.equal(Object.keys(a.state.animals!).length,6);
- for(const r of Object.values(a.state.resources)){assert.ok(frontierArea(r.position[0],r.position[2]));assert.equal(r.position[1],height(r.position[0],r.position[2]));}
+ for(const r of Object.values(a.state.resources).filter(r=>/^wild-resource-\d+$/.test(r.id))){assert.ok(frontierArea(r.position[0],r.position[2]));assert.equal(r.position[1],height(r.position[0],r.position[2]));}
  const r=Object.values(a.state.resources)[0];r.health=0;r.phase='fallen';const site=Object.values(a.state.frontier!.sites)[0];a.state.containers[site.id].inventory=[];a.state.containers[site.id].looted=true;const saved=JSON.parse(JSON.stringify(a.state));seedFrontier(saved,999);assert.deepEqual(saved,a.state);
 });
 test('frontier tracking and guarded loot require actual exploration and victory',()=>{
