@@ -14,12 +14,10 @@ type Drive={pitch:number;yaw:number;roll:number};
 const ZERO:Drive={pitch:0,yaw:0,roll:0};
 function driveFor(clip:string,bone:string):Drive{
  const b=bone.toLowerCase(),neck=b.includes('neck'),head=b.includes('head');
- // Lateral cuts are hip-led. The pelvis now contributes the dominant transverse rotation while the
- // lumbar/thoracic chain progressively carries it upward instead of making the arms do all the work.
  if(clip==='attack')return bone==='pelvis'?{pitch:.018,yaw:.40,roll:-.035}:bone==='spine_01'?{pitch:.015,yaw:.19,roll:-.035}:bone==='spine_02'?{pitch:0,yaw:.10,roll:-.02}:bone==='spine_03'?{pitch:0,yaw:.055,roll:-.01}:neck?{pitch:.095,yaw:0,roll:0}:head?{pitch:.045,yaw:0,roll:0}:ZERO;
- // The authored axe cut already has a downward component. Keep that cut predominantly lateral, but
- // put substantially more of its power through the hips instead of adding more forward/down pitch.
- if(clip==='chop')return bone==='pelvis'?{pitch:.008,yaw:.46,roll:.04}:bone==='spine_01'?{pitch:.006,yaw:.21,roll:.04}:bone==='spine_02'?{pitch:0,yaw:.115,roll:.022}:bone==='spine_03'?{pitch:0,yaw:.06,roll:.01}:neck?{pitch:.075,yaw:0,roll:0}:head?{pitch:.03,yaw:0,roll:0}:ZERO;
+ // Axe side cuts are intentionally violent and transverse: large pelvis rotation, progressively lagged torso,
+ // almost no extra downward pitch. The authored blade path supplies the chop; the body supplies the violence.
+ if(clip==='chop')return bone==='pelvis'?{pitch:.002,yaw:.70,roll:.055}:bone==='spine_01'?{pitch:.002,yaw:.29,roll:.05}:bone==='spine_02'?{pitch:0,yaw:.15,roll:.027}:bone==='spine_03'?{pitch:0,yaw:.075,roll:.014}:neck?{pitch:.065,yaw:0,roll:0}:head?{pitch:.025,yaw:0,roll:0}:ZERO;
  if(clip==='mine')return bone==='pelvis'?{pitch:.20,yaw:.065,roll:0}:bone==='spine_01'?{pitch:.16,yaw:.05,roll:0}:bone==='spine_02'?{pitch:.09,yaw:.025,roll:0}:ZERO;
  if(clip==='heavy')return bone==='pelvis'?{pitch:.14,yaw:.15,roll:0}:bone==='spine_01'?{pitch:.11,yaw:.12,roll:0}:bone==='spine_02'?{pitch:.065,yaw:.07,roll:0}:ZERO;
  return ZERO;
@@ -36,20 +34,27 @@ function driveWeight(t:number,impact:number,duration:number){
 type Segment='pelvis'|'spine1'|'spine2'|'spine3'|'other';
 function segmentFor(bone:string):Segment{return bone==='pelvis'?'pelvis':bone==='spine_01'?'spine1':bone==='spine_02'?'spine2':bone==='spine_03'?'spine3':'other';}
 /**
- * Side cuts use a proximal-to-distal kinetic sequence instead of making every torso segment arrive
- * together. Hips load first and rotate THROUGH contact; each higher spine segment lags and contributes
- * less. This preserves a readable planted core while preventing the old arm-led mannequin swing.
+ * Side cuts use proximal-to-distal sequencing. Axe gets a more aggressive version: the hips coil earlier,
+ * stay substantially rotated through impact, then overtake into follow-through while the torso lags behind.
  */
-function sideDriveShape(bone:string,impact:number,duration:number){
- const tail=Math.max(.001,duration-impact),segment=segmentFor(bone);
- if(segment==='pelvis')return {load:Math.max(.035,impact*.34),loadWeight:-1,contactWeight:.46,follow:impact+tail*.30,followWeight:.82};
- if(segment==='spine1')return {load:Math.max(.04,impact*.46),loadWeight:-.72,contactWeight:.28,follow:impact+tail*.36,followWeight:.68};
- if(segment==='spine2')return {load:Math.max(.04,impact*.56),loadWeight:-.44,contactWeight:.14,follow:impact+tail*.42,followWeight:.52};
- if(segment==='spine3')return {load:Math.max(.04,impact*.62),loadWeight:-.30,contactWeight:.08,follow:impact+tail*.46,followWeight:.40};
+function sideDriveShape(clip:string,bone:string,impact:number,duration:number){
+ const tail=Math.max(.001,duration-impact),segment=segmentFor(bone),axe=clip==='chop';
+ if(segment==='pelvis')return axe
+  ?{load:Math.max(.03,impact*.28),loadWeight:-1.15,contactWeight:.88,follow:impact+tail*.24,followWeight:1.08}
+  :{load:Math.max(.035,impact*.34),loadWeight:-1,contactWeight:.46,follow:impact+tail*.30,followWeight:.82};
+ if(segment==='spine1')return axe
+  ?{load:Math.max(.035,impact*.42),loadWeight:-.68,contactWeight:.44,follow:impact+tail*.32,followWeight:.78}
+  :{load:Math.max(.04,impact*.46),loadWeight:-.72,contactWeight:.28,follow:impact+tail*.36,followWeight:.68};
+ if(segment==='spine2')return axe
+  ?{load:Math.max(.04,impact*.52),loadWeight:-.40,contactWeight:.23,follow:impact+tail*.40,followWeight:.56}
+  :{load:Math.max(.04,impact*.56),loadWeight:-.44,contactWeight:.14,follow:impact+tail*.42,followWeight:.52};
+ if(segment==='spine3')return axe
+  ?{load:Math.max(.04,impact*.59),loadWeight:-.27,contactWeight:.12,follow:impact+tail*.46,followWeight:.42}
+  :{load:Math.max(.04,impact*.62),loadWeight:-.30,contactWeight:.08,follow:impact+tail*.46,followWeight:.40};
  return {load:Math.max(.04,impact*.55),loadWeight:-1,contactWeight:0,follow:impact+tail*.42,followWeight:.72};
 }
-function sideDriveWeight(t:number,bone:string,impact:number,duration:number){
- const s=sideDriveShape(bone,impact,duration);
+function sideDriveWeight(t:number,clip:string,bone:string,impact:number,duration:number){
+ const s=sideDriveShape(clip,bone,impact,duration);
  if(t<=s.load)return s.loadWeight*smooth01(t/Math.max(.001,s.load));
  if(t<=impact)return s.loadWeight+(s.contactWeight-s.loadWeight)*smooth01((t-s.load)/Math.max(.001,impact-s.load));
  if(t<=s.follow)return s.contactWeight+(s.followWeight-s.contactWeight)*smooth01((t-impact)/Math.max(.001,s.follow-impact));
@@ -70,11 +75,7 @@ function amplifyRotation(track:T.KeyframeTrack){
  return out;
 }
 
-/**
- * Some imported melee tracks are STEP samplers. Preserve their exact gameplay
- * contact pose as a protected key, then slerp between keys so the visible body
- * no longer snaps frame-to-frame like stop motion.
- */
+/** Preserve exact gameplay contact while converting imported STEP quaternions to continuous slerp-friendly keys. */
 function smoothDiscreteQuaternion(track:T.KeyframeTrack,impact:number){
  if(!track.name.endsWith('.quaternion')||track.getInterpolation()!==T.InterpolateDiscrete)return track;
  const oldTimes=Array.from(track.times),oldValues=track.values,times=[...oldTimes],values:number[]=[];
@@ -84,7 +85,6 @@ function smoothDiscreteQuaternion(track:T.KeyframeTrack,impact:number){
  return new T.QuaternionKeyframeTrack(track.name,times,values,T.InterpolateLinear);
 }
 
-/** Sample a quaternion key track with normalized slerp so injected body keys stay smooth and type-safe. */
 function sampleQuaternion(track:T.KeyframeTrack,t:number,out:T.Quaternion){
  const times=track.times,values=track.values,count=times.length;if(!count)return out.identity();
  if(t<=times[0])return out.fromArray(values,0).normalize();if(t>=times[count-1])return out.fromArray(values,(count-1)*4).normalize();
@@ -94,10 +94,10 @@ function sampleQuaternion(track:T.KeyframeTrack,t:number,out:T.Quaternion){
 
 function addBodyDrive(track:T.KeyframeTrack,clip:string,impact:number,duration:number){
  if(!track.name.endsWith('.quaternion'))return track;const bone=track.name.slice(0,-'.quaternion'.length),drive=driveFor(clip,bone);if(!drive.pitch&&!drive.yaw&&!drive.roll)return track;
- const side=clip==='attack'||clip==='chop',shape=side?sideDriveShape(bone,impact,duration):undefined,load=shape?.load??Math.max(.04,impact*.55),follow=shape?.follow??impact+(duration-impact)*.42;
+ const side=clip==='attack'||clip==='chop',shape=side?sideDriveShape(clip,bone,impact,duration):undefined,load=shape?.load??Math.max(.04,impact*.55),follow=shape?.follow??impact+(duration-impact)*.42;
  const times=[...Array.from(track.times),0,load,impact,follow,duration].sort((a,b)=>a-b).filter((t,i,a)=>i===0||Math.abs(t-a[i-1])>1e-5);
  const values:number[]=[],q=new T.Quaternion(),extra=new T.Quaternion(),euler=new T.Euler(),head=HEAD_NECK.test(bone);
- for(const t of times){sampleQuaternion(track,t,q);const w=head?headDriveWeight(t,impact,duration):side?sideDriveWeight(t,bone,impact,duration):driveWeight(t,impact,duration);euler.set(drive.pitch*w,drive.yaw*w,drive.roll*w,'YXZ');extra.setFromEuler(euler);q.multiply(extra).normalize();values.push(q.x,q.y,q.z,q.w);}
+ for(const t of times){sampleQuaternion(track,t,q);const w=head?headDriveWeight(t,impact,duration):side?sideDriveWeight(t,clip,bone,impact,duration):driveWeight(t,impact,duration);euler.set(drive.pitch*w,drive.yaw*w,drive.roll*w,'YXZ');extra.setFromEuler(euler);q.multiply(extra).normalize();values.push(q.x,q.y,q.z,q.w);}
  return new T.QuaternionKeyframeTrack(track.name,times,values,T.InterpolateLinear);
 }
 
