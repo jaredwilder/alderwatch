@@ -8,6 +8,7 @@ import {Input} from './input';
 import {Soundscape} from './audio';
 import {LocalAuthority,makePlayer,seedState,loadWorld as loadSavedWorld,saveWorld as persistWorld,tickVitals,ITEMS,type Archetype,type ItemId,type Command,type WorldState} from './state';
 import './style.css';
+import './ui-item-art';
 import {registerGameTools} from './webmcp';
 import {Gathering} from './gathering';
 import {Building} from './building';
