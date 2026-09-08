@@ -19,9 +19,11 @@ const mod=(n:number,m:number)=>((n%m)+m)%m;
  * creating one live mesh/collider per world node. `wild-resource-*` trees and
  * rocks are rendered as 64m InstancedMesh proxy cells by FrontierRenderer and
  * only promoted to full authored models + Rapier colliders near the survivor.
- * Forage remains small/cheap and is already distance-gated by Nature.
+ * Forage is spatially indexed/materialized near the local camera player by Nature.
  */
 export const RESOURCE_FIELD_CELL=48;
+export const RESOURCE_FIELD_MIN=-7;
+export const RESOURCE_FIELD_MAX=6;
 export const DENSE_RESOURCE_PREFIX='wild-resource-dense-v1-';
 export const DENSE_FORAGE_PREFIX='nature-dense-v1-';
 export const DENSE_GATHERABLE_ITEMS:readonly ItemId[]=['fiber','berries','mushroom','herb','wood','wild_garlic','juniper','sage','truffle','pine_resin','wild_honey'];
@@ -30,7 +32,7 @@ const FORAGE_VISUAL:Record<string,NonNullable<ForageState['kind']>>={fiber:'fibe
 const pointDistance=(p:Vec3,x:number,z:number)=>Math.hypot(p[0]-x,p[2]-z);
 
 function gatherableForCell(cx:number,cz:number,slot:number,x:number,z:number):ItemId{
- const cell=(cx+7)*10+(cz+3),woods=forestDensity(x,z),edge=forestEdge(x,z),meadow=meadowDensity(x,z);
+ const cell=(cx+7)*14+(cz+7),woods=forestDensity(x,z),edge=forestEdge(x,z),meadow=meadowDensity(x,z);
  if(slot===4&&cell%11===0&&woods>.28)return 'truffle';
  if(slot===4&&cell%13===0&&edge>.2)return 'wild_honey';
  let item=COMMON_FORAGE[mod(cell*3+slot*5,COMMON_FORAGE.length)];
@@ -54,20 +56,21 @@ function forageSuitability(item:ItemId,x:number,z:number){
 
 /**
  * Additive, deterministic raw-resource population for both new and old saves.
- * IDs are cell-addressed and slot-addressed, so harvesting state is never
- * rerolled when the generator runs again. Processed crafting goods intentionally
- * remain crafted; this layer puts their raw inputs into the physical world.
+ * IDs are cell-addressed and slot-addressed, so expanding the cell range adds
+ * wilderness to existing saves without rerolling harvested nodes or respawns.
+ * Processed crafting goods intentionally remain crafted; this layer puts their
+ * raw inputs into the physical world.
  */
 export function seedDenseResources(w:WorldState,seed=w.worldSeed??197709){
  const zones=dressingZones(w),resources=Object.values(w.resources).map(r=>r.position),forage=Object.values(w.forage).map(f=>f.position),structures=Object.values(w.structures),stations=Object.values(w.stations);
  const resourceClear=(x:number,z:number,spacing:number)=>trailDistance(x,z)>4.2&&!insideDressingZone(x,z,zones,1.5)&&!structures.some(s=>pointDistance(s.position,x,z)<3.2)&&!stations.some(s=>pointDistance(s.position,x,z)<2.8)&&!resources.some(p=>pointDistance(p,x,z)<spacing);
  const forageClear=(x:number,z:number)=>trailDistance(x,z)>2.7&&!insideDressingZone(x,z,zones,.65)&&!structures.some(s=>pointDistance(s.position,x,z)<2.3)&&!stations.some(s=>pointDistance(s.position,x,z)<1.8)&&!resources.some(p=>pointDistance(p,x,z)<1.65)&&!forage.some(p=>pointDistance(p,x,z)<2.35);
- for(let cx=-7;cx<=6;cx++)for(let cz=-3;cz<=6;cz++){
+ for(let cx=RESOURCE_FIELD_MIN;cx<=RESOURCE_FIELD_MAX;cx++)for(let cz=RESOURCE_FIELD_MIN;cz<=RESOURCE_FIELD_MAX;cz++){
   for(let slot=0;slot<7;slot++){
    const id=`${DENSE_RESOURCE_PREFIX}${cx}-${cz}-${slot}`;if(w.resources[id])continue;
    const rng=seeded(seed^Math.imul(cx+37,73856093)^Math.imul(cz+41,19349663)^Math.imul(slot+11,83492791));
    for(let attempt=0;attempt<8;attempt++){
-    const x=cx*RESOURCE_FIELD_CELL+4+rng()*(RESOURCE_FIELD_CELL-8),z=cz*RESOURCE_FIELD_CELL+4+rng()*(RESOURCE_FIELD_CELL-8),y=height(x,z);if(y<-.85||!resourceClear(x,z,3.7))continue;
+    const x=cx*RESOURCE_FIELD_CELL+4+rng()*(RESOURCE_FIELD_CELL-8),z=cz*RESOURCE_FIELD_CELL+4+rng()*(RESOURCE_FIELD_CELL-8),y=height(x,z);if(y<-.85||y>42||!resourceClear(x,z,3.7))continue;
     const woods=forestDensity(x,z),region=regionAt(x,z),rockBias=(region==='Ironward Heights'?.48:region==='Briar Heath'?.28:region==='The Far March'?.18:.16)+(1-woods)*.12;
     let kind:'tree'|'rock'=rng()<rockBias?'rock':'tree';if(kind==='tree'&&woods<.13&&rng()<.7)kind='rock';if(kind==='rock'&&woods>.72&&region!=='Ironward Heights'&&rng()<.48)kind='tree';
     const scale=kind==='tree'?.76+rng()*.34+woods*.08:.72+rng()*.34;w.resources[id]={id,kind,position:[x,y,z],variant:Math.floor(rng()*3),health:kind==='tree'?6:4,phase:'standing',rotation:rng()*Math.PI*2,scale};resources.push(w.resources[id].position);break;
@@ -77,7 +80,7 @@ export function seedDenseResources(w:WorldState,seed=w.worldSeed??197709){
    const id=`${DENSE_FORAGE_PREFIX}${cx}-${cz}-${slot}`;if(w.forage[id])continue;
    const rng=seeded((seed^0x51f15e)^Math.imul(cx+53,73856093)^Math.imul(cz+59,19349663)^Math.imul(slot+17,83492791));
    for(let attempt=0;attempt<10;attempt++){
-    const x=cx*RESOURCE_FIELD_CELL+3+rng()*(RESOURCE_FIELD_CELL-6),z=cz*RESOURCE_FIELD_CELL+3+rng()*(RESOURCE_FIELD_CELL-6),y=height(x,z);if(y<-.8||!forageClear(x,z))continue;
+    const x=cx*RESOURCE_FIELD_CELL+3+rng()*(RESOURCE_FIELD_CELL-6),z=cz*RESOURCE_FIELD_CELL+3+rng()*(RESOURCE_FIELD_CELL-6),y=height(x,z);if(y<-.8||y>42||!forageClear(x,z))continue;
     const item=gatherableForCell(cx,cz,slot,x,z),fit=forageSuitability(item,x,z);if(rng()>.35+fit*.65)continue;
     w.forage[id]={id,kind:FORAGE_VISUAL[item],item,position:[x,y,z],harvested:false};forage.push(w.forage[id].position);break;
    }
