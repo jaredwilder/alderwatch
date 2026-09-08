@@ -25,15 +25,15 @@ export const DEEP_IRON_ROOMS:readonly DeepIronRoom[]=[
  R('old-chapel','Saint Orin Niche',0,72,6,{cache:true}),R('winch','Old Winch',-18,72,6,{feature:'lever'}),R('guard-room','Deep Guardroom',18,72,6),
  R('deep-junction','Deep Junction',0,90,7),R('red-vein','Red Vein',-18,90,8,{cache:true}),R('smelter','Abandoned Smelter',18,90,8),
  R('broken-lift','Broken Lift',-36,90,9,{feature:'lift'}),R('underkeep','Underkeep',36,90,9),R('foreman-cache','Foreman Cache',-18,108,10,{cache:true}),
- R('hidden-cut','Hidden Cut',18,108,10),R('black-stope','Black Stope',0,126,11),R('lower-gate','Lower Works Gate',0,144,12,{feature:'lower-gate'}),
+ R('hidden-cut','Hidden Cut',18,108,10),R('black-stope','Black Stope',0,108,11),R('lower-gate','Lower Works Gate',0,126,12,{feature:'lower-gate'}),
 ];
 export const DEEP_IRON_ROOM_BY_ID=Object.fromEntries(DEEP_IRON_ROOMS.map(room=>[room.id,room])) as Record<string,DeepIronRoom>;
 const edges:[string,string][]=[
  ['entrance','ore-yard'],['ore-yard','first-fork'],['first-fork','west-drift'],['west-drift','powder-store'],['powder-store','collapsed-gallery'],
  ['first-fork','east-drift'],['east-drift','pump-room'],['pump-room','sump'],['first-fork','central-shaft'],['central-shaft','gallery-a'],['central-shaft','gallery-b'],
  ['central-shaft','old-chapel'],['gallery-a','winch'],['gallery-b','guard-room'],['old-chapel','winch'],['old-chapel','guard-room'],['old-chapel','deep-junction'],
- ['deep-junction','red-vein'],['deep-junction','smelter'],['red-vein','broken-lift'],['smelter','underkeep'],['deep-junction','foreman-cache'],['deep-junction','hidden-cut'],
- ['foreman-cache','black-stope'],['hidden-cut','black-stope'],['black-stope','lower-gate'],['pump-room','underkeep'],
+ ['deep-junction','red-vein'],['deep-junction','smelter'],['red-vein','broken-lift'],['smelter','underkeep'],['red-vein','foreman-cache'],['smelter','hidden-cut'],
+ ['foreman-cache','black-stope'],['hidden-cut','black-stope'],['deep-junction','black-stope'],['black-stope','lower-gate'],
 ];
 const neighbors:Record<string,string[]>={};for(const room of DEEP_IRON_ROOMS)neighbors[room.id]=[];for(const [a,b] of edges){neighbors[a].push(b);neighbors[b].push(a);}
 export const DEEP_IRON_GRAPH=Object.fromEntries(DEEP_IRON_ROOMS.map(room=>[room.id,{id:room.id,neighbors:neighbors[room.id]} satisfies DungeonRoomNode])) as Record<string,DungeonRoomNode>;
