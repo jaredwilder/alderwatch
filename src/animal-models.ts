@@ -18,6 +18,15 @@ export interface AnimalInstance {
 const HEAD_TERMS=['muzzle','snout','nose','head','neck'];
 const BODY_TERMS=['pelvis','hips','hip','spine','chest','torso','body'];
 interface NamedPoint {node:T.Object3D;priority:number;position:T.Vector3}
+const SKINS:Record<AuthoredAnimalKind,{body:string;dark:string;light:string}>={
+ goat:{body:'#92775c',dark:'#403126',light:'#c2aa89'},
+ sheep:{body:'#d8d0ba',dark:'#3e352f',light:'#eee7d5'},
+ deer:{body:'#8f5936',dark:'#493020',light:'#d1af84'},
+ bear:{body:'#4a3022',dark:'#241912',light:'#79543b'},
+ bison:{body:'#3d2c24',dark:'#1f1714',light:'#6e5442'},
+ wolf:{body:'#6a6a64',dark:'#353632',light:'#aaa79d'},
+ eagle:{body:'#5b4028',dark:'#2b2119',light:'#d9d3bc'},
+};
 
 function namedPoints(root:T.Object3D,terms:string[]){
  const points:NamedPoint[]=[];
@@ -46,6 +55,20 @@ export function inferAnimalForward(root:T.Object3D):AnimalForwardCalibration{
  return {axis,correctionYaw:-Math.atan2(best.dx,best.dz),proven:true};
 }
 
+function skinnedMaterial(material:T.Material,kind:AuthoredAnimalKind,label:string,index:number){
+ const palette=SKINS[kind],m=material.clone() as T.MeshStandardMaterial,name=(label+' '+m.name).toLowerCase();
+ const dark=/hoof|horn|nose|snout|muzzle|eye|beak|claw|talon|paw|mane|foot/.test(name),light=/belly|chest|neck|tail|wool|featherwhite|headwhite/.test(name);
+ const target=new T.Color(dark?palette.dark:light?palette.light:palette.body);
+ if('color' in m&&m.color instanceof T.Color){if(m.map)m.color.multiply(target.clone().lerp(new T.Color('#ffffff'),.58));else m.color.copy(target);}
+ if('roughness' in m)m.roughness=kind==='eagle'?.82:.94;
+ if('metalness' in m)m.metalness=0;
+ // Models with anonymous one-material submeshes still get enough tonal breakup to stop reading as white test geometry.
+ if(!m.map&&index%5===3&&'color' in m&&m.color instanceof T.Color)m.color.lerp(new T.Color(palette.light),.22);
+ return m;
+}
+/** Keep authored textures when present, but replace bare/default-white animal materials with grounded species palettes. */
+export function skinAnimalModel(root:T.Object3D,kind:AuthoredAnimalKind){let index=0;root.traverse(o=>{if(!(o instanceof T.Mesh))return;const n=index++;if(Array.isArray(o.material))o.material=o.material.map(m=>skinnedMaterial(m,kind,o.name,n));else o.material=skinnedMaterial(o.material,kind,o.name,n);o.castShadow=o.receiveShadow=true;o.frustumCulled=false;});return root;}
+
 export async function loadExtendedAnimalLibrary(){
  const loader=new GLTFLoader();loader.setMeshoptDecoder(MeshoptDecoder);
  const entries=await Promise.all(AUTHORED_ANIMAL_KINDS.map(async kind=>[kind,await loader.loadAsync(`/assets/animals/${kind}.glb`)] as const));
@@ -53,7 +76,7 @@ export async function loadExtendedAnimalLibrary(){
 }
 
 export function instantiateAnimal(kind:AuthoredAnimalKind,gltf:GLTF):AnimalInstance{
- const root=clone(gltf.scene),forward=inferAnimalForward(root);
+ const root=skinAnimalModel(clone(gltf.scene),kind),forward=inferAnimalForward(root);
  if(!forward.proven)console.warn(`Could not prove authored forward axis for ${kind}; leaving model yaw uncorrected rather than guessing.`);
  root.rotation.y+=forward.correctionYaw;
  root.updateMatrixWorld(true);

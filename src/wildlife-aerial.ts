@@ -1,4 +1,5 @@
 import {aerialProfile,type AnimalState} from './wildlife-species';
+import {recordAnimalAct} from './wildlife-notoriety';
 
 export type AerialPreyAction='pickup'|'kill'|'strike'|null;
 
@@ -21,7 +22,7 @@ export function beginCarry(carrier:AnimalState,prey:AnimalState,tick:number){
  const config=aerialProfile(carrier.kind);
  if(!config||!carrier.airborne||carrier.carriedPreyId||prey.carriedById||!config.pickupPrey.includes(prey.kind))return false;
  carrier.carriedPreyId=prey.id;carrier.carryUntil=tick+Math.round(config.carrySeconds*60);prey.carriedById=carrier.id;
- carrier.huntTargetId=undefined;carrier.huntBestDistance=undefined;
+ carrier.huntTargetId=undefined;carrier.huntBestDistance=undefined;recordAnimalAct(carrier,'airlift',tick);
  return true;
 }
 

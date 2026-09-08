@@ -30,6 +30,13 @@ export interface AnimalState {
  lastAttackerId?:string;
  aggroPlayerId?:string;
  aggroUntil?:number;
+ // Persistent animal morality/notoriety. This is intentionally civilization-biased and funny, not a claim that predation is morally wrong.
+ wildKarma?:number;
+ notoriety?:number;
+ misdeeds?:Record<string,number>;
+ wantedSince?:number;
+ epithet?:string;
+ bountyClaimed?:boolean;
  // Aerial ecology state is persisted because a reload should not magically refill a tired bird.
  energy?:number;
  airborne?:boolean;
