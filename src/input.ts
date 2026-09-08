@@ -11,6 +11,9 @@ export class Input {
   window.addEventListener('keydown',e=>{if((e.target as HTMLElement)?.matches('input,select,textarea'))return;if(['Tab','Space','KeyB','KeyC'].includes(e.code))e.preventDefault();if(!this.keys.has(e.code))this.pressed.add(e.code);this.keys.add(e.code);});
   window.addEventListener('keyup',e=>this.keys.delete(e.code));
   window.addEventListener('blur',()=>{this.clear();this.releaseCamera();});
+  // Full-screen navigation surfaces need a real cursor. Marking capture false before
+  // releasing pointer lock distinguishes this intentional UI transition from browser Escape.
+  window.addEventListener('alderwatch:map-cursor',((event:Event)=>{const open=!!(event as CustomEvent<{open:boolean}>).detail?.open;if(open){this.clear();this.captureCamera=false;}else if(this.active)this.captureCamera=true;}) as EventListener);
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
   canvas.addEventListener('mousedown',e=>{
    if(!this.active)return;
