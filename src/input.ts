@@ -42,7 +42,7 @@ export class Input {
  private lockCamera(){
   if(!this.active||!this.capture||this.lockFailed||this.requesting||document.pointerLockElement===this.canvas||!this.canvas.requestPointerLock)return;
   this.requesting=true;
-  try{Promise.resolve(this.canvas.requestPointerLock()).catch(()=>{this.lockFailed=true;}).finally(()=>{this.requesting=false;});}catch{this.requesting=false;this.lockFailed=true;}
+  try{Promise.resolve(this.canvas.requestPointerLock()).catch(()=>{this.lockFailed=true;}).finally(()=>{this.requesting=false;if(this.active&&this.capture&&!this.lockFailed&&document.pointerLockElement!==this.canvas)this.lockCamera();});}catch{this.requesting=false;this.lockFailed=true;}
  }
  private releaseCamera(){if(document.pointerLockElement===this.canvas)document.exitPointerLock();}
  take(key:string){const v=this.pressed.has(key);this.pressed.delete(key);return v;}
