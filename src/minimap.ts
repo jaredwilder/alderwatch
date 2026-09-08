@@ -1,4 +1,4 @@
-import {WORLD_SIZE,trailZ} from './worldgen';
+import {WORLD_SIZE,REGIONS,regionAt,trailZ} from './worldgen';
 import {height,roadX} from './terrain';
 import type {WorldState,PlayerState,Vec3} from './state';
 
@@ -14,25 +14,73 @@ export function routeHint(from:Vec3,to:Vec3,yaw:number){
  return {marker,distance:Math.round(Math.hypot(to[0]-from[0],to[2]-from[2])),direction:['Ahead','Ahead-right','Right','Behind-right','Behind','Behind-left','Left','Ahead-left'][octant],arrow:['↑','↗','→','↘','↓','↙','←','↖'][octant]};
 }
 
+/** North-up projection for the full 768 m March. */
+export function worldMapPoint(position:Vec3){
+ const half=WORLD_SIZE/2,x=(position[0]+half)/WORLD_SIZE*100,y=(position[2]+half)/WORLD_SIZE*100;
+ return {x,y,inside:x>=0&&x<=100&&y>=0&&y<=100};
+}
+export interface LargeGameSighting {id:string;kind:'bison'|'bear';position:Vec3;distance:number;massive:boolean;region:string}
+export function largeGameSightings(w:WorldState,p:PlayerState):LargeGameSighting[]{
+ return Object.values(w.animals??{}).filter(a=>(a.kind==='bison'||a.kind==='bear')&&!a.dead&&(a.health??1)>0).map(a=>({id:a.id,kind:a.kind as 'bison'|'bear',position:a.position,distance:Math.round(Math.hypot(a.position[0]-p.position[0],a.position[2]-p.position[2])),massive:a.id==='wild-bison-1',region:regionAt(a.position[0],a.position[2])})).sort((a,b)=>a.distance-b.distance);
+}
+
 export class MiniMap {
- private terrain?:HTMLCanvasElement;private canvas?:HTMLCanvasElement;private label?:HTMLElement;private nextUpdate=0;
+ private terrain?:HTMLCanvasElement;private canvas?:HTMLCanvasElement;private label?:HTMLElement;private nextUpdate=0;private ui?:HTMLElement;private overlay?:HTMLElement;private lastWorld?:WorldState;private lastPlayer?:PlayerState;private lastObjective?:Vec3;private controlsBound=false;
+ private ensureTerrain(){
+  if(this.terrain)return this.terrain;
+  const terrain=document.createElement('canvas');terrain.width=terrain.height=WORLD_SIZE;const ground=terrain.getContext('2d')!;
+  for(let z=0;z<WORLD_SIZE;z+=4)for(let x=0;x<WORLD_SIZE;x+=4){const h=height(x-WORLD_SIZE/2,z-WORLD_SIZE/2),shade=Math.max(0,Math.min(18,h*3+5));ground.fillStyle=`rgb(${39+shade},${55+shade},${40+shade})`;ground.fillRect(x,z,4,4);}
+  ground.fillStyle='#405e62';ground.beginPath();for(let i=0;i<=80;i++){const a=i/80*Math.PI*2,r=1+.07*Math.sin(a*7)+.035*Math.sin(a*13),x=WORLD_SIZE/2-31+Math.cos(a)*10*r,y=WORLD_SIZE/2-12+Math.sin(a)*23*r;i?ground.lineTo(x,y):ground.moveTo(x,y);}ground.fill();
+  ground.strokeStyle='#a99973';ground.lineWidth=3.8;ground.beginPath();for(let z=-384;z<=384;z+=4){const x=roadX(z)+384;z===-384?ground.moveTo(x,z+384):ground.lineTo(x,z+384);}ground.stroke();ground.beginPath();for(let x=-335;x<=335;x+=4){x===-335?ground.moveTo(x+384,trailZ(x)+384):ground.lineTo(x+384,trailZ(x)+384);}ground.stroke();
+  this.terrain=terrain;return terrain;
+ }
+ private onKey=(e:KeyboardEvent)=>{
+  const open=!!this.overlay?.isConnected;
+  if(open){
+   if(e.code==='KeyM'||e.code==='Escape'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)this.closeWorldMap();return;}
+   if(['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','Space','Tab','KeyJ','KeyB','KeyC','KeyQ','KeyE','KeyF','Digit1','Digit2','Digit3','Digit4','Digit5'].includes(e.code)){e.preventDefault();e.stopImmediatePropagation();}
+   return;
+  }
+  if(e.code==='KeyM'&&!e.repeat&&this.canvas?.isConnected&&this.lastWorld&&this.lastPlayer){e.preventDefault();e.stopImmediatePropagation();this.openWorldMap();}
+ };
+ private suppressPointer=(e:Event)=>{if(this.overlay?.isConnected){e.preventDefault();e.stopImmediatePropagation();}};
+ private bindControls(){if(this.controlsBound)return;this.controlsBound=true;window.addEventListener('keydown',this.onKey,true);window.addEventListener('mousedown',this.suppressPointer,true);window.addEventListener('mousemove',this.suppressPointer,true);window.addEventListener('wheel',this.suppressPointer,{capture:true,passive:false});}
  mount(ui:HTMLElement){
+  this.ui=ui;if(this.overlay&&!this.overlay.isConnected)this.overlay=undefined;this.bindControls();
   const panel=document.createElement('aside');panel.className='minimap';panel.setAttribute('aria-label','Local navigation');
   this.canvas=document.createElement('canvas');this.canvas.width=this.canvas.height=400;this.canvas.setAttribute('role','img');this.canvas.setAttribute('aria-label','Camera-up minimap: white arrow is you; gold marker is your objective');
-  this.label=document.createElement('div');this.label.className='minimap-route';const legend=document.createElement('small');legend.textContent='Gold: objective · Up: W · J: journal';
+  this.label=document.createElement('div');this.label.className='minimap-route';const legend=document.createElement('small');legend.textContent='M: world map · J: journal · Up: W';
   panel.append(this.canvas,this.label,legend);ui.append(panel);this.nextUpdate=0;
  }
+ private suspendHeldInput(){for(const code of ['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','Space'])window.dispatchEvent(new KeyboardEvent('keyup',{code}));window.dispatchEvent(new MouseEvent('mouseup',{button:0}));window.dispatchEvent(new MouseEvent('mouseup',{button:2}));}
+ private openWorldMap(){
+  if(!this.ui||!this.lastWorld||!this.lastPlayer)return;this.closeWorldMap();
+  const overlay=document.createElement('section');overlay.className='world-map-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-label','Full map of the Far March');
+  overlay.innerHTML='<div class="world-map-frame"><header><div><small>ALDERWATCH CARTOGRAPHY</small><h2>THE FAR MARCH</h2></div><b>M / ESC · CLOSE</b></header><div class="world-map-layout"><div class="world-map-canvas-wrap"><canvas width="768" height="768" aria-label="North-up full world map"></canvas><span class="world-map-north">N ↑</span></div><aside class="world-map-sidebar"><div class="world-map-you"></div><h3>LARGE GAME SIGHTINGS</h3><div class="world-map-sightings"></div><div class="world-map-legend"><span>★ Massive bison</span><span>● Bison</span><span>▲ Bear</span><span>◆ Objective</span><span>⌂ Home / settlement</span></div><p>These are live sightings, not fast travel. Pick a bearing, close the map, and hunt.</p></aside></div></div>';
+  this.ui.append(overlay);this.overlay=overlay;this.suspendHeldInput();this.renderWorldMap();
+ }
+ private closeWorldMap(){this.overlay?.remove();this.overlay=undefined;}
+ private renderWorldMap(){
+  if(!this.overlay||!this.lastWorld||!this.lastPlayer)return;const w=this.lastWorld,p=this.lastPlayer,canvas=this.overlay.querySelector<HTMLCanvasElement>('canvas')!,ctx=canvas.getContext('2d');if(!ctx)return;
+  ctx.clearRect(0,0,WORLD_SIZE,WORLD_SIZE);ctx.drawImage(this.ensureTerrain(),0,0);ctx.fillStyle='rgba(13,20,16,.14)';ctx.fillRect(0,0,WORLD_SIZE,WORLD_SIZE);
+  const xy=(v:Vec3)=>({x:v[0]+WORLD_SIZE/2,y:v[2]+WORLD_SIZE/2});
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='600 17px Georgia';for(const r of REGIONS){const q=xy([r.x,0,r.z]);ctx.fillStyle='rgba(239,222,177,.62)';ctx.fillText(r.name.toUpperCase(),q.x,q.y);}
+  const dot=(v:Vec3,color:string,size:number)=>{const q=xy(v);ctx.fillStyle=color;ctx.beginPath();ctx.arc(q.x,q.y,size,0,Math.PI*2);ctx.fill();};
+  for(const site of Object.values(w.frontier?.sites??{}))dot(site.position,'#d2b275',4);
+  for(const station of Object.values(w.stations))if(station.kind==='workbench')dot(station.position,'#efe0b1',5);
+  if(p.home){const q=xy(p.home);ctx.font='bold 20px Georgia';ctx.fillStyle='#9ed9e5';ctx.fillText('⌂',q.x,q.y);}
+  if(this.lastObjective){const a=xy(p.position),b=xy(this.lastObjective);ctx.strokeStyle='#f2cb78';ctx.lineWidth=2;ctx.setLineDash([7,7]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([]);ctx.save();ctx.translate(b.x,b.y);ctx.rotate(Math.PI/4);ctx.fillStyle='#ffd77e';ctx.fillRect(-6,-6,12,12);ctx.restore();}
+  const sightings=largeGameSightings(w,p);for(const s of sightings){const q=xy(s.position);ctx.save();ctx.translate(q.x,q.y);ctx.fillStyle=s.massive?'#ffe08a':s.kind==='bear'?'#e7a078':'#d9c084';ctx.strokeStyle='#241b14';ctx.lineWidth=2;if(s.massive){ctx.font='bold 24px Georgia';ctx.fillText('★',0,0);}else if(s.kind==='bear'){ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(8,7);ctx.lineTo(-8,7);ctx.closePath();ctx.fill();ctx.stroke();}else{ctx.beginPath();ctx.arc(0,0,6,0,Math.PI*2);ctx.fill();ctx.stroke();}ctx.restore();}
+  const player=xy(p.position);ctx.save();ctx.translate(player.x,player.y);ctx.rotate(p.yaw);ctx.fillStyle='#fff8df';ctx.strokeStyle='#15241c';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(7,8);ctx.lineTo(0,4);ctx.lineTo(-7,8);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+  this.overlay.querySelector<HTMLElement>('.world-map-you')!.textContent=`YOU · ${regionAt(p.position[0],p.position[2])} · X ${Math.round(p.position[0])} · Z ${Math.round(p.position[2])}`;
+  const list=this.overlay.querySelector<HTMLElement>('.world-map-sightings')!;list.replaceChildren();for(const s of sightings){const row=document.createElement('div');row.className='world-map-sighting'+(s.massive?' massive':'');row.innerHTML='<strong></strong><span></span>';row.querySelector('strong')!.textContent=s.massive?'★ MASSIVE BISON':s.kind==='bear'?'▲ Bear':'● Bison';row.querySelector('span')!.textContent=`${s.distance} m · ${s.region}`;list.append(row);}if(!sightings.length)list.textContent='No live large-game sightings remain in this March.';
+ }
  update(w:WorldState,p:PlayerState,yaw:number,objective:Vec3|undefined,now:number){
+  this.lastWorld=w;this.lastPlayer=p;this.lastObjective=objective;if(this.overlay?.isConnected)this.renderWorldMap();
   if(!this.canvas?.isConnected||now<this.nextUpdate)return;this.nextUpdate=now+.1;
-  const ctx=this.canvas.getContext('2d');if(!ctx)return;
-  if(!this.terrain){
-   this.terrain=document.createElement('canvas');this.terrain.width=this.terrain.height=WORLD_SIZE;const ground=this.terrain.getContext('2d')!;
-   for(let z=0;z<WORLD_SIZE;z+=4)for(let x=0;x<WORLD_SIZE;x+=4){const h=height(x-WORLD_SIZE/2,z-WORLD_SIZE/2),shade=Math.max(0,Math.min(18,h*3+5));ground.fillStyle=`rgb(${39+shade},${55+shade},${40+shade})`;ground.fillRect(x,z,4,4);}
-   ground.fillStyle='#405e62';ground.beginPath();for(let i=0;i<=80;i++){const a=i/80*Math.PI*2,r=1+.07*Math.sin(a*7)+.035*Math.sin(a*13),x=WORLD_SIZE/2-31+Math.cos(a)*10*r,y=WORLD_SIZE/2-12+Math.sin(a)*23*r;i?ground.lineTo(x,y):ground.moveTo(x,y);}ground.fill();
-   ground.strokeStyle='#a99973';ground.lineWidth=3.8;ground.beginPath();for(let z=-384;z<=384;z+=4){const x=roadX(z)+384;z===-384?ground.moveTo(x,z+384):ground.lineTo(x,z+384);}ground.stroke();ground.beginPath();for(let x=-335;x<=335;x+=4){x===-335?ground.moveTo(x+384,trailZ(x)+384):ground.lineTo(x+384,trailZ(x)+384);}ground.stroke();
-  }
+  const ctx=this.canvas.getContext('2d');if(!ctx)return;const terrain=this.ensureTerrain();
   ctx.setTransform(2,0,0,2,0,0);ctx.clearRect(0,0,200,200);ctx.save();ctx.beginPath();ctx.arc(100,100,87,0,Math.PI*2);ctx.clip();ctx.fillStyle='#293d31';ctx.fillRect(0,0,200,200);
-  ctx.save();ctx.translate(100,100);ctx.rotate(-yaw);ctx.scale(1.6,1.6);ctx.drawImage(this.terrain,-WORLD_SIZE/2-p.position[0],-WORLD_SIZE/2-p.position[2]);
+  ctx.save();ctx.translate(100,100);ctx.rotate(-yaw);ctx.scale(1.6,1.6);ctx.drawImage(terrain,-WORLD_SIZE/2-p.position[0],-WORLD_SIZE/2-p.position[2]);
   for(const r of Object.values(w.resources)){if(r.kind!=='tree'||r.phase!=='standing'||Math.hypot(r.position[0]-p.position[0],r.position[2]-p.position[2])>60)continue;ctx.fillStyle='#203f2b';ctx.beginPath();ctx.arc(r.position[0]-p.position[0],r.position[2]-p.position[2],2.2,0,Math.PI*2);ctx.fill();}
   ctx.restore();
   const point=(position:Vec3,color:string,size=3)=>{const m=mapOffset(position[0]-p.position[0],position[2]-p.position[2],yaw,84);if(m.offscreen)return;ctx.fillStyle=color;ctx.fillRect(100+m.x-size,100+m.y-size,size*2,size*2);};
