@@ -14,13 +14,20 @@ const expandedPositions:Record<string,[number,number]>={
  bison_hump:[0,3],wolf_loin:[1,3],eagle_breast:[2,3],moonlit_hare:[3,3],blackwing_roast:[4,3],highland_goat_roast:[5,3],
  golden_mutton_rack:[0,4],kings_hart:[1,4],old_bear_rib:[2,4],great_bison_feast:[3,4],night_wolf_loin:[4,4],eagle_crown_roast:[5,4],
 };
-const rareIds=new Set(['hare_saddle','crow_breast','goat_tenderloin','mutton_rack','hart_tenderloin','bear_rib','bison_hump','wolf_loin','eagle_breast','moonlit_hare','blackwing_roast','highland_goat_roast','golden_mutton_rack','kings_hart','old_bear_rib','great_bison_feast','night_wolf_loin','eagle_crown_roast']);
+const economyPositions:Record<string,[number,number]>={
+ wild_garlic:[0,0],juniper:[1,0],sage:[2,0],truffle:[3,0],pine_resin:[4,0],beeswax:[5,0],
+ charcoal:[0,1],cordage:[1,1],resin_pitch:[2,1],waxed_cord:[3,1],leather_strap:[4,1],iron_fittings:[5,1],
+ frontier_spice:[0,2],garlic_mushrooms:[1,2],juniper_tonic:[2,2],truffle_broth:[3,2],
+};
+const rareIds=new Set(['truffle','hare_saddle','crow_breast','goat_tenderloin','mutton_rack','hart_tenderloin','bear_rib','bison_hump','wolf_loin','eagle_breast','moonlit_hare','blackwing_roast','highland_goat_roast','golden_mutton_rack','kings_hart','old_bear_rib','great_bison_feast','night_wolf_loin','eagle_crown_roast']);
 const names:Record<string,string>={
  'Woodland mushrooms':'mushroom','Wild herbs':'herb','Woodland broth':'woodland_broth','Iron axe':'axe','Mining pick':'pickaxe','Hunter’s bow':'bow',
  'Builder’s hammer':'hammer','Marcher’s sword':'sword','Tempered sword':'fine_sword','Tempered marcher’s sword':'fine_sword','Oak timber':'wood',
- 'Fieldstone':'stone','Iron ore':'iron','Wild flax':'fiber','Raw hare':'hare_meat','Raw crow':'crow_meat','Raw goat':'goat_meat','Raw mutton':'mutton',
- 'Raw venison':'venison','Raw bear meat':'bear_meat','Raw bison':'bison_meat','Raw wolf meat':'wolf_meat','Raw eagle':'eagle_meat','Wild berries':'berries',
+ 'Fieldstone':'stone','Iron ore':'iron','Wild flax':'fiber','Wild garlic':'wild_garlic','Juniper berries':'juniper','Woodland sage':'sage','Black truffle':'truffle','Pine resin':'pine_resin','Wild beeswax':'beeswax',
+ 'Hardwood charcoal':'charcoal','Flax cordage':'cordage','Resin pitch':'resin_pitch','Waxed bow cord':'waxed_cord','Waxed leather straps':'leather_strap','Forged iron fittings':'iron_fittings','Frontier spice blend':'frontier_spice',
+ 'Raw hare':'hare_meat','Raw crow':'crow_meat','Raw goat':'goat_meat','Raw mutton':'mutton','Raw venison':'venison','Raw bear meat':'bear_meat','Raw bison':'bison_meat','Raw wolf meat':'wolf_meat','Raw eagle':'eagle_meat','Wild berries':'berries',
  'Prized hare saddle':'hare_saddle','Blackwing crow breast':'crow_breast','Highland goat tenderloin':'goat_tenderloin','Prime mutton rack':'mutton_rack','Hart tenderloin':'hart_tenderloin','Old-bear rib':'bear_rib','Bison hump cut':'bison_hump','Night-wolf loin':'wolf_loin','Crown eagle breast':'eagle_breast',
+ 'Garlic woodland mushrooms':'garlic_mushrooms','Juniper hunter’s tonic':'juniper_tonic','Black truffle broth':'truffle_broth',
  'Rosemary hare':'roasted_hare','Charred crow skewer':'crow_skewer','Herbed goat chop':'herbed_goat','Hearth-roasted mutton':'hearth_mutton','Grilled venison':'grilled_venison',
  'Blackwood bear steak':'bear_steak','Bison herb roast':'bison_roast','Smoked wolf strips':'smoked_wolf','Highland eagle roast':'eagle_roast','Marcher’s stew':'hearty_stew',
  'Hare & mushroom pottage':'hare_pottage','Blackpot crow':'crow_blackpot','Goatberry stew':'goat_stew','Shepherd’s mutton pot':'mutton_stew','Berry-glazed venison':'venison_berry_roast','Bear & mushroom pottage':'bear_pottage','Bison trail stew':'bison_stew','Blackwood wolf broth':'wolf_broth','Highland eagle broth':'eagle_broth',
@@ -29,7 +36,9 @@ const names:Record<string,string>={
  'Cured hide':'hide','Crow crop':'crow_crop','Crow milk':'crow_milk','Wild honey':'wild_honey',
 };
 const recipeNames:Record<string,string>={
- 'Woodland broth':'woodland_broth','Crow milk':'crow_milk','Marcher’s sword':'sword','Tempered marcher’s sword':'fine_sword',
+ 'Woodland broth':'woodland_broth','Crow milk':'crow_milk','Hardwood charcoal':'charcoal','Resin pitch':'resin_pitch','Frontier spice blend':'frontier_spice','Flax cordage':'cordage','Waxed bow cord':'waxed_cord','Waxed leather straps':'leather_strap','Forged iron fittings':'iron_fittings',
+ 'Marcher’s sword':'sword','Tempered marcher’s sword':'fine_sword','Iron axe':'axe','Mining pick':'pickaxe','Builder’s hammer':'hammer','Hunter’s bow':'bow',
+ 'Garlic woodland mushrooms':'garlic_mushrooms','Juniper hunter’s tonic':'juniper_tonic','Black truffle broth':'truffle_broth',
  'Rosemary hare':'roasted_hare','Charred crow skewer':'crow_skewer','Herbed goat chop':'herbed_goat','Hearth-roasted mutton':'hearth_mutton','Grilled venison':'grilled_venison',
  'Blackwood bear steak':'bear_steak','Bison herb roast':'bison_roast','Smoked wolf strips':'smoked_wolf','Highland eagle roast':'eagle_roast','Marcher’s stew':'hearty_stew',
  'Hare & mushroom pottage':'hare_pottage','Blackpot crow':'crow_blackpot','Goatberry stew':'goat_stew','Shepherd’s mutton pot':'mutton_stew','Berry-glazed venison':'venison_berry_roast','Bear & mushroom pottage':'bear_pottage','Bison trail stew':'bison_stew','Blackwood wolf broth':'wolf_broth','Highland eagle broth':'eagle_broth',
@@ -45,9 +54,10 @@ if(typeof document!=='undefined'){
  const pct=(n:number,max:number)=>max?`${n/max*100}%`:'0%';
  const rules=Object.entries(positions).map(([id,[x,y]])=>`.aw-item-icon[data-item="${id}"],.hotbar [data-item="${id}"]::before{background-position:${pct(x,5)} ${pct(y,6)}}`).join('\n');
  const expandedRules=Object.entries(expandedPositions).map(([id,[x,y]])=>`.aw-item-icon[data-item="${id}"],.hotbar [data-item="${id}"]::before{background-image:url('/assets/ui/rare-food-icons.svg');background-size:600% 500%;background-position:${pct(x,5)} ${pct(y,4)}}`).join('\n');
+ const economyRules=Object.entries(economyPositions).map(([id,[x,y]])=>`.aw-item-icon[data-item="${id}"],.hotbar [data-item="${id}"]::before{background-image:url('/assets/ui/economy-icons.svg');background-size:600% 300%;background-position:${pct(x,5)} ${pct(y,2)}}`).join('\n');
  const rareRules=[...rareIds].map(id=>`.aw-item-icon[data-item="${id}"]{filter:drop-shadow(0 0 3px #e3bd63) drop-shadow(0 2px 2px #0009)}`).join('\n');
  const style=document.createElement('style');
- style.dataset.alderwatchItemIcons='rare-food-v2';
+ style.dataset.alderwatchItemIcons='gathering-economy-v3';
  style.textContent=`
 .aw-item-icon{display:inline-block;width:2.35rem;height:2.35rem;flex:0 0 auto;background-image:url('/assets/ui/item-icons.svg');background-size:600% 700%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0008);vertical-align:middle;image-rendering:auto}
 .pack-item strong>.aw-item-icon{width:2.8rem;height:2.8rem;margin-right:.55rem}.pack-item strong{display:flex;align-items:center}
@@ -60,6 +70,7 @@ if(typeof document!=='undefined'){
 .buffs::before{content:'';display:inline-block;width:1.45rem;height:1.45rem;margin-right:.35rem;vertical-align:-.32rem;background:url('/assets/ui/status-icons.png') 66.667% 100%/400% 200% no-repeat;filter:drop-shadow(0 1px 1px #0009)}
 ${rules}
 ${expandedRules}
+${economyRules}
 ${rareRules}`;
  document.head.append(style);
 
