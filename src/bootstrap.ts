@@ -1,6 +1,8 @@
-import {consumePendingArea,currentPlayer,DEEP_IRON_MINE,enterSavedArea,IRONWARD_BASIN,IRONWARD_CROSSING,migrateRealmSave,playerArea} from './realm-save';
+import './canon-authority-bridge';
+import {consumePendingArea,currentPlayer,DEEP_IRON_MINE,enterSavedArea,IRONWARD_BASIN,IRONWARD_CROSSING,migrateRealmSave,playerArea,CROWNROAD_VALE} from './realm-save';
 import {advanceRealmPopulationToTick,ensureRealmPopulation} from './realm-population';
 import {advanceRealmSocietyToTick,ensureRealmSocial} from './realm-society';
+import {advanceRealmHistoryToTick,ensureRealmHistory} from './provenance-frontier';
 
 const SAVE_KEY='alderwatch.realm.v1';
 
@@ -13,9 +15,11 @@ function prepareSavedArea(){
   advanceRealmPopulationToTick(world);
   ensureRealmSocial(world);
   advanceRealmSocietyToTick(world);
+  ensureRealmHistory(world);
+  advanceRealmHistoryToTick(world);
   const pending=consumePendingArea();
   if(pending)enterSavedArea(world,pending);
-  // Realm migration/population/social catch-up is authoritative even when no area transition occurred.
+  // Population, society and causal history catch-up are authoritative before an area materializes.
   localStorage.setItem(SAVE_KEY,JSON.stringify(world));
   return currentPlayer(world)?playerArea(currentPlayer(world)!):'far-march';
 }
@@ -28,6 +32,8 @@ if(area===IRONWARD_CROSSING){
   await import('./ironward-society-overlay');
 }else if(area===DEEP_IRON_MINE){
   await import('./deep-iron-mine');
+}else if(area===CROWNROAD_VALE){
+  await import('./crownroad-vale');
 }else{
   await import('./main');
   await import('./runtime-extensions');

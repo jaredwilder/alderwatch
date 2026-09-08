@@ -36,9 +36,16 @@ export function applySocialCertificate(certificate:SocialBoundaryCertificate,inp
 export function sequentialWardBoundary(signatures:readonly SocialSignal[],input:SocialSignal):SocialBoundaryTransition{let signal={...input},delta=zeroSocialDelta();for(const signature of signatures){const step=wardBoundaryStep(signature,signal);signal=step.signal;delta=addSocialDelta(delta,step.delta);}return {signal,delta};}
 
 export class SocialSeparatorTree{
- readonly leafCount:number;readonly nodes:SocialBoundaryCertificate[];recomputedNodes=0;
- constructor(certificates:readonly SocialBoundaryCertificate[]){if(certificates.length<1)throw new Error('social separator tree requires at least one ward');let leafCount=1;while(leafCount<certificates.length)leafCount*=2;this.leafCount=leafCount;this.nodes=Array.from({length:leafCount*2},()=>identitySocialCertificate());for(let i=0;i<certificates.length;i++)this.nodes[leafCount+i]=certificates[i];for(let i=leafCount-1;i>0;i--)this.nodes[i]=composeSocialCertificates(this.nodes[i*2],this.nodes[i*2+1]);}
+ readonly leafCount:number;readonly wardCount:number;readonly nodes:SocialBoundaryCertificate[];recomputedNodes=0;rangeNodes=0;
+ constructor(certificates:readonly SocialBoundaryCertificate[]){if(certificates.length<1)throw new Error('social separator tree requires at least one ward');this.wardCount=certificates.length;let leafCount=1;while(leafCount<certificates.length)leafCount*=2;this.leafCount=leafCount;this.nodes=Array.from({length:leafCount*2},()=>identitySocialCertificate());for(let i=0;i<certificates.length;i++)this.nodes[leafCount+i]=certificates[i];for(let i=leafCount-1;i>0;i--)this.nodes[i]=composeSocialCertificates(this.nodes[i*2],this.nodes[i*2+1]);}
  get root(){return this.nodes[1];}
  apply(input:SocialSignal){return applySocialCertificate(this.root,input);}
- update(index:number,certificate:SocialBoundaryCertificate):number{if(!Number.isInteger(index)||index<0||index>=this.leafCount)throw new Error('social ward index outside separator tree');let node=this.leafCount+index;this.nodes[node]=certificate;this.recomputedNodes=0;while(node>1){node=Math.floor(node/2);this.nodes[node]=composeSocialCertificates(this.nodes[node*2],this.nodes[node*2+1]);this.recomputedNodes++;}return this.recomputedNodes;}
+ /** Exact ordered certificate for [start,end). Uses O(log wards) tree fragments and never enumerates the interval interior. */
+ range(start:number,end:number):SocialBoundaryCertificate{
+  if(!Number.isInteger(start)||!Number.isInteger(end)||start<0||end<start||end>this.wardCount)throw new Error('social separator range outside ward set');
+  let left=start+this.leafCount,right=end+this.leafCount,leftAcc=identitySocialCertificate(),rightAcc=identitySocialCertificate();this.rangeNodes=0;
+  while(left<right){if(left&1){leftAcc=composeSocialCertificates(leftAcc,this.nodes[left++]);this.rangeNodes++;}if(right&1){rightAcc=composeSocialCertificates(this.nodes[--right],rightAcc);this.rangeNodes++;}left=Math.floor(left/2);right=Math.floor(right/2);}
+  return composeSocialCertificates(leftAcc,rightAcc);
+ }
+ update(index:number,certificate:SocialBoundaryCertificate):number{if(!Number.isInteger(index)||index<0||index>=this.wardCount)throw new Error('social ward index outside separator tree');let node=this.leafCount+index;this.nodes[node]=certificate;this.recomputedNodes=0;while(node>1){node=Math.floor(node/2);this.nodes[node]=composeSocialCertificates(this.nodes[node*2],this.nodes[node*2+1]);this.recomputedNodes++;}return this.recomputedNodes;}
 }
