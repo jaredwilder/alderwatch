@@ -20,7 +20,7 @@ test('negotiation rights stay gated behind standing',()=>{
 
 test('NPC relay register keeps formal capitalization and punctuation',()=>{
  assert.equal(npcRoleplayRegister('road prices are up again. blame wolves'),'Road prices are up again. Blame wolves.');
- assert.equal(npcRoleplayRegister('i dont know'),'I don't know.');
+ assert.equal(npcRoleplayRegister('i dont know'),"I don't know.");
  assert.equal(npcRoleplayRegister('Already proper.'),'Already proper.');
 });
 
