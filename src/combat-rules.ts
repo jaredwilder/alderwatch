@@ -4,12 +4,13 @@ import {height} from './terrain';
 import {combatSkillFor,gainSkill} from './skills';
 
 export interface Fighter {id:string;position:Vec3;yaw:number;health:number;stamina:number;equipped:ItemId|null;combat?:CombatState}
+export const HEAVY_IMPACT=20/30,HEAVY_DURATION=38/30;
 export const WEAPONS:Partial<Record<ItemId,{damage:number;reach:number;impact:number;duration:number;stamina:number}>>={
- sword:{damage:24,reach:1.95,impact:13/30,duration:25/30,stamina:12},
- fine_sword:{damage:34,reach:2.05,impact:13/30,duration:25/30,stamina:12},
- axe:{damage:20,reach:2.2,impact:17/30,duration:31/30,stamina:14},
- pickaxe:{damage:12,reach:2.1,impact:17/30,duration:31/30,stamina:14},
- hammer:{damage:10,reach:1.5,impact:.567,duration:1.22,stamina:12},
+ sword:{damage:24,reach:1.95,impact:11/30,duration:21/30,stamina:12},
+ fine_sword:{damage:34,reach:2.05,impact:11/30,duration:21/30,stamina:12},
+ axe:{damage:20,reach:2.2,impact:14/30,duration:25/30,stamina:14},
+ pickaxe:{damage:12,reach:2.1,impact:14/30,duration:25/30,stamina:14},
+ hammer:{damage:10,reach:1.5,impact:.47,duration:.96,stamina:12},
  bow:{damage:32,reach:38,impact:.32,duration:.76,stamina:9},
 };
 export type ImpactSound='light_sword'|'heavy_sword'|'axe'|'pick'|'animal'|'hit'|'block'|'parry';
@@ -33,7 +34,7 @@ export function impactFeedback(attacker:Fighter,outcome:'hit'|'blocked'|'parried
 export const horizontalDistance=(a:Vec3,b:Vec3)=>Math.hypot(a[0]-b[0],a[2]-b[2]);
 export function combatState(f:Fighter):CombatState{return f.combat??={kind:'idle',started:0,until:0,consumed:false,blocking:false,weapon:null};}
 export function actionBusy(f:Fighter,tick:number){return f.health<=0||combatState(f).until>tick;}
-export function attackProfile(f:Fighter){const c=combatState(f),w=c.weapon?WEAPONS[c.weapon]:undefined;return w&&c.kind==='heavy'?{...w,damage:Math.round(w.damage*1.7),reach:w.reach+.05,impact:25/30,duration:47/30,stamina:26}:w;}
+export function attackProfile(f:Fighter){const c=combatState(f),w=c.weapon?WEAPONS[c.weapon]:undefined;return w&&c.kind==='heavy'?{...w,damage:Math.round(w.damage*1.7),reach:w.reach+.05,impact:HEAVY_IMPACT,duration:HEAVY_DURATION,stamina:26}:w;}
 export function canCancelInto(f:Fighter,tick:number,action:'attack'|'heavy'|'dodge'){
  const c=combatState(f);if(f.health<=0||c.until<=tick)return true;if(action!=='dodge'||!['attack','heavy'].includes(c.kind))return false;
  const age=(tick-c.started)/60,profile=attackProfile(f);if(!profile)return false;
@@ -47,7 +48,7 @@ export function beginAction(f:Fighter,tick:number,action:'attack'|'heavy'|'dodge
  if(action==='heavy'&&!f.equipped?.includes('sword'))return {ok:false,message:'Equip a sword for a two-handed heavy strike'};
  const cost=action==='dodge'?22:action==='heavy'?26:weapon!.stamina;
  if(f.stamina<cost)return {ok:false,message:'Not enough stamina'};
- f.stamina-=cost;f.combat={kind:action,started:tick,until:tick+Math.ceil((action==='dodge'?.8:action==='heavy'?47/30:weapon!.duration)*60),consumed:false,blocking:false,weapon:f.equipped};
+ f.stamina-=cost;f.combat={kind:action,started:tick,until:tick+Math.ceil((action==='dodge'?.8:action==='heavy'?HEAVY_DURATION:weapon!.duration)*60),consumed:false,blocking:false,weapon:f.equipped};
  return {ok:true,message:action==='dodge'?'Dodge':f.equipped==='bow'?'Loose arrow':'Attack'};
 }
 export function setGuard(f:Fighter,tick:number,wanted:boolean){const c=combatState(f),blocking=wanted&&!actionBusy(f,tick)&&f.stamina>=1&&!!f.equipped&&f.equipped!=='bow'&&!!WEAPONS[f.equipped];if(blocking&&!c.blocking)c.guardSince=tick;if(!blocking)c.guardSince=undefined;c.blocking=blocking;}
