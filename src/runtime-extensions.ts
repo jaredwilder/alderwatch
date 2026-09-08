@@ -3,6 +3,7 @@
 import './fun-systems';
 import './simulated-players';
 import './simulated-player-society';
+import './realm-chat-network';
 import './loading-experience';
 import './ui-stack';
 import './backpack-ui';
