@@ -33,7 +33,9 @@ export function seedRealmRuntime(tick = 0): RealmRuntimeState {
       'far-march': {
         areaId: 'far-march',
         enteredAtTick: tick,
-        visitCount: 1,
+        // Runtime construction has not materialized the area yet. The first `enter`
+        // records visit #1, avoiding a phantom visit in new worlds and test fixtures.
+        visitCount: 0,
       },
     },
   };
@@ -46,7 +48,7 @@ export function normalizeRealmRuntime(runtime: RealmRuntimeState | undefined, ti
     runtime.areas[runtime.activeAreaId] = {
       areaId: runtime.activeAreaId,
       enteredAtTick: tick,
-      visitCount: 1,
+      visitCount: 0,
     };
   }
   return runtime;
