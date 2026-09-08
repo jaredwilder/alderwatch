@@ -4,6 +4,7 @@ import './item-icons.css';
 
 const items=(Object.entries(ITEMS) as [ItemId,(typeof ITEMS)[ItemId]][]).sort((a,b)=>b[1].name.length-a[1].name.length);
 const recipeOutput=new Map(RECIPES.map(recipe=>[recipe.name,recipe.output]));
+const artSelector='.pack-item,.recipe,.loot-row';
 
 function itemFromText(text:string|null|undefined){
  if(!text)return undefined;
@@ -19,10 +20,11 @@ function icon(item:ItemId,className:string){
 
 function enhanceInventory(root:ParentNode){
  for(const card of root.querySelectorAll<HTMLElement>('.pack-item:not(.has-item-art)')){
-  const item=itemFromText(card.querySelector('strong')?.textContent);
+  const strong=card.querySelector<HTMLElement>('strong'),item=itemFromText(strong?.textContent);
   if(!item)continue;
   card.classList.add('has-item-art');
   card.prepend(icon(item,'pack-item-icon'));
+  if(strong){const nameAt=strong.textContent?.indexOf(ITEMS[item].name)??-1;if(nameAt>=0)strong.textContent=strong.textContent!.slice(nameAt);}
  }
 }
 
@@ -37,8 +39,7 @@ function enhanceCrafting(root:ParentNode){
 
 function enhanceStorage(root:ParentNode){
  for(const row of root.querySelectorAll<HTMLElement>('.loot-row:not(.has-item-art)')){
-  const item=itemFromText(row.querySelector('strong')?.textContent);
-  const frame=row.querySelector<HTMLElement>('.loot-icon');
+  const item=itemFromText(row.querySelector('strong')?.textContent),frame=row.querySelector<HTMLElement>('.loot-icon');
   if(!item||!frame)continue;
   row.classList.add('has-item-art');
   frame.replaceChildren(icon(item,'loot-item-icon'));
@@ -48,23 +49,21 @@ function enhanceStorage(root:ParentNode){
 function enhance(){
  const ui=document.querySelector<HTMLElement>('#ui');
  if(!ui)return;
- enhanceInventory(ui);
- enhanceCrafting(ui);
- enhanceStorage(ui);
+ enhanceInventory(ui);enhanceCrafting(ui);enhanceStorage(ui);
+}
+
+function containsArtSurface(node:Node){
+ return node instanceof Element&&(node.matches(artSelector)||Boolean(node.querySelector(artSelector)));
 }
 
 function install(){
  const ui=document.querySelector<HTMLElement>('#ui');
  if(!ui)return;
  let queued=false;
- const schedule=()=>{
-  if(queued)return;
-  queued=true;
-  queueMicrotask(()=>{queued=false;enhance();});
- };
- new MutationObserver(schedule).observe(ui,{childList:true,subtree:true});
+ const schedule=()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;enhance();});};
+ new MutationObserver(records=>{if(records.some(record=>Array.from(record.addedNodes).some(containsArtSurface)))schedule();}).observe(ui,{childList:true,subtree:true});
  enhance();
 }
 
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
-else install();
+// This dependency evaluates before main.ts creates #ui. Queueing installs after main's synchronous bootstrap.
+queueMicrotask(install);
