@@ -2,6 +2,7 @@
 // import gameplay modules without executing DOM/CSS presentation side effects.
 import './fun-systems';
 import './simulated-players';
+import './simulated-player-society';
 import './loading-experience';
 import './ui-stack';
 import './backpack-ui';
