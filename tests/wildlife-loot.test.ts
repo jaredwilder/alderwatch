@@ -10,7 +10,7 @@ import './wildlife-behavior.test';
 test('animals gain persistent health without resetting existing saves',()=>{
  const a=new LocalAuthority(),p=makePlayer('Warden');a.state.players[p.id]=p;seedNature(a.state);
  const deer=Object.values(a.state.animals!).find(x=>x.kind==='deer')!,bison=Object.values(a.state.animals!).find(x=>x.kind==='bison')!,wolf=Object.values(a.state.animals!).find(x=>x.kind==='wolf')!;
- assert.equal(deer.maxHealth,62);assert.equal(bison.maxHealth,240);assert.equal(wolf.maxHealth,74);assert.equal(Object.values(a.state.animals!).filter(x=>x.kind==='bison').length,5);deer.health=31;seedNature(a.state);assert.equal(deer.health,31);assert.equal(animalAlive(deer),true);
+ assert.equal(deer.maxHealth,62);assert.equal(bison.maxHealth,240);assert.equal(wolf.maxHealth,74);assert.equal(Object.values(a.state.animals!).filter(x=>x.kind==='bison').length,6);deer.health=31;seedNature(a.state);assert.equal(deer.health,31);assert.equal(animalAlive(deer),true);
 });
 
 test('lethal hunting creates one persistent lootable carcass container',()=>{
