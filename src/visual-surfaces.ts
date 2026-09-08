@@ -3,23 +3,32 @@ import * as T from 'three';
 /** Retain source material masks but give simple architectural palettes real surfaces. */
 export function architecturalSurface(material:T.MeshStandardMaterial,textures:Record<string,T.Texture>){
  material.roughness=.92;material.metalness=0;
+ // The modular kit already has authored albedo/normal/roughness atlases. Do not paint over them.
+ if(material.map)return;
+ const plasterSurface=/wall|plaster/i.test(material.name),stoneSurface=/stone|rock/i.test(material.name),woodSurface=/wood|timber/i.test(material.name);
  material.onBeforeCompile=s=>{
   s.uniforms.awTimber={value:textures.timber};s.uniforms.awPlaster={value:textures.plaster};s.uniforms.awRock={value:textures['rock-color']};
   s.vertexShader='varying vec3 awSurface; varying vec3 awSurfaceNormal;\n'+s.vertexShader;
-  s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nawSurface=position;awSurfaceNormal=normal;');
+  s.vertexShader=s.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+   vec4 surfacePosition=vec4(position,1.0);
+   #ifdef USE_INSTANCING
+    surfacePosition=instanceMatrix*surfacePosition;
+   #endif
+   awSurface=(modelMatrix*surfacePosition).xyz;awSurfaceNormal=normalize(mat3(modelMatrix)*normal);
+  `);
   s.fragmentShader='uniform sampler2D awTimber;uniform sampler2D awPlaster;uniform sampler2D awRock;varying vec3 awSurface;varying vec3 awSurfaceNormal;\n'+s.fragmentShader;
   s.fragmentShader=s.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
    vec3 n=abs(normalize(awSurfaceNormal));vec2 uv=n.y>.65?awSurface.xz:(n.x>n.z?awSurface.zy:awSurface.xy);
    vec3 source=diffuseColor.rgb;float lightness=dot(source,vec3(.2126,.7152,.0722));
    float saturation=max(max(source.r,source.g),source.b)-min(min(source.r,source.g),source.b);
-   float cream=smoothstep(.38,.68,lightness)*(1.0-smoothstep(.12,.32,saturation));
-   float cold=step(source.r*1.12,source.b);float stone=clamp(cold+(1.0-smoothstep(.035,.12,saturation))*(1.0-cream),0.0,1.0);
+   float cream=${plasterSurface?'1.0':woodSurface||stoneSurface?'0.0':'smoothstep(.38,.68,lightness)*(1.0-smoothstep(.12,.32,saturation))'};
+   float cold=step(source.r*1.12,source.b);float stone=${stoneSurface?'1.0':plasterSurface||woodSurface?'0.0':'clamp(cold+(1.0-smoothstep(.035,.12,saturation))*(1.0-cream),0.0,1.0)'};
    vec3 wood=texture2D(awTimber,uv*vec2(1.15,.55)).rgb*vec3(.61,.57,.49);
    vec3 plaster=texture2D(awPlaster,uv*.38).rgb*vec3(.82,.79,.70);
    vec3 rock=texture2D(awRock,uv*.68).rgb*vec3(.64,.68,.69);
    diffuseColor.rgb=mix(mix(wood,rock,stone*.85),plaster,cream)*mix(.48,1.15,smoothstep(.02,.7,lightness));
   `);
- };material.customProgramCacheKey=()=> 'aw-architectural-surfaces-1';
+ };material.customProgramCacheKey=()=> 'aw-architectural-world-surfaces-3-'+plasterSurface+stoneSurface+woodSurface;
 }
 
 /** Curved ribbons instead of intersecting rectangular atlas cards; shared by instances. */

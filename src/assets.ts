@@ -60,8 +60,13 @@ export class Assets {
   for(const x of [-2,0,2]){add(x===-2?'wall_plaster_door_flat':x===2?'wall_plaster_window_wide_flat':'wall_plaster_straight',x,0,4.56,Math.PI);add('wall_plaster_straight',x,0,-1.56,0);}
   for(const z of [-.5,1.5,3.5]){add('wall_plaster_straight',-3.06,0,z,Math.PI/2);add('wall_plaster_straight',3.06,0,z,-Math.PI/2);}
   for(const x of [-3.06,3.06])for(const z of [-1.56,4.56])add('corner_exterior_wood',x,0,z,0);
-  add('doorframe_flat_wooddark',-2,0,4.55,Math.PI);add('door_1_flat',-1.49,0,4.54,Math.PI);add('window_wide_flat1',2,0,4.55,Math.PI);
-  add('roof_roundtiles_6x6',0,3.10,1.5,0);add('chimney',2.05,3.05,.15,0);add('crate',2.25,0,5.25,-.18);add('wagon',-4.75,0,1.8,Math.PI/2);add('fence_wood_single',4.45,0,3.4,Math.PI/2);return root;
+  add('doorframe_flat_wooddark',-2,0,4.55,Math.PI);add('door_1_flat',-1.49,0,4.54,Math.PI);add('window_wide_flat1',2,.75,4.55,Math.PI);
+  add('roof_roundtiles_6x6',0,3.10,1.5,0);
+  const gable=this.kit?.scene.getObjectByName('village_gable'),roof=this.medieval.roof_roundtiles_6x6;
+  if(gable&&roof){const box=new T.Box3().setFromObject(gable),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3()),roofSize=new T.Box3().setFromObject(roof).getSize(new T.Vector3()),sx=(roofSize.x-.14)/size.x,sy=(roofSize.y-.12)/size.y;
+   for(const [z,yaw] of [[4.56,0],[-1.56,Math.PI]]){const end=gable.clone(true);end.name='Finished longhouse gable';end.scale.set(sx,sy,1);end.rotation.y=yaw;end.position.set(-center.x*sx,3.10-box.min.y*sy,z);root.add(end);}
+  }
+  add('chimney',2.05,3.05,.15,0);add('crate',2.25,0,5.25,-.18);add('wagon',-4.75,0,1.8,Math.PI/2);add('fence_wood_single',4.45,0,3.4,Math.PI/2);return root;
  }
  authoredFortification(){const root=new T.Group();root.name='Quaternius frontier fortification';const add=(name:string,x:number,y:number,z:number,yaw=0,scale=1)=>{const source=this.medieval[name];if(!source)return;const o=source.clone(true);o.position.set(x,y,z);o.rotation.y=yaw;o.scale.setScalar(scale);root.add(o);};add('fence_wood_ext1',-1.0,0,0,0,.92);add('fence_wood_ext2',1.0,0,0,Math.PI,.92);add('support',-1.48,0,-.12,0,.92);add('support',1.48,0,-.12,0,.92);add('border_straight',0,.15,.08,0,.72);return root;}
  authoredCampShelter(){const root=new T.Group();root.name='Quaternius MegaKit field shelter';const add=(name:string,x:number,y:number,z:number,yaw=0,scale=1)=>{const source=this.medieval[name];if(!source)return;const o=source.clone(true);o.position.set(x,y,z);o.rotation.y=yaw;o.scale.setScalar(scale);root.add(o);};add('floor_wooddark',0,.03,0,0,1.35);for(const x of [-1.45,1.45])for(const z of [-1.05,1.05])add('support',x,0,z,0,1.05);add('roof_wooden_2x1',-.9,2.55,0,0,1.25);add('roof_wooden_2x1',.9,2.55,0,0,1.25);add('border_straight',0,.2,-1.2,0,1.15);add('crate',.85,.04,.55,.25,.62);return root;}
