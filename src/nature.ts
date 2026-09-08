@@ -6,7 +6,7 @@ import type {WorldState,ForageState,Vec3} from './state';
 import {animalClips,instantiateAnimal,loadExtendedAnimalLibrary} from './animal-models';
 import {animalAlive,bearBite,bearMaul,corpseId,ensureAnimalVitals,predatorBite,wolfBite,wolfMaul} from './wildlife-rules';
 import {AUTHORED_ANIMAL_SET,PREDATOR_SPECIES,predatorCanHunt,species,type AnimalKind,type AnimalState,type AuthoredAnimalKind} from './wildlife-species';
-import {WILDLIFE_SPAWNS} from './wildlife-spawns';
+import {WILDLIFE_SPAWNS,type WildlifeSpawn} from './wildlife-spawns';
 import {aggroWolfPack,ambientWanderHeading,angleTo,cohesiveFleeHeading,headingVector,herdCenter,predatorTarget,predatorThreat,wildlifeDistance,wolfFlankPoint,wolfInterferer} from './wildlife-ai';
 import {aerialPreyAction,beginCarry,ensureAerialState,releaseCarry,stepAerialEnergy} from './wildlife-aerial';
 import {createBeehiveVisual} from './beehive-visual';
@@ -21,6 +21,13 @@ const MODELS={berries:'berry_bush',mushroom:'mushrooms',herb:'herbs',wood:'falle
 const HIVE_SPAWNS:readonly [string,number,number][]=[['nature-hive-0',-27,11],['nature-hive-1',31,52],['nature-hive-2',-42,92],['nature-hive-3',48,128]];
 const dist=wildlifeDistance;
 
+function rehomeLegacyWildlife(animal:AnimalState,spawn:WildlifeSpawn,y:number){
+ const legacy=spawn.legacyHome;if(!legacy||animal.dead||(animal.health??1)<=0||animal.carriedById||animal.carriedPreyId)return;
+ if(Math.hypot(animal.home[0]-legacy[0],animal.home[2]-legacy[1])>.75)return;
+ animal.position=[spawn.x,y,spawn.z];animal.home=[spawn.x,y,spawn.z];animal.packId=spawn.packId;
+ animal.huntTargetId=undefined;animal.huntUntil=undefined;animal.huntBestDistance=undefined;animal.huntCooldownUntil=undefined;animal.aggroPlayerId=undefined;animal.aggroUntil=undefined;animal.alarmedUntil=undefined;animal.lastAttackerId=undefined;animal.avoidUntil=undefined;
+}
+
 export function seedNature(w:WorldState){
  const rng=random(4872);
  for(let i=0;i<68;i++){
@@ -30,7 +37,11 @@ export function seedNature(w:WorldState){
  }
  for(const [id,x,z] of HIVE_SPAWNS)w.forage[id]??={id,kind:'wild_honey',position:[x,height(x,z),z],harvested:false};
  w.animals??={};
- for(const spawn of WILDLIFE_SPAWNS){const y=height(spawn.x,spawn.z);w.animals[spawn.id]??={id:spawn.id,kind:spawn.kind,position:[spawn.x,y,spawn.z],home:[spawn.x,y,spawn.z],yaw:spawn.yaw,phase:spawn.yaw*1.7,packId:spawn.packId};}
+ for(const spawn of WILDLIFE_SPAWNS){
+  const y=height(spawn.x,spawn.z),animal=w.animals[spawn.id];
+  if(animal)rehomeLegacyWildlife(animal,spawn,y);
+  else w.animals[spawn.id]={id:spawn.id,kind:spawn.kind,position:[spawn.x,y,spawn.z],home:[spawn.x,y,spawn.z],yaw:spawn.yaw,phase:spawn.yaw*1.7,packId:spawn.packId};
+ }
  for(const animal of Object.values(w.animals)){ensureAnimalVitals(animal);if(species(animal.kind).aerial)ensureAerialState(animal);}
 }
 export function forageAvailable(f:ForageState,tick:number){return !f.harvested||(f.readyAt!==undefined&&f.readyAt<=tick);}
