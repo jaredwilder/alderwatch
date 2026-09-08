@@ -15,9 +15,9 @@ const ZERO:Drive={pitch:0,yaw:0,roll:0};
 function driveFor(clip:string,bone:string):Drive{
  const b=bone.toLowerCase(),neck=b.includes('neck'),head=b.includes('head');
  if(clip==='attack')return bone==='pelvis'?{pitch:.018,yaw:.40,roll:-.035}:bone==='spine_01'?{pitch:.015,yaw:.19,roll:-.035}:bone==='spine_02'?{pitch:0,yaw:.10,roll:-.02}:bone==='spine_03'?{pitch:0,yaw:.055,roll:-.01}:neck?{pitch:.095,yaw:0,roll:0}:head?{pitch:.045,yaw:0,roll:0}:ZERO;
- // Axe combat is retargeted into a right-side load -> left-side finish. Negative transverse drive makes
- // the pelvis lead that same spatial direction instead of counter-rotating against the reversed arms.
- if(clip==='chop')return bone==='pelvis'?{pitch:.002,yaw:-.86,roll:-.065}:bone==='spine_01'?{pitch:.002,yaw:-.34,roll:-.055}:bone==='spine_02'?{pitch:0,yaw:-.17,roll:-.03}:bone==='spine_03'?{pitch:0,yaw:-.082,roll:-.015}:neck?{pitch:.065,yaw:0,roll:0}:head?{pitch:.025,yaw:0,roll:0}:ZERO;
+ // Right-handed axe kill stroke: positive coil on the weapon side, then negative transverse rotation across
+ // the target. The temporal weights below change sign through contact, so this yaw is deliberately negative.
+ if(clip==='chop')return bone==='pelvis'?{pitch:.002,yaw:-.78,roll:-.055}:bone==='spine_01'?{pitch:.002,yaw:-.31,roll:-.045}:bone==='spine_02'?{pitch:0,yaw:-.15,roll:-.025}:bone==='spine_03'?{pitch:0,yaw:-.072,roll:-.012}:neck?{pitch:.055,yaw:0,roll:0}:head?{pitch:.022,yaw:0,roll:0}:ZERO;
  if(clip==='mine')return bone==='pelvis'?{pitch:.20,yaw:.065,roll:0}:bone==='spine_01'?{pitch:.16,yaw:.05,roll:0}:bone==='spine_02'?{pitch:.09,yaw:.025,roll:0}:ZERO;
  if(clip==='heavy')return bone==='pelvis'?{pitch:.14,yaw:.15,roll:0}:bone==='spine_01'?{pitch:.11,yaw:.12,roll:0}:bone==='spine_02'?{pitch:.065,yaw:.07,roll:0}:ZERO;
  return ZERO;
@@ -34,22 +34,22 @@ function driveWeight(t:number,impact:number,duration:number){
 type Segment='pelvis'|'spine1'|'spine2'|'spine3'|'other';
 function segmentFor(bone:string):Segment{return bone==='pelvis'?'pelvis':bone==='spine_01'?'spine1':bone==='spine_02'?'spine2':bone==='spine_03'?'spine3':'other';}
 /**
- * Side cuts use proximal-to-distal sequencing. The axe deliberately traverses from a deep counter-coil
- * to an open pelvis through contact; this is angular displacement, not a static rotated pose.
+ * Axe weights deliberately cross sign: deep weapon-side coil -> open pelvis at contact -> hard cross-body
+ * follow-through. Higher torso segments start later and travel less, preserving pelvis-before-trunk sequencing.
  */
 function sideDriveShape(clip:string,bone:string,impact:number,duration:number){
  const tail=Math.max(.001,duration-impact),segment=segmentFor(bone),axe=clip==='chop';
  if(segment==='pelvis')return axe
-  ?{load:Math.max(.025,impact*.24),loadWeight:-1.22,contactWeight:.96,follow:impact+tail*.20,followWeight:1.12}
+  ?{load:Math.max(.025,impact*.23),loadWeight:-1.15,contactWeight:.34,follow:impact+tail*.22,followWeight:.95}
   :{load:Math.max(.035,impact*.34),loadWeight:-1,contactWeight:.46,follow:impact+tail*.30,followWeight:.82};
  if(segment==='spine1')return axe
-  ?{load:Math.max(.03,impact*.40),loadWeight:-.70,contactWeight:.48,follow:impact+tail*.30,followWeight:.82}
+  ?{load:Math.max(.03,impact*.39),loadWeight:-.75,contactWeight:.18,follow:impact+tail*.31,followWeight:.68}
   :{load:Math.max(.04,impact*.46),loadWeight:-.72,contactWeight:.28,follow:impact+tail*.36,followWeight:.68};
  if(segment==='spine2')return axe
-  ?{load:Math.max(.035,impact*.51),loadWeight:-.40,contactWeight:.25,follow:impact+tail*.38,followWeight:.58}
+  ?{load:Math.max(.035,impact*.50),loadWeight:-.45,contactWeight:.09,follow:impact+tail*.39,followWeight:.48}
   :{load:Math.max(.04,impact*.56),loadWeight:-.44,contactWeight:.14,follow:impact+tail*.42,followWeight:.52};
  if(segment==='spine3')return axe
-  ?{load:Math.max(.04,impact*.59),loadWeight:-.26,contactWeight:.13,follow:impact+tail*.44,followWeight:.43}
+  ?{load:Math.max(.04,impact*.58),loadWeight:-.28,contactWeight:.04,follow:impact+tail*.45,followWeight:.34}
   :{load:Math.max(.04,impact*.62),loadWeight:-.30,contactWeight:.08,follow:impact+tail*.46,followWeight:.40};
  return {load:Math.max(.04,impact*.55),loadWeight:-1,contactWeight:0,follow:impact+tail*.42,followWeight:.72};
 }
@@ -68,11 +68,6 @@ function headDriveWeight(t:number,impact:number,duration:number){
  return 1-smooth01((t-impact)/Math.max(.001,release-impact));
 }
 
-function reverseTrack(track:T.KeyframeTrack,duration:number){
- const out=track.clone(),times=Array.from(track.times),values=Array.from(track.values),n=times.length,size=track.getValueSize();
- for(let i=0;i<n;i++){out.times[i]=duration-times[n-1-i];for(let j=0;j<size;j++)out.values[i*size+j]=values[(n-1-i)*size+j];}
- return out;
-}
 function amplifyRotation(track:T.KeyframeTrack){
  const gain=rotationGain(track.name),out=track.clone();if(gain===1||!track.name.endsWith('.quaternion'))return out;
  const v=out.values,base=new T.Quaternion().fromArray(v,0).normalize(),baseInv=base.clone().invert(),q=new T.Quaternion(),delta=new T.Quaternion(),scaled=new T.Quaternion(),axis=new T.Vector3();
@@ -107,9 +102,8 @@ function addBodyDrive(track:T.KeyframeTrack,clip:string,impact:number,duration:n
 }
 
 function retime(track:T.KeyframeTrack,clip:string,sourceImpact:number,targetImpact:number,targetDuration:number,sourceDuration:number){
- const reversed=clip==='chop'&&meleeBodyTrack(track.name),effectiveImpact=reversed?sourceDuration-sourceImpact:sourceImpact;
- let out=reversed?reverseTrack(track,sourceDuration):track.clone();out=amplifyRotation(out);const times=out.times,beforeScale=effectiveImpact>1e-6?targetImpact/effectiveImpact:1,sourceTail=Math.max(1e-6,sourceDuration-effectiveImpact),targetTail=Math.max(0,targetDuration-targetImpact);
- for(let i=0;i<times.length;i++){const t=times[i];times[i]=t<=effectiveImpact?t*beforeScale:targetImpact+(t-effectiveImpact)*(targetTail/sourceTail);}
+ let out=amplifyRotation(track);const times=out.times,beforeScale=sourceImpact>1e-6?targetImpact/sourceImpact:1,sourceTail=Math.max(1e-6,sourceDuration-sourceImpact),targetTail=Math.max(0,targetDuration-targetImpact);
+ for(let i=0;i<times.length;i++){const t=times[i];times[i]=t<=sourceImpact?t*beforeScale:targetImpact+(t-sourceImpact)*(targetTail/sourceTail);}
  out=smoothDiscreteQuaternion(out,targetImpact);return addBodyDrive(out,clip,targetImpact,targetDuration);
 }
 
