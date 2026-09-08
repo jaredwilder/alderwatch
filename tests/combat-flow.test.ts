@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {makePlayer,seedState,type EnemyState} from '../src/state';
-import {beginAction,counterOpening,resolveStrike,setGuard} from '../src/combat-rules';
+import {beginAction,canCancelInto,counterOpening,resolveStrike,setGuard} from '../src/combat-rules';
 
 function duel(){
  const w=seedState(),player=makePlayer('Warden');player.position=[0,0,0];player.yaw=0;player.equipped='sword';player.health=100;player.stamina=100;w.players[player.id]=player;
@@ -44,4 +44,23 @@ test('axe pressure breaks an exhausted guard and creates a punish window',()=>{
 test('weapon identity changes guard pressure instead of every block costing the same',()=>{
  const sword=duel();sword.enemy.stamina=60;sword.enemy.combat={kind:'idle',started:0,until:0,consumed:false,blocking:true,guardSince:0,weapon:sword.enemy.equipped};beginAction(sword.player,0,'attack');sword.w.tick=26;const swordOut=resolveStrike(sword.w,sword.player,sword.enemy);assert.equal(swordOut.outcome,'blocked');const swordLeft=sword.enemy.stamina;
  const axe=duel();axe.player.equipped='axe';axe.enemy.stamina=60;axe.enemy.combat={kind:'idle',started:0,until:0,consumed:false,blocking:true,guardSince:0,weapon:axe.enemy.equipped};beginAction(axe.player,0,'attack');axe.w.tick=34;const axeOut=resolveStrike(axe.w,axe.player,axe.enemy);assert.equal(axeOut.outcome,'blocked');assert.ok(axe.enemy.stamina<swordLeft,'Axe should punish guard stamina harder than sword');assert.ok((axeOut.damage??0)>(swordOut.damage??0),'Axe should chip guard harder than sword');
+});
+
+test('light attacks become dodge-cancellable only after contact is committed',()=>{
+ const {w,player,enemy}=duel();beginAction(player,0,'attack');w.tick=25;
+ assert.equal(canCancelInto(player,w.tick,'dodge'),false,'Pre-contact light attack should retain commitment');
+ w.tick=26;resolveStrike(w,player,enemy);assert.equal(player.combat?.consumed,true);
+ assert.equal(canCancelInto(player,w.tick,'dodge'),false,'Exact hit frame should not instant-cancel');
+ w.tick=29;assert.equal(canCancelInto(player,w.tick,'dodge'),true);
+ const stamina=player.stamina;const dodge=beginAction(player,w.tick,'dodge');assert.equal(dodge.ok,true);assert.equal(player.combat?.kind,'dodge');assert.equal(player.stamina,stamina-22);
+});
+
+test('heavy attacks keep commitment until late recovery before dodge cancel',()=>{
+ const {w,player,enemy}=duel();beginAction(player,0,'heavy');w.tick=50;resolveStrike(w,player,enemy);
+ assert.equal(canCancelInto(player,60,'dodge'),false,'Heavy should remain committed after impact');
+ assert.equal(canCancelInto(player,81,'dodge'),true,'Heavy should allow a late defensive recovery cancel');
+});
+
+test('attacks cannot cancel dodge or another live attack',()=>{
+ const {player}=duel();beginAction(player,0,'dodge');assert.equal(canCancelInto(player,5,'attack'),false);assert.equal(beginAction(player,5,'attack').ok,false);
 });
