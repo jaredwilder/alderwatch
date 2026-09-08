@@ -3,7 +3,8 @@ import type {PlayerState} from './state';
 
 export type RenownEvent=
  |'drink_crow_milk'|'drink_honey'|'kill_hare'|'kill_crow'|'kill_goat'|'kill_sheep'|'kill_deer'|'kill_bison'|'kill_wolf'|'kill_bear'|'kill_eagle'
- |'kill_baddie'|'complete_bounty'|'complete_expedition'|'forage'|'craft'|'build'|'rest'|'trade_buy'|'trade_sell'|'skill_gain'|'grandmaster';
+ |'kill_baddie'|'complete_bounty'|'complete_expedition'|'forage'|'craft'|'build'|'rest'|'trade_buy'|'trade_sell'|'skill_gain'|'grandmaster'
+ |'witness_eagle_pickup'|'witness_eagle_drop'|'witness_eagle_exhausted'|'witness_wolf_bison_hunt'|'witness_pack_aggro'|'witness_predator_kill'|'witness_eagle_eaten';
 
 export interface RenownState {
  karma:number;
@@ -34,6 +35,15 @@ export const ACHIEVEMENTS:readonly AchievementDefinition[]=[
  {id:'eagle_first',title:'FREEDOM WAS CANCELLED',description:'An eagle has discovered that the food chain is a circle.',test:r=>count(r,'kill_eagle')>=1},
  {id:'species_five',title:'DAVID ATTENBOROUGH WOULD LEAVE',description:'Five different species have experienced your field research.',test:r=>speciesKilled(r)>=5},
  {id:'wildlife_fifty',title:'DOCUMENTARY CREW BLACKLISTED',description:'Fifty wildlife kills. The ecosystem has stopped signing release forms.',test:r=>kills(r)>=50},
+ {id:'eagle_airlift',title:'THE EAGLE HAS YOUR BUNNY',description:'Witness an eagle perform unauthorized rabbit aviation.',test:r=>count(r,'witness_eagle_pickup')>=1},
+ {id:'eagle_airlift_five',title:'AIR FREIGHT DEPARTMENT',description:'Witness five eagle airlifts. Nobody has filed a manifest.',test:r=>count(r,'witness_eagle_pickup')>=5},
+ {id:'eagle_drop',title:'GRAVITY HAS ENTERED THE FOOD WEB',description:'Witness an eagle drop its cargo before dinner.',test:r=>count(r,'witness_eagle_drop')>=1},
+ {id:'eagle_exhausted',title:'THE SKY RAN OUT OF GAS',description:'Watch an exhausted eagle land and continue the day on foot.',test:r=>count(r,'witness_eagle_exhausted')>=1},
+ {id:'wolf_bison',title:'THREE WOLVES HAVE A BUSINESS PLAN',description:'Witness wolves decide a bison is a reasonable group project.',test:r=>count(r,'witness_wolf_bison_hunt')>=1},
+ {id:'wolf_interference',title:'YOU INTERRUPTED DINNER',description:'Interfere with a wolf hunt and become the revised menu.',test:r=>count(r,'witness_pack_aggro')>=1},
+ {id:'predation_first',title:'NATURE DOCUMENTARY, UNAUTHORIZED',description:'Witness one animal kill another without any player quest involved.',test:r=>count(r,'witness_predator_kill')>=1},
+ {id:'predation_ten',title:'THE WILDERNESS IS PLAYING WITHOUT YOU',description:'Witness ten predator kills. The simulation would like privacy.',test:r=>count(r,'witness_predator_kill')>=10},
+ {id:'eagle_eaten',title:'THE FOOD CHAIN HAS LOOPED',description:'Witness a grounded eagle become somebody else’s dinner.',test:r=>count(r,'witness_eagle_eaten')>=1},
  {id:'baddie_first',title:'LOCAL PROBLEM SOLVER',description:'One outlaw removed from the March. Alderbrook approves.',test:r=>count(r,'kill_baddie')>=1},
  {id:'baddie_twenty',title:'HUMAN RESOURCES',description:'Twenty hostile humans have been permanently offboarded.',test:r=>count(r,'kill_baddie')>=20},
  {id:'bounty_first',title:'HAS SWORD, WILL TRAVEL',description:'Claim your first bounty and become employable in the worst possible industry.',test:r=>count(r,'complete_bounty')>=1},
@@ -73,6 +83,7 @@ function tune(r:RenownState,event:RenownEvent,amount:number){
  else if(event==='trade_buy'||event==='trade_sell')rep(r,'Free Traders',.75*amount);
  else if(event==='build')rep(r,'Alderbrook',.15*amount);
  else if(event==='forage')rep(r,'Wildkeepers',.05*amount);
+ else if(event.startsWith('witness_'))rep(r,'Wildkeepers',.08*amount);
 }
 export function recordRenownEvent(player:PlayerState,event:RenownEvent,amount=1,tick=0){
  const r=ensureRenown(player);r.counters[event]=(r.counters[event]??0)+amount;tune(r,event,amount);r.karma=Math.round(r.karma*10)/10;r.fame=Math.round(r.fame*10)/10;r.gold=Math.max(0,Math.round(r.gold));

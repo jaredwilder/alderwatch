@@ -11,7 +11,7 @@
     "prebuild": "npm run assets:animals && npm run assets:medieval",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5191 --strictPort",
-    "test": "tsx --test tests/state.test.ts tests/assets.test.ts tests/combat.integration.test.ts tests/building.integration.test.ts tests/input.test.ts tests/expedition.test.ts tests/nature-camera.test.ts tests/wildlife-loot.test.ts tests/wildlife-aerial.test.ts tests/beehives.test.ts tests/geometry-batching.test.ts tests/live-gameplay.test.ts tests/skills.test.ts"
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {"three": "^0.185.1", "@dimforge/rapier3d-compat": "^0.19.0"},
   "devDependencies": {"@types/three": "^0.185.0", "typescript": "^5.9.2", "vite": "^8.2.0", "tsx": "^4.21.0", "@gltf-transform/cli": "^4.3.0"}

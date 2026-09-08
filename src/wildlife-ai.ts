@@ -28,9 +28,16 @@ function reachablePredatorPrey(predator:AnimalState,prey:AnimalState){
  if(predator.kind==='eagle')return true;
  return groundPredatorCanReach(prey);
 }
-
+function preyBias(predator:AnimalState,prey:AnimalState){
+ // Wolves may take whatever the living world presents, but a nearby bison hunt
+ // remains the pack's defining high-value encounter and wins over easy side prey.
+ if(predator.kind==='wolf'){if(prey.kind==='bison')return -20;if(prey.kind==='deer')return -3;if(prey.kind==='sheep'||prey.kind==='goat')return -1.5;}
+ if(predator.kind==='eagle'){if(prey.kind==='hare')return -3;if(prey.kind==='sheep')return -1.5;}
+ if(predator.kind==='bear'){if(prey.kind==='wolf')return -2;if(prey.kind==='deer')return -1;}
+ return 0;
+}
 export function predatorTarget(predator:AnimalState,animals:Record<string,AnimalState>,radius=species(predator.kind).predator?.acquireRadius??0){
- return Object.values(animals).filter(prey=>prey.id!==predator.id&&!prey.dead&&(prey.health??1)>0&&predatorCanHunt(predator.kind,prey.kind)&&reachablePredatorPrey(predator,prey)&&wildlifeDistance(prey.position,predator.position)<radius).sort((a,b)=>wildlifeDistance(a.position,predator.position)-wildlifeDistance(b.position,predator.position)||a.id.localeCompare(b.id))[0];
+ return Object.values(animals).filter(prey=>prey.id!==predator.id&&!prey.dead&&(prey.health??1)>0&&predatorCanHunt(predator.kind,prey.kind)&&reachablePredatorPrey(predator,prey)&&wildlifeDistance(prey.position,predator.position)<radius).sort((a,b)=>(wildlifeDistance(a.position,predator.position)+preyBias(predator,a))-(wildlifeDistance(b.position,predator.position)+preyBias(predator,b))||a.id.localeCompare(b.id))[0];
 }
 
 export function predatorThreat(prey:AnimalState,animals:Record<string,AnimalState>,radius=18){

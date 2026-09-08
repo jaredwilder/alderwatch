@@ -15,7 +15,9 @@ export function renderCharacterPaperdoll(assets:Assets,player:PlayerState){
   const tool=player.equipped==='bow'?makeBow():assets.prop(player.equipped==='fine_sword'?'sword':player.equipped);grip.add(tool);tool.position.set(0,0,0);model.updateMatrixWorld(true);
   const shaft=new T.Vector3(0,-.98,.20).normalize(),edge=new T.Vector3(-1,0,0),normal=new T.Vector3().crossVectors(edge,shaft).normalize();edge.crossVectors(shaft,normal).normalize();const worldQ=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(edge,shaft,normal));tool.quaternion.copy(grip.getWorldQuaternion(new T.Quaternion()).invert().multiply(worldQ));if(player.equipped==='bow'){tool.scale.setScalar(1.08);tool.rotateY(Math.PI/2);tool.rotateZ(Math.PI/2);}
  }
- model.rotation.y=Math.PI;model.updateMatrixWorld(true);const box=new T.Box3().setFromObject(model),size=new T.Vector3(),center=new T.Vector3();box.getSize(size);box.getCenter(center);model.position.set(-center.x,-box.min.y,-center.z);model.updateMatrixWorld(true);
+ // The source survivor already faces the +Z paper-doll camera. Rotating it by PI
+ // showed the player's back in the live P sheet; keep the authored forward basis.
+ model.rotation.y=0;model.updateMatrixWorld(true);const box=new T.Box3().setFromObject(model),size=new T.Vector3(),center=new T.Vector3();box.getSize(size);box.getCenter(center);model.position.set(-center.x,-box.min.y,-center.z);model.updateMatrixWorld(true);
  const h=Math.max(1.75,size.y),camera=new T.PerspectiveCamera(27,220/300,.05,30);camera.position.set(0,h*.56,Math.max(4.2,h*2.1));camera.lookAt(0,h*.5,0);scene.add(new T.HemisphereLight('#f1dfbf','#263126',2.1));const key=new T.DirectionalLight('#ffe0b7',2.7);key.position.set(3,5,4);scene.add(key);const rim=new T.DirectionalLight('#8ea6be',1.0);rim.position.set(-4,3,-2);scene.add(rim);renderer.render(scene,camera);
  return {canvas,dispose:()=>{renderer.dispose();scene.clear();}};
 }
