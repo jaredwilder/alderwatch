@@ -1,3 +1,4 @@
+import './canon-authority-bridge';
 import {consumePendingArea,currentPlayer,DEEP_IRON_MINE,enterSavedArea,IRONWARD_BASIN,IRONWARD_CROSSING,migrateRealmSave,playerArea,CROWNROAD_VALE} from './realm-save';
 import {advanceRealmPopulationToTick,ensureRealmPopulation} from './realm-population';
 import {advanceRealmSocietyToTick,ensureRealmSocial} from './realm-society';
