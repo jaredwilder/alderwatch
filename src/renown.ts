@@ -1,3 +1,4 @@
+import './profile-paperdoll-install';
 import type {PlayerState} from './state';
 
 export type RenownEvent=
