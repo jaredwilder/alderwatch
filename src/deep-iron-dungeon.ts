@@ -18,14 +18,14 @@ declare module './state'{interface WorldState{deepIron?:DeepIronPersistentState}
 
 const R=(id:string,name:string,x:number,z:number,depth:number,extra:Partial<DeepIronRoom>={}):DeepIronRoom=>({id,name,position:[x,0.03,z],depth,...extra});
 export const DEEP_IRON_ROOMS:readonly DeepIronRoom[]=[
- R('entrance','Ironvein Mouth',0,0,0),R('ore-yard','Ore Yard',0,18,1,{cache:true}),R('first-fork','First Fork',0,36,2),
- R('west-drift','West Drift',-18,36,3),R('powder-store','Powder Store',-36,36,4,{cache:true}),R('collapsed-gallery','Collapsed Gallery',-54,36,5),
- R('east-drift','East Drift',18,36,3),R('pump-room','Pump Room',36,36,4),R('sump','The Sump',54,36,5,{cache:true}),
- R('central-shaft','Central Shaft',0,54,4),R('gallery-a','Hammer Gallery',-18,54,5),R('gallery-b','Lantern Gallery',18,54,5),
- R('old-chapel','Saint Orin Niche',0,72,6,{cache:true}),R('winch','Old Winch',-18,72,6,{feature:'lever'}),R('guard-room','Deep Guardroom',18,72,6),
- R('deep-junction','Deep Junction',0,90,7),R('red-vein','Red Vein',-18,90,8,{cache:true}),R('smelter','Abandoned Smelter',18,90,8),
- R('broken-lift','Broken Lift',-36,90,9,{feature:'lift'}),R('underkeep','Underkeep',36,90,9),R('foreman-cache','Foreman Cache',-18,108,10,{cache:true}),
- R('hidden-cut','Hidden Cut',18,108,10),R('black-stope','Black Stope',0,108,11),R('lower-gate','Lower Works Gate',0,126,12,{feature:'lower-gate'}),
+ R('entrance','Ironvein Mouth',0,0,0),R('ore-yard','Ore Yard',0,14,1,{cache:true}),R('first-fork','First Fork',0,28,2),
+ R('west-drift','West Drift',-14,28,3),R('powder-store','Powder Store',-28,28,4,{cache:true}),R('collapsed-gallery','Collapsed Gallery',-42,28,5),
+ R('east-drift','East Drift',14,28,3),R('pump-room','Pump Room',28,28,4),R('sump','The Sump',42,28,5,{cache:true}),
+ R('central-shaft','Central Shaft',0,42,4),R('gallery-a','Hammer Gallery',-14,42,5),R('gallery-b','Lantern Gallery',14,42,5),
+ R('old-chapel','Saint Orin Niche',0,56,6,{cache:true}),R('winch','Old Winch',-14,56,6,{feature:'lever'}),R('guard-room','Deep Guardroom',14,56,6),
+ R('deep-junction','Deep Junction',0,70,7),R('red-vein','Red Vein',-14,70,8,{cache:true}),R('smelter','Abandoned Smelter',14,70,8),
+ R('broken-lift','Broken Lift',-28,70,9,{feature:'lift'}),R('underkeep','Underkeep',28,70,9),R('foreman-cache','Foreman Cache',-14,84,10,{cache:true}),
+ R('hidden-cut','Hidden Cut',14,84,10),R('black-stope','Black Stope',0,84,11),R('lower-gate','Lower Works Gate',0,98,12,{feature:'lower-gate'}),
 ];
 export const DEEP_IRON_ROOM_BY_ID=Object.fromEntries(DEEP_IRON_ROOMS.map(room=>[room.id,room])) as Record<string,DeepIronRoom>;
 const edges:[string,string][]=[
