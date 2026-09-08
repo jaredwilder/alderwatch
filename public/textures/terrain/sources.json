@@ -1,0 +1,86 @@
+[
+  {
+    "file": "litter-color.webp",
+    "asset": "forest_floor",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_floor/forest_floor_diff_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/forest_floor"
+  },
+  {
+    "file": "litter-normal.webp",
+    "asset": "forest_floor",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_floor/forest_floor_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/forest_floor"
+  },
+  {
+    "file": "litter-rough.webp",
+    "asset": "forest_floor",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_floor/forest_floor_rough_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/forest_floor"
+  },
+  {
+    "file": "field-color.webp",
+    "asset": "aerial_grass_rock",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_grass_rock/aerial_grass_rock_diff_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/aerial_grass_rock"
+  },
+  {
+    "file": "field-normal.webp",
+    "asset": "aerial_grass_rock",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_grass_rock/aerial_grass_rock_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/aerial_grass_rock"
+  },
+  {
+    "file": "field-rough.webp",
+    "asset": "aerial_grass_rock",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_grass_rock/aerial_grass_rock_rough_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/aerial_grass_rock"
+  },
+  {
+    "file": "rock-color.webp",
+    "asset": "rock_face",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_face/rock_face_diff_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/rock_face"
+  },
+  {
+    "file": "rock-normal.webp",
+    "asset": "rock_face",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_face/rock_face_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/rock_face"
+  },
+  {
+    "file": "rock-rough.webp",
+    "asset": "rock_face",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_face/rock_face_rough_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/rock_face"
+  },
+  {
+    "file": "oak-color.webp",
+    "asset": "jolcham_oak_bark_01",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/jolcham_oak_bark_01/jolcham_oak_bark_01_diff_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/jolcham_oak_bark_01"
+  },
+  {
+    "file": "oak-normal.webp",
+    "asset": "jolcham_oak_bark_01",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/jolcham_oak_bark_01/jolcham_oak_bark_01_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/jolcham_oak_bark_01"
+  },
+  {
+    "file": "oak-rough.webp",
+    "asset": "jolcham_oak_bark_01",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/jolcham_oak_bark_01/jolcham_oak_bark_01_rough_1k.jpg",
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/jolcham_oak_bark_01"
+  }
+]

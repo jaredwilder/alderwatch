@@ -35,3 +35,6 @@ Alderwatch pins the public, license-preserving mirror `euuuuuuan/cairnfall-publi
 The fetchers validate GLB headers and minimum file sizes and never silently substitute primitives. If a source cannot be downloaded, the build fails rather than shipping a fake asset.
 
 Third-party JavaScript dependencies retain their own licenses. See package-lock.json and installed package license files. This credits note does not apply a new open-source license to the original game code or art; no project-wide license has been selected by the owner.
+# September 8 visual pass
+
+New user-supplied generated stall/barrel, Poly Haven CC0 PBR surfaces, and refinements to existing licensed meshes: see [visual-pass provenance and limitations](docs/VISUAL_PASS_2026-09-08.md). Exact texture URLs are vendored in `public/textures/terrain/sources.json`. The user-provided generated meshes are **not** represented as CC0.
