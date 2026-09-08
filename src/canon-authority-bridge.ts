@@ -1,5 +1,6 @@
 import {LocalAuthority,ITEMS,type Command,type PlayerState,type WorldState} from './state';
 import {areaWard,promoteCanonicalEvent,type CanonicalEventInput,type CanonSource} from './provenance-frontier';
+import {applyRealmConsequences} from './realm-consequences';
 
 const marker=Symbol.for('alderwatch.canon-authority-bridge.v1');
 const BOT_PREFIX='player-bot-';
@@ -27,7 +28,7 @@ export function canonicalEventForSuccessfulCommand(world:WorldState,command:Comm
 
 function install(){
  const g=globalThis as Record<PropertyKey,unknown>;if(g[marker])return;g[marker]=true;const proto=LocalAuthority.prototype as LocalAuthority&{dispatch:(command:Command)=>{ok:boolean;message:string}},original=proto.dispatch;
- proto.dispatch=function(this:LocalAuthority,command:Command){const enemyWasAlive=command.type==='strike'&&command.enemyId?((this.state.enemies[command.enemyId]?.health??0)>0):false,out=original.call(this,command);if(out.ok){const event=canonicalEventForSuccessfulCommand(this.state,command,out.message,enemyWasAlive);if(event)promoteCanonicalEvent(this.state,event);}return out;};
+ proto.dispatch=function(this:LocalAuthority,command:Command){const enemyWasAlive=command.type==='strike'&&command.enemyId?((this.state.enemies[command.enemyId]?.health??0)>0):false,out=original.call(this,command);if(out.ok){const event=canonicalEventForSuccessfulCommand(this.state,command,out.message,enemyWasAlive);if(event){promoteCanonicalEvent(this.state,event);applyRealmConsequences(this.state);}}return out;};
 }
 
 if(typeof window!=='undefined')install();
