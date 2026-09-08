@@ -57,6 +57,16 @@ jobs:
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
             dist/ "deploy@$HOST:$SITE_ROOT/releases/$GITHUB_SHA/"
 
+      # The dialogue process runs from a fixed path. Its provider key stays only
+      # in the server's root-owned environment file; CI uploads code, not secrets.
+      - name: Upload NPC service
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            server/ "deploy@$HOST:$SITE_ROOT/server/"
+
       - name: Activate release
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
@@ -69,8 +79,6 @@ jobs:
           mv -T "$SITE_ROOT/current.tmp" "$SITE_ROOT/current"
           echo "activated: $(readlink -f "$SITE_ROOT/current")"
 
-          # Keep the 5 most recent releases; delete only resolved paths that
-          # sit directly under the releases directory.
           cd "$SITE_ROOT/releases"
           ls -1td ./*/ 2>/dev/null | tail -n +6 | while read -r old; do
             full="$(realpath "$old")"
@@ -81,8 +89,18 @@ jobs:
           done
           REMOTE
 
+      - name: Restart NPC service
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "deploy@$HOST" \
+            'sudo -n /usr/bin/systemctl restart alderwatch-npc.service && sleep 2 && sudo -n /usr/bin/systemctl is-active alderwatch-npc.service'
+
       - name: Verify live
         run: |
           code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$SITE_URL/")
           echo "$SITE_URL returned HTTP $code"
           test "$code" = "200"
+          npc=$(curl -s --max-time 30 "$SITE_URL/api/npc/health")
+          echo "npc health: $npc"
+          echo "$npc" | grep -q '"ok":true'
