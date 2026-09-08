@@ -1,3 +1,5 @@
+import './gfx-release-gate';
+import './wildlife-stories';
 import type {ItemId,PlayerState} from './state';
 
 export type SkillId='archery'|'swordsmanship'|'axemanship'|'tactics'|'lumberjacking'|'mining'|'foraging'|'cooking'|'blacksmithing'|'carpentry'|'camping';
