@@ -25,7 +25,9 @@ export interface RoutedRumor{rumor:ActiveRumor;atom:HistoricalAtom;sourceHouseho
 declare module './state'{interface WorldState{realmHistory?:RealmHistoryState}}
 
 export function ensureRealmHistory(world:WorldState):RealmHistoryState{world.realmHistory??={version:1,lastProcessedDay:0,sequence:0,atoms:{},households:{},bornPeople:{},leaders:{},activeRumors:[],recentCanon:[]};return world.realmHistory;}
-function patchFor(state:RealmHistoryState,householdOrdinal:number):HouseholdHistoryPatch{const key=String(householdOrdinal);return state.households[key]??=( {householdOrdinal,children:[],grudges:[]} );}
+function patchFor(state:RealmHistoryState,householdOrdinal:number):HouseholdHistoryPatch{const key=String(householdOrdinal);return state.households[key]??={householdOrdinal,children:[],grudges:[]};}
+function unlinkMarriage(state:RealmHistoryState,householdOrdinal:number){const patch=patchFor(state,householdOrdinal),prior=patch.marriageTo;if(prior===undefined)return;delete patch.marriageTo;const other=state.households[String(prior)];if(other?.marriageTo===householdOrdinal)delete other.marriageTo;}
+function setMarriage(state:RealmHistoryState,first:number,second:number){if(first===second)throw new Error('household cannot marry itself');unlinkMarriage(state,first);unlinkMarriage(state,second);patchFor(state,first).marriageTo=second;patchFor(state,second).marriageTo=first;}
 export function effectiveHouseholdShard(state:RealmHistoryState,householdOrdinal:number):number{const base=Math.floor(householdOrdinal/HOUSEHOLDS_PER_SHARD);return state.households[String(householdOrdinal)]?.migratedShard??base;}
 export function historicalRank(state:RealmHistoryState):number{return Object.keys(state.households).length+Object.keys(state.bornPeople).length+Object.keys(state.leaders).length+state.activeRumors.length;}
 export function historyAccounting(state:RealmHistoryState){return {atoms:Object.keys(state.atoms).length,patchedHouseholds:Object.keys(state.households).length,bornPeople:Object.keys(state.bornPeople).length,leaders:Object.keys(state.leaders).length,activeRumors:state.activeRumors.length,rank:historicalRank(state)};}
@@ -40,9 +42,7 @@ const eventChannel:Record<HistoryEventKind,typeof SOCIAL_CHANNELS[number]>={rumo
 function rumorSignal(channel:typeof SOCIAL_CHANNELS[number]):SocialSignal{const signal=zeroSocialSignal();signal[channel]=3;return signal;}
 function spawnRumor(state:RealmHistoryState,atom:HistoricalAtom,sourceHousehold:number){const channel=eventChannel[atom.kind],sourceWard=effectiveHouseholdShard(state,sourceHousehold);state.activeRumors.push({id:`rumor:${atom.id}`,sourceAtomId:atom.id,sourceHousehold,sourceWard,channel,signal:rumorSignal(channel),createdDay:atom.day,expiresDay:atom.day+RUMOR_TTL_DAYS});}
 
-function selectFactionLeader(population:RealmPopulationState,state:RealmHistoryState,seed:number,day:number,faction:SocialFaction):number{
- const start=chooseHousehold(seed,day,'leader-'+faction);for(let i=0;i<64;i++){const candidate=(start+i*4099)%REALM_HOUSEHOLDS;if(describeHousehold(population,seed,candidate).faction===faction)return candidate;}return start;
-}
+function selectFactionLeader(population:RealmPopulationState,seed:number,day:number,faction:SocialFaction):number{const start=chooseHousehold(seed,day,'leader-'+faction);for(let i=0;i<64;i++){const candidate=(start+i*4099)%REALM_HOUSEHOLDS;if(describeHousehold(population,seed,candidate).faction===faction)return candidate;}return start;}
 function processHistoryEvent(world:WorldState,day:number):HistoricalAtom|undefined{
  const state=ensureRealmHistory(world),population=ensureRealmPopulation(world),seed=world.worldSeed??197709,roll=worldInt({realmSeed:seed,areaId:'realm-history-schedule',cellX:Math.floor(day/256),cellZ:0,slot:day&255,tag:'event-roll'},100);if(roll>=HISTORY_EVENT_CHANCE)return undefined;
  const kind=HISTORY_EVENT_KINDS[worldInt({realmSeed:seed,areaId:'realm-history-schedule',cellX:Math.floor(day/256),cellZ:1,slot:day&255,tag:'event-kind'},HISTORY_EVENT_KINDS.length)];
@@ -50,22 +50,20 @@ function processHistoryEvent(world:WorldState,day:number):HistoricalAtom|undefin
  if(kind==='rumor'){
   const ward=effectiveHouseholdShard(state,sourceHousehold),name=householdName(seed,sourceHousehold);atom=recordAtom(state,seed,day,kind,ward,[`house:${sourceHousehold}`],[],`Day ${day} · ${name} put a story into the road network; the clerk marked its source instead of treating it as anonymous noise.`);
  }else if(kind==='marriage'){
-  const first=chooseHousehold(seed,day,'marriage-a'),second=householdRelationOrdinal(first,'oath'),a=patchFor(state,first),b=patchFor(state,second);a.marriageTo=second;b.marriageTo=first;sourceHousehold=first;const ward=effectiveHouseholdShard(state,first);atom=recordAtom(state,seed,day,kind,ward,[`house:${first}`,`house:${second}`],[],`Day ${day} · ${householdName(seed,first)} and ${householdName(seed,second)} joined their household lines under witnessed oath.`);
+  const first=chooseHousehold(seed,day,'marriage-a'),second=householdRelationOrdinal(first,'oath');setMarriage(state,first,second);sourceHousehold=first;const ward=effectiveHouseholdShard(state,first);atom=recordAtom(state,seed,day,kind,ward,[`house:${first}`,`house:${second}`],[],`Day ${day} · ${householdName(seed,first)} and ${householdName(seed,second)} joined their household lines under witnessed oath.`);
  }else if(kind==='birth'){
   const home=chooseHousehold(seed,day,'birth-home'),homePatch=patchFor(state,home),other=homePatch.marriageTo??householdRelationOrdinal(home,'oath'),ward=effectiveHouseholdShard(state,home);sourceHousehold=home;atom=recordAtom(state,seed,day,kind,ward,[`house:${home}`,`house:${other}`],[],`Day ${day} · A child was entered beneath ${householdName(seed,home)} with ${householdName(seed,other)} named in the lineage.`);const id=`born:${atom.id}`;state.bornPeople[id]={id,bornDay:day,adultAtDay:day+16*SOCIAL_YEAR_DAYS,householdOrdinal:home,parentHouseholds:[home,other]};homePatch.children.push(id);atom.subjects.push(id);
  }else if(kind==='migration'){
   const home=chooseHousehold(seed,day,'migration-home'),from=effectiveHouseholdShard(state,home);let to=worldInt({realmSeed:seed,areaId:'realm-history-migration',cellX:Math.floor(day/256),cellZ:from,slot:day&255,tag:'destination'},REALM_POPULATION_SHARDS);if(to===from)to=(to+1)%REALM_POPULATION_SHARDS;patchFor(state,home).migratedShard=to;sourceHousehold=home;atom=recordAtom(state,seed,day,kind,to,[`house:${home}`],[],`Day ${day} · ${householdName(seed,home)} left ward ${from} and was entered into ward ${to}; the household identity remained unchanged.`);
  }else if(kind==='succession'){
-  const faction=SOCIAL_FACTIONS[worldInt({realmSeed:seed,areaId:'realm-history-succession',cellX:Math.floor(day/256),cellZ:0,slot:day&255,tag:'faction'},SOCIAL_FACTIONS.length)],prior=state.leaders[faction],leader=selectFactionLeader(population,state,seed,day,faction),ward=effectiveHouseholdShard(state,leader);sourceHousehold=leader;const parents=prior?[prior.atomId]:[];atom=recordAtom(state,seed,day,kind,ward,[`house:${leader}`],parents,`Day ${day} · ${householdName(seed,leader)} took the ${faction} seal${prior?' after the prior succession':''}.`);state.leaders[faction]={faction,householdOrdinal:leader,sinceDay:day,atomId:atom.id};
+  const faction=SOCIAL_FACTIONS[worldInt({realmSeed:seed,areaId:'realm-history-succession',cellX:Math.floor(day/256),cellZ:0,slot:day&255,tag:'faction'},SOCIAL_FACTIONS.length)],prior=state.leaders[faction],leader=selectFactionLeader(population,seed,day,faction),ward=effectiveHouseholdShard(state,leader);sourceHousehold=leader;const parents=prior?[prior.atomId]:[];atom=recordAtom(state,seed,day,kind,ward,[`house:${leader}`],parents,`Day ${day} · ${householdName(seed,leader)} took the ${faction} seal${prior?' after the prior succession':''}.`);state.leaders[faction]={faction,householdOrdinal:leader,sinceDay:day,atomId:atom.id};
  }else{
   const first=chooseHousehold(seed,day,'grudge-a'),second=householdRelationOrdinal(first,'rival');addUnique(patchFor(state,first).grudges,second);addUnique(patchFor(state,second).grudges,first);sourceHousehold=first;const ward=effectiveHouseholdShard(state,first);atom=recordAtom(state,seed,day,kind,ward,[`house:${first}`,`house:${second}`],[],`Day ${day} · ${householdName(seed,first)} entered a witnessed grudge against ${householdName(seed,second)}; it is now an explicit exception to the base rivalry graph.`);
  }
  spawnRumor(state,atom,sourceHousehold);return atom;
 }
 
-export function advanceRealmHistoryToDay(world:WorldState,targetDay:number):RealmHistoryState{
- if(!Number.isInteger(targetDay)||targetDay<0)throw new Error('history time must be a non-negative day');const state=ensureRealmHistory(world);if(targetDay<state.lastProcessedDay)throw new Error('history time cannot move backwards');for(let day=state.lastProcessedDay+1;day<=targetDay;day++){state.activeRumors=state.activeRumors.filter(r=>r.expiresDay>day);processHistoryEvent(world,day);if(state.activeRumors.length>RUMOR_TTL_DAYS)throw new Error('causal rumor frontier exceeded proved TTL bound');state.lastProcessedDay=day;}return state;
-}
+export function advanceRealmHistoryToDay(world:WorldState,targetDay:number):RealmHistoryState{if(!Number.isInteger(targetDay)||targetDay<0)throw new Error('history time must be a non-negative day');const state=ensureRealmHistory(world);if(targetDay<state.lastProcessedDay)throw new Error('history time cannot move backwards');for(let day=state.lastProcessedDay+1;day<=targetDay;day++){state.activeRumors=state.activeRumors.filter(r=>r.expiresDay>day);processHistoryEvent(world,day);if(state.activeRumors.length>RUMOR_TTL_DAYS)throw new Error('causal rumor frontier exceeded proved TTL bound');state.lastProcessedDay=day;}return state;}
 export function advanceRealmHistoryToTick(world:WorldState):RealmHistoryState{return advanceRealmHistoryToDay(world,Math.floor(world.tick/3600));}
 
 /** Unique provenance is a product label: the compressed social map transforms only the finite signal. */
@@ -91,11 +89,14 @@ export function routeRumor(world:WorldState,rumor:ActiveRumor,targetWard=GATEWAT
 export function migrationAffectedWards(householdOrdinal:number,fromShard:number,toShard:number):number[]{const wards=new Set<number>([Math.floor(householdOrdinal/HOUSEHOLDS_PER_SHARD),fromShard,toShard]);return [...wards].filter(w=>w>=0&&w<REALM_POPULATION_SHARDS).sort((a,b)=>a-b);}
 export function repairHistoricalSocialTree(tree:SocialSeparatorTree,world:WorldState,wards:readonly number[]):number{let work=0;for(const ward of [...new Set(wards)])work+=tree.update(ward,historicalWardCertificate(world,ward));return work;}
 
-export function latestGatewatchHistoryLore(world:WorldState):string{
- const history=ensureRealmHistory(world),rumor=history.activeRumors.at(-1);if(!rumor)return history.recentCanon.at(-1)??'No promoted historical thread has reached the Gatewatch clerk yet.';const routed=routeRumor(world,rumor,GATEWATCH_SHARD),signal=routed.transition.signal,atom=routed.atom;return `PROVENANCE ${atom.id} · ${routed.sourceHouseholdName} · ${atom.summary} Gatewatch receives K${signal.kin}/M${signal.market}/W${signal.watch}/G${signal.guild} through ${routed.transition.segmentCount} ward certificates.`;
-}
+export function latestGatewatchHistoryLore(world:WorldState):string{const history=ensureRealmHistory(world),rumor=history.activeRumors.at(-1);if(!rumor)return history.recentCanon.at(-1)??'No promoted historical thread has reached the Gatewatch clerk yet.';const routed=routeRumor(world,rumor,GATEWATCH_SHARD),signal=routed.transition.signal,atom=routed.atom;return `PROVENANCE ${atom.id} · ${routed.sourceHouseholdName} · ${atom.summary} Gatewatch receives K${signal.kin}/M${signal.market}/W${signal.watch}/G${signal.guild} through ${routed.transition.segmentCount} ward certificates.`;}
 
 export function bornAdultPhase(_person:BornPerson):CitizenPhase{return 'laborer';}
 export function zeroHistoricalHistogram():PopulationHistogram{return zeroPopulationHistogram();}
 export function causalParents(state:RealmHistoryState,atomId:string):string[]{return state.atoms[atomId]?.parents??[];}
 export function validateHistoryDag(state:RealmHistoryState):boolean{for(const atom of Object.values(state.atoms)){for(const parent of atom.parents){const p=state.atoms[parent];if(!p||p.day>atom.day)return false;}}return true;}
+export function validateStructuralHistory(state:RealmHistoryState):boolean{
+ for(const patch of Object.values(state.households)){if(patch.marriageTo!==undefined&&state.households[String(patch.marriageTo)]?.marriageTo!==patch.householdOrdinal)return false;for(const grudge of patch.grudges){if(!state.households[String(grudge)]?.grudges.includes(patch.householdOrdinal))return false;}for(const child of patch.children){const person=state.bornPeople[child];if(!person||person.householdOrdinal!==patch.householdOrdinal)return false;}}
+ for(const person of Object.values(state.bornPeople)){if(!state.atoms[person.id.slice('born:'.length)])return false;if(person.parentHouseholds[0]<0||person.parentHouseholds[1]<0)return false;}
+ return true;
+}
