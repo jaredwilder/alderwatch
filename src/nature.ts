@@ -10,6 +10,7 @@ import {WILDLIFE_SPAWNS,type WildlifeSpawn} from './wildlife-spawns';
 import {aggroWolfPack,ambientWanderHeading,angleTo,cohesiveFleeHeading,headingVector,herdCenter,predatorTarget,predatorThreat,wildlifeDistance,wolfFlankPoint,wolfInterferer} from './wildlife-ai';
 import {aerialPreyAction,beginCarry,ensureAerialState,releaseCarry,stepAerialEnergy} from './wildlife-aerial';
 import {createBeehiveVisual} from './beehive-visual';
+import {buildForageSpatialIndex,forageCandidates,type ForageSpatialIndex} from './forage-spatial';
 
 export type {AnimalKind,AnimalState} from './wildlife-species';
 export {ambientWanderHeading,cohesiveFleeHeading,headingVector,herdCenter} from './wildlife-ai';
@@ -48,7 +49,20 @@ export function forageAvailable(f:ForageState,tick:number){return !f.harvested||
 
 export class Nature {
  plants=new Map<string,T.Object3D>();animals=new Map<string,AnimalVisual>();onNotice=(text:string)=>{};
- constructor(private root:T.Group,private assets:Assets,private w:WorldState,private land:Landscape){seedNature(w);for(const a of Object.values(w.animals!))if(a.kind==='hare'||a.kind==='crow')this.spawnLegacy(a);void this.loadAuthoredAnimals();this.update(0);}
+ private forageIndex:ForageSpatialIndex=new Map();private nextForageRefresh=0;
+ constructor(private root:T.Group,private assets:Assets,private w:WorldState,private land:Landscape){seedNature(w);this.forageIndex=buildForageSpatialIndex(w.forage);for(const a of Object.values(w.animals!))if(a.kind==='hare'||a.kind==='crow')this.spawnLegacy(a);void this.loadAuthoredAnimals();this.update(0);}
+ private refreshForage(){
+  if(this.w.tick<this.nextForageRefresh)return;this.nextForageRefresh=this.w.tick+12;
+  // Only the local camera needs authored plant meshes. Simulated/offscreen players still
+  // interact with authoritative forage state without forcing remote visuals to materialize.
+  const player=this.w.players['player-local']??Object.values(this.w.players)[0],wanted=new Set<string>();
+  if(player)for(const id of forageCandidates(this.forageIndex,player.position,65)){
+   const f=this.w.forage[id];if(!f||Math.hypot(player.position[0]-f.position[0],player.position[2]-f.position[2])>=65||!forageAvailable(f,this.w.tick)||this.land.ambientOccupied(f.position[0],f.position[2])||Object.values(this.w.structures).some(s=>Math.hypot(s.position[0]-f.position[0],s.position[2]-f.position[2])<2))continue;
+   wanted.add(id);let model=this.plants.get(id);
+   if(!model){if(f.kind==='wild_honey')model=createBeehiveVisual(this.assets);else model=this.assets.prop(MODELS[f.kind??'fiber']);model.position.fromArray(f.position);model.rotation.y=Number(f.id.split('-').at(-1))*.91;model.scale.setScalar(f.kind==='mushroom'?1.45:f.kind==='wild_honey'?1.15:1.15);this.root.add(model);this.plants.set(id,model);}model.visible=true;
+  }
+  for(const [id,model] of this.plants)if(!wanted.has(id)){model.removeFromParent();this.plants.delete(id);}
+ }
  private spawnLegacy(a:AnimalState){const model=this.assets.prop(a.kind);model.rotation.y=Math.PI;const group=new T.Group();group.name=a.id;group.add(model);group.position.fromArray(a.position);this.root.add(group);this.animals.set(a.id,{group});}
  private async loadAuthoredAnimals(){
   try{
@@ -79,10 +93,7 @@ export class Nature {
  private releaseExhaustedCarry(a:AnimalState,all:Record<string,AnimalState>){const prey=releaseCarry(a,all);if(!prey)return;const y=height(a.position[0],a.position[2]);prey.position=[a.position[0],y,a.position[2]];prey.avoidUntil=this.w.tick+50;this.onNotice(`A tired eagle drops the ${prey.kind}`);}
  private finishEagleCarry(a:AnimalState,all:Record<string,AnimalState>){const prey=releaseCarry(a,all);if(!prey||!animalAlive(prey))return;prey.position=[a.position[0],height(a.position[0],a.position[2]),a.position[2]];predatorBite(this.w,a,prey,prey.health??999);a.huntCooldownUntil=this.w.tick+240;}
  update(dt:number){
-  for(const f of Object.values(this.w.forage).filter(f=>f.id.startsWith('nature-'))){
-   const visible=Object.values(this.w.players).some(p=>Math.hypot(p.position[0]-f.position[0],p.position[2]-f.position[2])<65)&&forageAvailable(f,this.w.tick)&&!this.land.ambientOccupied(f.position[0],f.position[2])&&!Object.values(this.w.structures).some(s=>Math.hypot(s.position[0]-f.position[0],s.position[2]-f.position[2])<2);let model=this.plants.get(f.id);
-   if(visible&&!model){if(f.kind==='wild_honey')model=createBeehiveVisual(this.assets);else model=this.assets.prop(MODELS[f.kind??'fiber']);model.position.fromArray(f.position);model.rotation.y=Number(f.id.split('-').at(-1))*.91;model.scale.setScalar(f.kind==='mushroom'?1.45:f.kind==='wild_honey'?1.15:1.15);this.root.add(model);this.plants.set(f.id,model);}if(model)model.visible=visible;
-  }
+  this.refreshForage();
   const all=this.w.animals!;
   for(const a of Object.values(all)){
    ensureAnimalVitals(a);const visual=this.animals.get(a.id),profile=species(a.kind),aerial=profile.aerial;if(aerial)ensureAerialState(a);
