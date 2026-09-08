@@ -3,6 +3,8 @@ import {Assets} from './assets';
 import {MEDIEVAL_ASSET_SPECS} from './medieval-asset-specs';
 import {sanitizeWorldProp} from './world-sanity';
 
+if(typeof document!=='undefined')void import('./overnight-overdrive');
+
 /**
  * LIVE ACCEPTANCE GATE.
  *
@@ -17,7 +19,6 @@ export const STABLE_CLOSEUP_KIT_NAMES=new Set(['village_details','village_roof',
 const box=new T.Box3(),size=new T.Vector3();
 export function enforceAuthoredRootContract(name:string,root:T.Object3D){
  const spec=MEDIEVAL_ASSET_SPECS[name];
- // The generic child filter catches malformed slabs first.
  sanitizeWorldProp(root);
  root.updateMatrixWorld(true);box.setFromObject(root);box.getSize(size);
  const span=Math.max(size.x,size.z),height=size.y;
