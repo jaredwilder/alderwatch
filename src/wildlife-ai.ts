@@ -5,8 +5,7 @@ import {groundPredatorCanReach} from './wildlife-aerial';
 export const wildlifeDistance=(a:Vec3,b:Vec3)=>Math.hypot(a[0]-b[0],a[2]-b[2]);
 export const angleTo=(from:Vec3,to:Vec3)=>Math.atan2(to[0]-from[0],to[2]-from[2]);
 const angleAway=(from:Vec3,threat:Vec3)=>Math.atan2(from[0]-threat[0],from[2]-threat[2]);
-const stableUnit=(id:string)=>{let h=2166136261;for(let i=0;i<id.length;i++)h=Math.imul(seedFix(h^id.charCodeAt(i)),16777619);return (h>>>0)/4294967295;};
-const seedFix=(n:number)=>n|0;
+const stableUnit=(id:string)=>{let h=2166136261;for(let i=0;i<id.length;i++)h=Math.imul(h^id.charCodeAt(i),16777619);return (h>>>0)/4294967295;};
 export function headingVector(yaw:number):[number,number]{return [Math.sin(yaw),Math.cos(yaw)];}
 export function ambientWanderHeading(animal:AnimalState){const phase=stableUnit(animal.id)*Math.PI*2,heading=phase+Math.sin(animal.phase*.21+phase)*1.15+Math.sin(animal.phase*.073+phase*1.7)*.65;return ((heading+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;}
 
@@ -30,7 +29,9 @@ function reachablePredatorPrey(predator:AnimalState,prey:AnimalState){
  return groundPredatorCanReach(prey);
 }
 function preyBias(predator:AnimalState,prey:AnimalState){
- if(predator.kind==='wolf'){if(prey.kind==='bison')return -8;if(prey.kind==='deer')return -3;if(prey.kind==='sheep'||prey.kind==='goat')return -1.5;}
+ // Wolves may take whatever the living world presents, but a nearby bison hunt
+ // remains the pack's defining high-value encounter and wins over easy side prey.
+ if(predator.kind==='wolf'){if(prey.kind==='bison')return -20;if(prey.kind==='deer')return -3;if(prey.kind==='sheep'||prey.kind==='goat')return -1.5;}
  if(predator.kind==='eagle'){if(prey.kind==='hare')return -3;if(prey.kind==='sheep')return -1.5;}
  if(predator.kind==='bear'){if(prey.kind==='wolf')return -2;if(prey.kind==='deer')return -1;}
  return 0;
