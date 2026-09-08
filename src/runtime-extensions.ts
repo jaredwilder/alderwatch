@@ -5,6 +5,7 @@ import './fun-systems';
 import './simulated-players';
 import './simulated-player-society';
 import './realm-chat-network';
+import './canon-social-bridge';
 import './loading-experience';
 import './ui-stack';
 import './backpack-ui';
