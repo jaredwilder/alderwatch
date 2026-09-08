@@ -5,8 +5,8 @@ import {Assets} from '../src/assets';
 import {HOTBAR_ITEMS,QUICK_FOOD_ITEMS,displayedHotbarItem} from '../src/live-gameplay';
 import {makePlayer} from '../src/state';
 
-test('live hotbar exposes every starter combat tool including the bow',()=>{
- assert.deepEqual(HOTBAR_ITEMS,['axe','pickaxe','sword','hammer','bow']);
+test('live hotbar exposes every starter combat tool with pickaxe first and axe second',()=>{
+ assert.deepEqual(HOTBAR_ITEMS,['pickaxe','axe','sword','hammer','bow']);
  const player=makePlayer('Warden');
  assert.equal(HOTBAR_ITEMS.every(item=>item==='sword'||player.inventory.some(stack=>stack.item===item)),true);
  assert.equal(displayedHotbarItem(player,'sword'),'sword');
