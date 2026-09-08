@@ -1,4 +1,4 @@
-import {consumePendingArea,currentPlayer,enterSavedArea,IRONWARD_CROSSING,migrateRealmSave,playerArea} from './realm-save';
+import {consumePendingArea,currentPlayer,enterSavedArea,IRONWARD_BASIN,IRONWARD_CROSSING,migrateRealmSave,playerArea} from './realm-save';
 
 const SAVE_KEY='alderwatch.realm.v1';
 
@@ -18,6 +18,8 @@ function prepareSavedArea(){
 const area=prepareSavedArea();
 if(area===IRONWARD_CROSSING){
   await import('./ironward-crossing');
+}else if(area===IRONWARD_BASIN){
+  await import('./ironward-basin');
 }else{
   await import('./main');
   await import('./runtime-extensions');
