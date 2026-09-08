@@ -15,8 +15,7 @@ const ZERO:Drive={pitch:0,yaw:0,roll:0};
 function driveFor(clip:string,bone:string):Drive{
  const b=bone.toLowerCase(),neck=b.includes('neck'),head=b.includes('head');
  if(clip==='attack')return bone==='pelvis'?{pitch:.018,yaw:.40,roll:-.035}:bone==='spine_01'?{pitch:.015,yaw:.19,roll:-.035}:bone==='spine_02'?{pitch:0,yaw:.10,roll:-.02}:bone==='spine_03'?{pitch:0,yaw:.055,roll:-.01}:neck?{pitch:.095,yaw:0,roll:0}:head?{pitch:.045,yaw:0,roll:0}:ZERO;
- // Right-handed axe kill stroke: positive coil on the weapon side, then negative transverse rotation across
- // the target. The temporal weights below change sign through contact, so this yaw is deliberately negative.
+ // Right-handed axe kill stroke: weapon-side coil then transverse cut across the target.
  if(clip==='chop')return bone==='pelvis'?{pitch:.002,yaw:-.78,roll:-.055}:bone==='spine_01'?{pitch:.002,yaw:-.31,roll:-.045}:bone==='spine_02'?{pitch:0,yaw:-.15,roll:-.025}:bone==='spine_03'?{pitch:0,yaw:-.072,roll:-.012}:neck?{pitch:.055,yaw:0,roll:0}:head?{pitch:.022,yaw:0,roll:0}:ZERO;
  if(clip==='mine')return bone==='pelvis'?{pitch:.20,yaw:.065,roll:0}:bone==='spine_01'?{pitch:.16,yaw:.05,roll:0}:bone==='spine_02'?{pitch:.09,yaw:.025,roll:0}:ZERO;
  if(clip==='heavy')return bone==='pelvis'?{pitch:.14,yaw:.15,roll:0}:bone==='spine_01'?{pitch:.11,yaw:.12,roll:0}:bone==='spine_02'?{pitch:.065,yaw:.07,roll:0}:ZERO;
@@ -68,6 +67,12 @@ function headDriveWeight(t:number,impact:number,duration:number){
  return 1-smooth01((t-impact)/Math.max(.001,release-impact));
 }
 
+/** Mirror a local skeletal rotation across the sagittal plane without reversing time/recovery. */
+function mirrorLateralRotation(track:T.KeyframeTrack){
+ const out=track.clone();if(!out.name.endsWith('.quaternion'))return out;const v=out.values;
+ for(let i=0;i<v.length;i+=4){v[i+1]=-v[i+1];v[i+2]=-v[i+2];const q=new T.Quaternion().fromArray(v,i).normalize();q.toArray(v,i);}
+ return out;
+}
 function amplifyRotation(track:T.KeyframeTrack){
  const gain=rotationGain(track.name),out=track.clone();if(gain===1||!track.name.endsWith('.quaternion'))return out;
  const v=out.values,base=new T.Quaternion().fromArray(v,0).normalize(),baseInv=base.clone().invert(),q=new T.Quaternion(),delta=new T.Quaternion(),scaled=new T.Quaternion(),axis=new T.Vector3();
@@ -102,7 +107,7 @@ function addBodyDrive(track:T.KeyframeTrack,clip:string,impact:number,duration:n
 }
 
 function retime(track:T.KeyframeTrack,clip:string,sourceImpact:number,targetImpact:number,targetDuration:number,sourceDuration:number){
- let out=amplifyRotation(track);const times=out.times,beforeScale=sourceImpact>1e-6?targetImpact/sourceImpact:1,sourceTail=Math.max(1e-6,sourceDuration-sourceImpact),targetTail=Math.max(0,targetDuration-targetImpact);
+ let out=clip==='chop'&&meleeBodyTrack(track.name)?mirrorLateralRotation(track):track.clone();out=amplifyRotation(out);const times=out.times,beforeScale=sourceImpact>1e-6?targetImpact/sourceImpact:1,sourceTail=Math.max(1e-6,sourceDuration-sourceImpact),targetTail=Math.max(0,targetDuration-targetImpact);
  for(let i=0;i<times.length;i++){const t=times[i];times[i]=t<=sourceImpact?t*beforeScale:targetImpact+(t-sourceImpact)*(targetTail/sourceTail);}
  out=smoothDiscreteQuaternion(out,targetImpact);return addBodyDrive(out,clip,targetImpact,targetDuration);
 }
