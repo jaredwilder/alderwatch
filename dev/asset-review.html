@@ -1,0 +1,28 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Alderwatch · Runtime Asset Review</title>
+<style>body{margin:0;background:#65705d;color:#eee5cf;font:14px system-ui}nav{position:fixed;top:20px;left:24px;z-index:1}h1{font:22px Georgia;margin:0 0 8px}button{background:#19231be8;color:inherit;border:1px solid #9a8a66;padding:9px 14px;cursor:pointer}small{display:block;margin:10px 0;color:#d9ddc9}canvas{display:block}</style>
+<nav><h1>Alderwatch · Runtime Asset Review</h1><div id="choices"></div><small id="status">Loading shipping assets…</small><small>Asset inspection, not gameplay. Drag to orbit · Wheel to zoom.</small></nav>
+<script type="module">
+import * as T from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {Assets} from '/src/assets.ts';
+import {weatheredCloth} from '/src/character-material.ts';
+import {loadExtendedAnimalLibrary,instantiateAnimal,animalClips} from '/src/animal-models.ts';
+const assets=new Assets();await assets.load(()=>{});const animals=await loadExtendedAnimalLibrary();
+const scene=new T.Scene();scene.background=new T.Color('#87927b');scene.fog=new T.Fog('#87927b',22,60);
+const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;document.body.append(renderer.domElement);
+const camera=new T.PerspectiveCamera(38,innerWidth/innerHeight,.05,160),controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=Math.PI*.48;
+scene.add(new T.HemisphereLight('#d7e8ff','#4b4231',1.25));const sun=new T.DirectionalLight('#ffe4bd',3);sun.position.set(-7,12,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-12,right:12,top:14,bottom:-12,near:.1,far:50});sun.shadow.normalBias=.018;scene.add(sun);
+const floor=new T.Mesh(new T.PlaneGeometry(100,100),new T.MeshStandardMaterial({color:'#777b62',roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.025;floor.receiveShadow=true;scene.add(floor);const group=new T.Group();scene.add(group);let mixers=[];
+function add(name,x=0,z=0,scale=1){const o=assets.prop(name);o.position.set(x,0,z);o.scale.setScalar(scale);group.add(o);return o;}
+function choose(name){group.clear();mixers=[];
+ if(name==='Market'){add('market');add('barrel',2.15,.4);add('barrel',-2.1,-.45,.85);}
+ if(name==='Barrel')add('barrel');
+ if(name==='Cottage')group.add(assets.authoredLonghouse());
+ if(name==='Woodland'){add('oak_0');add('rock_0',3,1,.7);add('fern',-2,1);add('fern',-2.5,1.3,.8);}
+ if(name==='Survivor'){const o=assets.human();o.traverse(n=>{if(n.name.includes('Hood'))n.visible=false;if(n instanceof T.Mesh)for(const m of Array.isArray(n.material)?n.material:[n.material]){weatheredCloth(m,assets.textures,n.name);if(m.name.includes('Hair'))m.color.set('#382419');}});group.add(o);const mixer=new T.AnimationMixer(o);mixer.clipAction(assets.survivor.animations.find(a=>a.name==='idle')).play();mixer.update(.01);mixers.push(mixer);}
+ if(name==='Animals')for(const [i,kind] of ['sheep','goat','wolf'].entries()){const a=instantiateAnimal(kind,animals[kind]);a.root.position.x=(i-1)*1.8;group.add(a.root);const mixer=new T.AnimationMixer(a.root),clip=animalClips(a.animations).idle;if(clip)mixer.clipAction(clip).play();mixers.push(mixer);}
+ group.updateMatrixWorld(true);const box=new T.Box3().setFromObject(group),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3()),d=Math.max(size.x,size.y,size.z)*1.9;controls.target.copy(center);camera.position.copy(center).add(new T.Vector3(d*.55,d*.27,d));controls.update();document.querySelector('#status').textContent=name+' · Exact game GLBs and runtime materials';
+}
+for(const name of ['Market','Barrel','Survivor','Woodland','Animals','Cottage']){const b=document.createElement('button');b.textContent=name;b.onclick=()=>choose(name);document.querySelector('#choices').append(b);}choose('Market');let last=performance.now();renderer.setAnimationLoop(()=>{const now=performance.now(),dt=Math.min(.05,(now-last)/1000);last=now;assets.time.value+=dt;for(const m of mixers)m.update(dt);controls.update();renderer.render(scene,camera);});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script></html>

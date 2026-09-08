@@ -14,7 +14,7 @@ const animal=(id:string,kind:AnimalState['kind']):AnimalState=>({id,kind,positio
 
 test('NPC material preparation never turns a single material into an invisible material array',()=>{
  const root=new T.Group(),single=new T.Mesh(new T.BoxGeometry(),new T.MeshStandardMaterial({color:'#ffffff'}));root.add(single);prepareNpcMaterials(root,'#6b4f35');
- assert.equal(Array.isArray(single.material),false);assert.equal(single.visible,true);assert.equal(single.frustumCulled,false);
+ assert.equal(Array.isArray(single.material),false);assert.equal(single.visible,true);assert.equal(single.frustumCulled,true); // Whole-body animation bounds now make off-screen culling safe.
  const multi=new T.Mesh(new T.BoxGeometry(),[new T.MeshStandardMaterial(),new T.MeshStandardMaterial()]);root.add(multi);prepareNpcMaterials(root,'#435b3d');assert.equal(Array.isArray(multi.material),true);assert.equal((multi.material as T.Material[]).length,2);
 });
 

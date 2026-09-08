@@ -17,6 +17,16 @@ const SOURCES=[
 
 await mkdir(OUT,{recursive:true});
 
+// The bison GLB references a companion palette rather than embedding it.
+// Fetch it on clean CI installs too; otherwise the deployed animal renders without its authored color.
+const palette=join(OUT,'Textures','colormap.png');
+try{await stat(palette);}catch{
+ const response=await fetch('https://media.githubusercontent.com/media/series-ai/jam-ready-assets/e93aa129978daafda85f3c907eebc8f1807ec43f/kenney-prototype-kit/3D/prototype-blocks/Models/GLB%20format/Textures/colormap.png');
+ if(!response.ok)throw new Error(`Bison palette: HTTP ${response.status}`);
+ const bytes=Buffer.from(await response.arrayBuffer());if(bytes.readUInt32BE(0)!==0x89504e47)throw new Error('Invalid bison palette PNG');
+ await mkdir(dirname(palette),{recursive:true});await writeFile(palette,bytes);
+}
+
 function glbHeader(bytes){return bytes.length>=4&&bytes[0]===0x67&&bytes[1]===0x6c&&bytes[2]===0x54&&bytes[3]===0x46;}
 
 async function validExisting(path,minBytes){

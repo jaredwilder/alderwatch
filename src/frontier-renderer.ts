@@ -2,7 +2,7 @@ import * as T from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import type {Landscape} from './landscape';
 import {frontierArea,seeded,trailDistance,regionAt} from './worldgen';
-import {height} from './terrain';
+import {height,roadX} from './terrain';
 import {forestDensity,forestEdge,meadowDensity} from './ecology';
 import {clampDressingBounds} from './medieval-asset-specs';
 import {ALDERBROOK_PLACEMENTS,REGIONAL_CLUSTERS,SOUTH_GATE_PLACEMENTS,dressingZones,insideDressingZone,type DressingZone} from './world-dressing';
@@ -20,7 +20,17 @@ export class FrontierRenderer {
    source.traverse(o=>{if(!(o instanceof T.Mesh))return;const mesh=new T.InstancedMesh(o.geometry,o.material,ids.length),matrices:T.Matrix4[]=[];ids.forEach((id,i)=>{const r=land.state.resources[id],s=r.scale??1,mat=new T.Matrix4().compose(new T.Vector3(...r.position),new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),r.rotation),new T.Vector3(s,s,s)).multiply(o.matrixWorld);matrices.push(mat);mesh.setMatrixAt(i,r.phase==='standing'?mat:new T.Matrix4().makeScale(0,0,0));});mesh.castShadow=false;mesh.receiveShadow=true;mesh.computeBoundingSphere();land.scene.add(mesh);this.proxies.push({mesh,ids,matrices});});
   }
   for(const site of Object.values(land.state.frontier?.sites??{})){const [x,,z]=site.position;land.place('chest',x,z);land.place('campfire',x+3,z+2);if(site.kind==='camp'){land.place('palisade',x-3,z-4,.15);land.place('palisade',x+3,z-4,-.15);}else {land.place('log',x-3,z,Math.PI/2,.6);if(site.kind==='rest'){land.place('workbench',x-3,z-2);const id=site.id+'-bench';land.state.stations[id]??={id,name:site.name+' workbench',kind:'workbench',position:[x-3,height(x-3,z-2),z-2]};}}this.dressFrontierSite(x,z,site.kind);}
-  this.dressSouthGate();this.dressAlderbrook();this.dressRegionalLandmarks();this.update(0,true);
+  this.dressSouthGate();this.dressAlderbrook();this.dressRegionalLandmarks();this.dressVillageVerge();this.update(0,true);
+ }
+ private dressVillageVerge(){
+  if(!this.land.batch||!this.land.ambientOccupied)return;
+  this.dressing.updateMatrixWorld(true);const bounds=this.dressing.children.map(o=>new T.Box3().setFromObject(o).expandByScalar(.65)),rng=seeded(80926),patches=[];
+  // Keep paths and actual building footprints clear, not the entire settlement as a shaved disk.
+  for(let x=-32;x<34;x+=.9)for(let z=-96;z<14;z+=.9){const px=x+(rng()-.5)*.65,pz=z+(rng()-.5)*.65;
+   if(rng()>.58||!insideDressingZone(px,pz,this.zones)||Math.abs(px-roadX(pz))<3.15||height(px,pz)<-.9||this.land.ambientOccupied(px,pz))continue;
+   if(bounds.some(b=>px>b.min.x&&px<b.max.x&&pz>b.min.z&&pz<b.max.z))continue;
+   const s=.8+rng()*.45;patches.push({x:px,z:pz,y:height(px,pz)-.025,scale:new T.Vector3(s,.38+rng()*.5,s),yaw:rng()*Math.PI*2});
+  }this.land.batch('grass',patches);
  }
  private clearDressingGround(){
   // Minimal renderer test shims intentionally omit ambient foliage. The real
@@ -62,6 +72,8 @@ export class FrontierRenderer {
  update(time:number,force=false){
   if(!force&&time<this.next)return;this.next=time+.4;
   const p=Object.values(this.land.state.players)[0];if(!p)return;const zero=new T.Matrix4().makeScale(0,0,0);
+  // Close-camera ribbons only; the mossy surface carries distant coverage without millions of tiny blades.
+  for(const b of this.land.foliageBatches??[])if(b.mesh.name==='grass patch'&&b.mesh.boundingSphere){const c=b.mesh.boundingSphere.center;b.mesh.visible=Math.hypot(c.x-p.position[0],c.z-p.position[2])<48;}
   const signature=Object.keys(this.land.state.structures).join(',');if(signature!==this.structureSignature){for(const group of this.chunks.values()){group.removeFromParent();group.traverse(o=>{if(o instanceof T.InstancedMesh)o.dispose();});}this.chunks.clear();this.structureSignature=signature;}
   for(const r of Object.values(this.land.state.resources).filter(r=>r.id.startsWith('wild-resource-'))){
    const near=Math.hypot(p.position[0]-r.position[0],p.position[2]-r.position[2])<38;
@@ -86,7 +98,7 @@ export class FrontierRenderer {
    const region=regionAt(px,pz),woods=Math.max(forestDensity(px,pz),canopy*.92),edge=forestEdge(px,pz),meadow=meadowDensity(px,pz),siteWear=1-T.MathUtils.smoothstep(siteDistance,2.25,5.8),siteEdge=T.MathUtils.smoothstep(siteDistance,3.4,5.0)*(1-T.MathUtils.smoothstep(siteDistance,5.0,7.0));
    const regionGrass=region==='Briar Heath'?.92:region==='Ironward Heights'?.46:.72,grassChance=Math.max(.035,Math.min(.92,regionGrass*(.28+meadow*.76)*(1-woods*.62)+edge*.12)*(1-siteWear*.74));
    const normal=new T.Vector3(height(px-.4,pz)-height(px+.4,pz),.8,height(px,pz-.4)-height(px,pz+.4)).normalize(),rotation=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,1,0),normal).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),rng()*Math.PI*2));
-   if(rng()<grassChance){const s=1.02+rng()*.55,h=(.29+rng()*.23+meadow*.12)*(1-canopy*.42)*(1-siteWear*.24);grass.push(new T.Matrix4().compose(new T.Vector3(px,height(px,pz)-.1,pz),rotation,new T.Vector3(s,h,s)));}
+   if(rng()<grassChance){const s=1.02+rng()*.55,h=(.65+rng()*.38+meadow*.22)*(1-canopy*.42)*(1-siteWear*.24);grass.push(new T.Matrix4().compose(new T.Vector3(px,height(px,pz)-.035,pz),rotation,new T.Vector3(s,h,s)));}
    const fernChance=((region==='Southwood'?.018:.004)+edge*.035+canopy*(1-canopy)*.055)*(1-siteWear*.62)+siteEdge*.012;if(rng()<fernChance){const s=.76+rng()*.68;ferns.push(new T.Matrix4().compose(new T.Vector3(px,height(px,pz),pz),rotation,new T.Vector3(s,s,s)));}
    const cluster=edge*.55+canopy*.45;if(rng()<.004+cluster*.005+siteEdge*.010){const s=.22+rng()*.42;rocks.push(new T.Matrix4().compose(new T.Vector3(px,height(px,pz)-.09,pz),new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),rng()*Math.PI*2),new T.Vector3(s*1.45,s*.62,s)));}
    if(canopy>.2&&canopy<.78&&rng()<.0015+edge*.0025+siteEdge*.0018){const s=.48+rng()*.32;logs.push(new T.Matrix4().compose(new T.Vector3(px,height(px,pz)+.02,pz),new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),rng()*Math.PI*2),new T.Vector3(s,s,s)));}

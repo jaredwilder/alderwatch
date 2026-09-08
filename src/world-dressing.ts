@@ -25,9 +25,9 @@ export const SOUTH_GATE_PLACEMENTS:readonly DressingPlacement[]=[
  */
 export const ALDERBROOK_PLACEMENTS:readonly DressingPlacement[]=[
  ['well',1.5,-29,.05,1,.01],
- ['market',-6,-28,.12,1,.01],
+ ['market',-7.2,-24.8,.12,1,.01], // Keep the generated canopy in front of, not inside, the longhouse roof.
  ['barrel',-2.55,-27.25,.28,1,.01],['barrel',-3.15,-28.08,-.22,.86,.01],
- ['barrel',-8.85,-25.25,-.18,.95,.01],['barrel',-9.55,-25.58,.28,.78,.02],
+ ['barrel',-9.35,-25.25,-.18,.95,.01],['barrel',-9.95,-25.58,.28,.78,.02],
  ['hay',-10.35,-24.1,-.22,.92,.01],['hay',-10.85,-30.8,.18,.82,.01],
  ['wood_pile',-2.1,-31.55,.1,.95,.01],['cauldron',-1.65,-29.9,.2,.82,.02],
  ['lantern',-3.0,-25.45,.05,1,.02],['lantern',-9.0,-24.9,-.05,1,.02],

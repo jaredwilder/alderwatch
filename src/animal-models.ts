@@ -3,6 +3,7 @@ import {GLTFLoader,type GLTF} from 'three/addons/loaders/GLTFLoader.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {AUTHORED_ANIMAL_KINDS,species,type AuthoredAnimalKind} from './wildlife-species';
+import {animalCoat,softenedAnimalGeometry} from './animal-surface';
 
 // Compatibility alias while callers migrate to the clearer authored-animal name.
 export type ExtendedAnimalKind=AuthoredAnimalKind;
@@ -64,10 +65,10 @@ function skinnedMaterial(material:T.Material,kind:AuthoredAnimalKind,label:strin
  if('metalness' in m)m.metalness=0;
  // Models with anonymous one-material submeshes still get enough tonal breakup to stop reading as white test geometry.
  if(!m.map&&index%5===3&&'color' in m&&m.color instanceof T.Color)m.color.lerp(new T.Color(palette.light),.22);
- return m;
+ animalCoat(m,kind);return m;
 }
 /** Keep authored textures when present, but replace bare/default-white animal materials with grounded species palettes. */
-export function skinAnimalModel(root:T.Object3D,kind:AuthoredAnimalKind){let index=0;root.traverse(o=>{if(!(o instanceof T.Mesh))return;const n=index++;if(Array.isArray(o.material))o.material=o.material.map(m=>skinnedMaterial(m,kind,o.name,n));else o.material=skinnedMaterial(o.material,kind,o.name,n);o.castShadow=o.receiveShadow=true;o.frustumCulled=false;});return root;}
+export function skinAnimalModel(root:T.Object3D,kind:AuthoredAnimalKind){let index=0;root.traverse(o=>{if(!(o instanceof T.Mesh))return;o.geometry=softenedAnimalGeometry(o.geometry);const n=index++;if(Array.isArray(o.material))o.material=o.material.map(m=>skinnedMaterial(m,kind,o.name,n));else o.material=skinnedMaterial(o.material,kind,o.name,n);o.castShadow=o.receiveShadow=true;o.frustumCulled=false;});return root;}
 
 export async function loadExtendedAnimalLibrary(){
  const loader=new GLTFLoader();loader.setMeshoptDecoder(MeshoptDecoder);
@@ -85,7 +86,7 @@ export function instantiateAnimal(kind:AuthoredAnimalKind,gltf:GLTF):AnimalInsta
  const scale=targetHeight/Math.max(size.y,.01);
  root.scale.multiplyScalar(scale);root.updateMatrixWorld(true);
  const grounded=new T.Box3().setFromObject(root);root.position.y-=grounded.min.y;
- root.traverse(o=>{if(o instanceof T.Mesh){o.castShadow=o.receiveShadow=true;o.frustumCulled=false;}});
+ root.traverse(o=>{if(o instanceof T.Mesh){o.castShadow=o.receiveShadow=true;o.frustumCulled=true;if(o instanceof T.SkinnedMesh){o.computeBoundingSphere();if(o.boundingSphere)o.boundingSphere.radius*=3;}}});
  return {root,animations:gltf.animations,forward};
 }
 

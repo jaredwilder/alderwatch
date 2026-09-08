@@ -237,3 +237,10 @@ Build the commercial-quality Alderwatch medieval survival RPG vertical slice des
 - Generated bark/meadow/leaves images and concept source paths are in `scripts/prepare-assets.mjs` and `art/concepts/prompts.md`. Existing image-only agent `concept_art` is not doing game-code work.
 
 Keep the complete goal active. The full opening-ten-minute acceptance sequence is not finished or verified.
+# Visual replacement pass — 2026-09-08
+
+- Based on current main `d03c466`, branch `codex/visual-asset-overhaul`. Preserves the newer game, all 14 survivor animation clips byte-for-byte, hand sockets, simulation and saves.
+- Integrated Jared's textured stall/barrel; curved oak and fractured-rock meshes; refined five survivor meshes; real instanced grass ribbons and settlement verge; PBR terrain/bark/stone/architecture and cloth/animal surface improvements.
+- Fixed clean-build bison palette download. Enabled tested whole-body animation culling. Rehearsal draw calls fell from ~3,100 to ~500 at start; ~29 FPS measured at 1280×720 with the busy simulation, not a 60 FPS acceptance claim.
+- 341 tests and production build pass locally. Visual request remains ACTIVE; this is not concept-art parity or a full replacement of every animal/building silhouette. See `docs/VISUAL_PASS_2026-09-08.md` and local `/dev/asset-review.html` for exact scope/provenance/inspection.
+- Blender original scene preserved; new isolated authoring scenes and exported GLBs remain. The open `.blend` was not saved; claim released. Runtime assets are committed independently of Blender sources. Deploy/PR verification is recorded by the GitHub run, not inferred from local success.

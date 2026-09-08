@@ -1,10 +1,15 @@
 import * as T from 'three';
+const clothBumps=new WeakMap<T.Texture,T.Texture>();
 /**
  * Preserve the licensed survivor atlas and rig; only grade the Ranger clothing into the
  * quieter wool/leather hierarchy used by Alderwatch. This deliberately avoids touching
  * skeletons, animation clips, sockets or locomotion.
  */
 export function weatheredCloth(m:T.MeshStandardMaterial,textures:Record<string,T.Texture>,part:string){
+ if(m.name.includes('Ranger')||m.name.includes('Costume')){
+  const source=textures[/Body|Belt|Boot|Bracer|hem/.test(part)?'leather':'wool'];
+  if(source){let bump=clothBumps.get(source);if(!bump){bump=source.clone();bump.colorSpace=T.NoColorSpace;bump.repeat.set(6,6);bump.needsUpdate=true;clothBumps.set(source,bump);}m.bumpMap=bump;m.bumpScale=.009;}
+ }
  if(!m.name.includes('Ranger'))return;
  const jerkin=part.includes('Body')&&!part.includes('Belt');
  m.metalness=0;

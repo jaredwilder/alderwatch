@@ -6,6 +6,7 @@ This is the running player-facing delivery ledger. Update it whenever Jared make
 
 | Status | Request | Delivery evidence / acceptance condition |
 |---|---|---|
+| ACTIVE — VISUAL OVERHAUL 2026-09-08 | Replace the Minecraft/toy-looking in-game models and surfaces, including characters. Use Jared's supplied GLBs and free assets; visual-only pass on current main, preserving advanced gameplay. | Integrate generated stall/barrel with measured bounds and triangle budgets; replace matted grass/terrain, improve architectural/natural surfaces and human/animal silhouettes. Tests/build plus actual before/after and deployment required. Not satisfied by more menus or a concept render. |
 | SHIPPED | Bow must visibly exist on the HUD and be usable | Hotbar slot 5 + bow combat path live before this ledger. |
 | SHIPPED | Wildlife should be encountered much more often | Common wildlife roster substantially expanded with additive persistent IDs; predator caps preserved. |
 | SHIPPED / LIVE | **Spread wildlife across the realm instead of clustering around the center, and make rare/large wildlife genuinely discoverable.** | #49 distributed encounter anchors through Southwood, Ironward and Briar while preserving local herds/packs and bounded predators; untouched legacy animals migrate once; the remote Massive bison is live. User confirmed the distribution is definitely better, but finding large wildlife remains too opaque. |
