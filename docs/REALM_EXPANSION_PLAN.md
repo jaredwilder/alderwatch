@@ -417,10 +417,510 @@ The next research pass must deliberately look for mechanisms that could raise th
 - deterministic simulation and reproducible procedural generation;
 - mathematical results from the user's broader research estate that could provide unusual leverage.
 
+## Research pass 2 — 2026-09-08 — raise the ceiling again
+
+The second research pass changes the plan materially. Ordinary streaming is not the end-state. The much larger opportunity is **representation-changing simulation**: the same persistent realm entity/population may exist as a full agent, a mesoscopic packet, a macroscopic flow, or a compact event/capsule representation depending on what the player can currently observe and affect.
+
+Published crowd-simulation work already demonstrates micro/macro aggregation and disaggregation, and newer hybrid work allows the boundary between microscopic and mesoscopic regimes to move dynamically with local conditions. Alderwatch should generalize that idea far beyond pedestrian motion.
+
+### The fidelity ladder becomes a typed simulation morphism
+
+Target representation ladder:
+
+```text
+FULL ACTOR
+  skeletal animation + physics + local AI + inventory + pathfinding
+      ↓ aggregate
+LOCAL PROXY / CROWD AGENT
+  position + velocity + schedule + small behavior state
+      ↓ aggregate
+MESOSCOPIC PACKET
+  population cohorts + flows + queue/route state + sparse named exceptions
+      ↓ aggregate
+MACRO AREA STATE
+  stocks + faction regime + demographic/economic flows + event obligations
+      ↓ compile
+WORLD CAPSULE / EVENT BLOCK
+  state transition + state-conditioned deltas + sparse exceptions
+```
+
+The reverse path is disaggregation/materialization.
+
+Every conversion must carry an explicit conservation/loss contract. At minimum, the following may never silently disappear when they are gameplay-load-bearing:
+
+- named identity and unique-life status;
+- alive/dead state;
+- ownership and container/item obligations;
+- population counts by persistent class;
+- cargo/resource/currency conservation where applicable;
+- faction control/reputation consequences;
+- scheduled arrivals/departures;
+- player-caused scars, crimes, loot, structure changes and quest flags;
+- deterministic random key/counter position;
+- boundary flows into neighboring areas;
+- explicit list of details intentionally discarded because they are presentation-only.
+
+This is the core route to a realm whose logical population can be orders of magnitude larger than its active agent count.
+
+### Random-access deterministic world generation
+
+Adopt the counter-based-RNG idea rather than letting generation order define the world.
+
+Target conceptual API:
+
+```text
+worldRandom(
+  realmSeed,
+  areaId,
+  cellId,
+  entitySlot,
+  propertyTag,
+  epoch
+) -> deterministic random bits
+```
+
+Counter-based generators such as Philox/Threefry are designed as keyed functions of counters rather than sequential mutable RNG streams. The world consequence is enormous: any cell, NPC slot, loot roll family or procedural feature can be reconstructed independently, in any order, on any worker, without generating all preceding cells first.
+
+This enables a **seed + authored anchors + sparse deviations** storage model. Static base-world content should not be serialized merely because it exists. Persist only what cannot be regenerated exactly or what has changed from the deterministic base.
+
+### Spatial indexing as an execution primitive
+
+Assign world cells stable Morton/Z-order or Hilbert-order keys in addition to ordinary `(x,z)` coordinates.
+
+Potential benefits:
+
+- nearby cells tend to live near one another in storage/cache order;
+- prefetch can request a contiguous neighborhood interval;
+- OPFS/IndexedDB records can be laid out by spatial locality;
+- worker load can be partitioned into weighted contiguous intervals;
+- future authoritative servers can shard the same ordered realm space;
+- deterministic streaming/replay becomes easier to audit.
+
+Do not assume Hilbert always beats Morton. Benchmark index cost versus locality. The architectural point is to make locality a first-class key rather than repeatedly scanning giant object maps.
+
+### Hierarchical navigation, never kingdom-scale navmesh search
+
+Use three distinct navigation levels:
+
+```text
+REALM GRAPH
+  cities / regions / ports / passes / dungeon portals
+
+REGIONAL ROUTE GRAPH
+  road junctions / gates / bridges / district portals
+
+LOCAL NAVIGATION
+  Recast/Detour navmesh + local crowd/steering
+```
+
+HPA*-style abstraction is directly relevant: local crossing paths are cached while global pathfinding traverses clusters instead of every cell. Recast/Detour remains the local geometric truth, not the kingdom-wide search substrate.
+
+A merchant travelling from Alderbrook to Ironward should not run A* across every navmesh polygon between them. Far away, the merchant traverses the realm/road graph. Only the current local leg becomes a Recast path.
+
+### Main thread becomes a presentation thread
+
+Long-term target:
+
+- main thread: input, renderer submission, audio/UI, minimal orchestration;
+- simulation worker: macro realm/event progression;
+- nav worker: tile generation/rebuilds and expensive route work;
+- optional asset/decompression worker where useful;
+- future worker pool: cell jobs partitioned by deterministic spatial key.
+
+Transferable `ArrayBuffer`s provide zero-copy ownership transfer. If Alderwatch's hosting/dependency policy can safely support cross-origin isolation, `SharedArrayBuffer`/Atomics and shared WebAssembly memory can provide a lower-overhead snapshot ring between workers. This is an optimization lane, not a prerequisite: it requires COOP/COEP deployment headers and must retain a transferable-buffer fallback.
+
+### Browser persistence must leave localStorage behind
+
+The current localStorage save is a good vertical-slice implementation, not a historical-scale realm store. Web Storage is capped around 10 MiB across local/session storage. IndexedDB, CacheStorage and OPFS live under the browser's broader origin quota system; OPFS is specifically optimized for performant in-place file access and exposes synchronous file operations inside workers.
+
+Target persistence split:
+
+```text
+IndexedDB
+  small indexed metadata
+  entity lookup tables
+  save manifest
+  journals/indexes
+
+OPFS
+  compact binary area snapshots
+  world-capsule blocks
+  larger sparse-delta files
+  optional generated caches
+
+CacheStorage / normal HTTP cache
+  immutable versioned asset packs
+```
+
+Request persistent storage when appropriate, detect quota with `navigator.storage.estimate()`, handle quota failure explicitly, and preserve export/import/backups so a browser clearing site data does not become an invisible permanent-loss trap.
+
+### Geometry and asset delivery become cell-native
+
+The glTF `EXT_mesh_gpu_instancing` specification explicitly recommends grouping instances into colocated cells for large game worlds so cells can be culled by bounds. `KHR_meshopt_compression` can compress geometry, animation and instance-transform buffers with fast WebAssembly/SIMD decoding. KTX2/Basis can keep textures compressed through transmission and GPU-native transcoding, and KTX2 supports mip-level streaming.
+
+Therefore asset authoring should increasingly produce **streaming-ready cell packs**, not giant monolithic scenes that runtime code must take apart.
+
+### WebGPU is now a serious optional ceiling-raiser
+
+Do not block realm work on WebGPU, but raise the status from “maybe someday” to **dedicated benchmark branch after Realm Expansion 1**.
+
+Current Three.js already demonstrates:
+
+- WebGPU compute;
+- indirect draw parameter buffers;
+- storage buffers;
+- instanced skinning;
+- individually posed skinned instances whose computed poses can be reused by render passes.
+
+That opens a future “crowd presentation plane” where hundreds or more visible low/medium-fidelity citizens share geometry and GPU animation, while the handful of combat/conversation-critical actors retain full ordinary rigs.
+
+The acceptance rule remains empirical: if the WebGPU branch is not materially better on Alderwatch workloads, do not migrate just because it is newer.
+
+## Estate sweep — frontier mathematics with direct realm leverage
+
+This pass searched the durable mathematical-estate control plane plus relevant Library artifacts for structures that are not merely metaphorically similar but can become exact engineering machinery.
+
+### Transfer A — HUMUHUMUNUKUNUKUĀPUAʻA becomes the offscreen-world compiler
+
+The estate's HUMUHUMUNUKUNUKUĀPUAʻA finisher contains a remarkable directly transferable stack. Its declared closed ingredients include:
+
+- `IK2-05` Semidirect Order-Aware Block Summary Theorem;
+- `IK2-06` Fully Abstract Compositional Block Certificate;
+- `IK2-07` Epochal Sparse Rebase Theorem;
+- `CS-01` Canonical Additive Transducer Monoid;
+- `CS-02` Minimal Fully Abstract Compositional Quotient;
+- `CS-04` Log-Depth Ordered Parallel Composition;
+- `CS-05` Infinite-History Finite-Behavior Collapse for the Three-Resource Machine;
+- `CS-06` Quotient-Before-Encoding Principle;
+- `WORLD-02` Fault-Localized Parallel Composition Tree.
+
+The core block representation is precisely the sort of object an offscreen area needs:
+
+```text
+S_u = (F_u, G_u)
+
+F_u : starting semantic state -> ending semantic state
+G_u : starting semantic state -> additive delta vector
+```
+
+with ordered composition conceptually:
+
+```text
+(F,G) * (F',G')
+  = (F'∘F,
+     q -> G(q) + G'(F(q)))
+```
+
+Order matters. A bandit raid then a relief caravan need not equal a relief caravan then a bandit raid.
+
+**Alderwatch application:** define a finite offscreen semantic machine for each area archetype and compile chunks of ordered offscreen history into these summaries. The additive vector can carry quantities such as population changes, stock changes, treasury/cargo flow, casualties, reputation effects and spawned obligations, while the transition function carries non-additive regime state such as faction control, market condition, siege state or settlement alert state.
+
+Histories that are behaviorally indistinguishable for all admissible future interactions may collapse to the same canonical class instead of remaining separate histories. Long sequences of blocks can be composed with a balanced tree rather than replayed tick-by-tick.
+
+This could turn “the player has been away from Ironward for 19 in-game days” from nineteen days of simulated ticks into a small ordered composition problem.
+
+### Transfer B — sparse exceptions are the bridge between population fields and named people
+
+HUMU's structured-sparse machinery suggests a second layer: most of a city's offscreen population can live in aggregate cohorts while **exceptions** remain explicitly represented.
+
+Sparse exception examples:
+
+- NPCs the player has met;
+- named quest actors;
+- criminals/wanted animals;
+- unique traders;
+- recently wounded/dead/displaced citizens;
+- people carrying unique items;
+- actors currently crossing an area boundary;
+- player-caused state deviations.
+
+This creates a principled hybrid:
+
+```text
+AREA MACROSTATE
++ CANONICAL BEHAVIOR CLASS
++ AGGREGATE POPULATION/RESOURCE CHANNELS
++ SPARSE NAMED EXCEPTIONS
+```
+
+The number of canonical citizens need not equal the number of active full objects.
+
+### Transfer C — epochal rebase gives the realm an indefinite lifetime
+
+The estate's `IK2-07` result is explicitly about an indefinitely long verified process retaining fixed-size sparse certificates when each epoch ends inside the declared structured-sparse family and a checkpoint decodes/re-encodes state.
+
+World translation:
+
+- simulate/compose an in-game day or week;
+- commit an area checkpoint;
+- retain the new exact current-state capsule;
+- start the next epoch from that checkpoint;
+- keep only selected narrative/history events separately.
+
+This is a route to save-state size depending principally on **current structured state + deliberate history**, not on every simulation tick since the realm was created.
+
+Do not misread this as free historical compression. The same theorem stack contains `STREAM-02` “No Free Retrospective Succinctness.” If the game promises that the player can inspect every past event, those events must remain represented somewhere. Current-state compression and historical archival are separate products.
+
+### Transfer D — MSL REPRESENTATION_AFFORDANCE becomes simulation architecture
+
+The MSL estate produced the law:
+
+```text
+SEMANTIC_EQUIVALENCE != PROOF_AFFORDANCE_EQUIVALENCE
+CONTENT_GAIN = ZERO does not imply AFFORDANCE_GAIN = ZERO
+```
+
+and the explicit notions `REPRESENTATION_AFFORDANCE`, `MOVE_FRONTIER`, `SEMANTIC_MORPHISM`, `LOSS_LEDGER` and typed projection/relaxation/refinement relations.
+
+Port this directly to the engine:
+
+```text
+SIMULATION_MORPHISM
+  FROM <full-agent | proxy | packet | field | capsule>
+  TO   <...>
+  KIND <equivalence | projection | refinement | approximation>
+  CONSERVED <list>
+  LOST <list>
+  RECONSTRUCTION <exact | seeded | distributional | impossible>
+  VALID_FOR <observations/actions>
+```
+
+A crowd packet and 83 full citizens may encode the same load-bearing world facts but expose radically different operations. The full-agent view affords collision, dialogue and melee. The packet view affords fast flow integration and mass route updates. Neither is universally “better.” The representation is selected by the operations the current observation frontier requires.
+
+That is a far stronger doctrine than distance-only LOD.
+
+### Transfer E — CONTENT_RANK / CONSTRAINT_BASIS becomes a persistence minimizer
+
+The MSL estate also insists:
+
+```text
+CONSTRAINT_COUNT != CONTENT_RANK
+MULTIPLE_VIEWS_OF_ONE_SOURCE != MULTIPLE_INDEPENDENT_SOURCES
+```
+
+Apply this to save state.
+
+Alderwatch should eventually distinguish:
+
+- **basis state** — irreducible facts that must be persisted;
+- **derived state** — exactly recomputable from basis + seed + version;
+- **cache state** — expensive but disposable reconstruction accelerators;
+- **presentation state** — never authoritative;
+- **history state** — retained because the product deliberately promises memory, not because simulation requires it.
+
+A `PersistenceContentLedger` can make migrations and save growth auditable. If a field is derivable from other persisted fields, it does not automatically earn permanent storage merely because runtime code finds it convenient.
+
+This is how a million logical objects avoid becoming a million JSON blobs.
+
+### Transfer F — a new Alderwatch Realm Cut Lemma
+
+The VVC–MSL/JSPACE closure theorem contains a certified-cut principle: once an interior subproof is certified, active context can retain a sufficient frontier rather than the entire hidden proof interior. The analogous world theorem is elementary enough to state directly.
+
+> **Realm Cut Lemma — engineering form.** Let `A` be an inactive area, and let `sigma(A)` be a boundary summary. Suppose that for any two internal states `A1,A2` with `sigma(A1)=sigma(A2)`, every admissible ordered sequence of external boundary inputs produces identical boundary outputs and identical next summaries until an observation/refinement enters the area. Then, for all observers outside `A`, replacing the full internal state by `sigma(A)` is behaviorally exact during that interval.
+
+Proof sketch: induct on the ordered boundary-input sequence. Equal sufficient summaries imply equal first outputs and equal next summaries; repeat. The hidden interior is therefore observationally irrelevant until the contract's refinement boundary is crossed.
+
+**Engineering consequence:** total active simulation cost can scale with the width/complexity of the current **interaction frontier**, rather than total realm volume, whenever inactive regions admit bounded sufficient summaries.
+
+This is a candidate constitutional theorem for Alderwatch. The implementation test is adversarial: generate pairs of different microstates with equal proposed summaries and search for any external sequence that distinguishes them. Any witness proves the summary is missing a load-bearing variable.
+
+### Transfer G — graph separators should shape the geography itself
+
+The estate's graph-decomposition playbooks repeatedly ask: “What state must cross a bag boundary?” This is exactly the realm-streaming question.
+
+Make geography help the mathematics.
+
+Natural medieval-world separators include:
+
+- mountain passes;
+- bridges;
+- ferries;
+- walled gates;
+- canyon mouths;
+- forest roads;
+- cave mouths;
+- mine lifts;
+- district gates;
+- river crossings;
+- harbor routes.
+
+When an area has only a small number of interaction portals, its boundary state is small even if its interior is enormous. This means level/world design can deliberately create **low-adhesion simulation cuts** while still looking natural and historically plausible.
+
+The technical direction is hierarchical graph decomposition: choose area/cell boundaries that minimize expensive cross-boundary state, not merely square-grid distance.
+
+### Transfer H — classical spectral/Kron tools become optional macro-world reducers
+
+The estate also contains graph-sparsification and network-reduction families. Two are worth a focused prototype once trade/rumor/danger networks exist:
+
+- **Kron/Schur reduction:** eliminate interior nodes of a network while preserving specified boundary behavior such as effective resistance/flow relationships under the model assumptions;
+- **spectral sparsification:** replace a dense graph by a much smaller weighted graph while approximately preserving all Laplacian quadratic forms within a declared tolerance.
+
+These are not for combat or unique quest causality. They are candidates for very-large-scale diffusion systems such as trade pressure, rumor propagation, migration pressure, regional danger or traffic equilibrium.
+
+### Transfer I — Mori–Zwanzig is a warning system for bad coarse-graining
+
+The estate's coarse-graining bank contains Mori–Zwanzig projection: eliminating unresolved variables generally leaves memory and orthogonal forcing in the exact reduced dynamics.
+
+Game translation: if an aggregate town model repeatedly fails to reproduce the future of a full simulation, do not merely add random correction factors. Treat the discrepancy as evidence that the chosen macrostate is missing memory-bearing variables.
+
+A practical validation protocol can run a small city in full simulation, project it into the proposed macrostate, evolve both, and measure which hidden variables predict the divergence. Those variables are candidates to join the `CONSTRAINT_BASIS` of the coarse model.
+
+This is a research blade, not a requirement to implement a generalized Langevin equation in the game.
+
+## Realm-scale stress targets — architecture ceiling, not immediate content promise
+
+Do not confuse launch content targets with architecture stress targets. The engine should be attacked with synthetic scale far beyond the hand-authored realm so we learn where the true ceiling is.
+
+Create escalating rehearsals such as:
+
+```text
+REALMSCALE-10K
+  10,000 persistent logical actors
+  random area entry/exit
+  30 in-game days offscreen
+
+REALMSCALE-100K
+  100,000 persistent logical actors
+  thousands of caravans/schedules
+  arbitrary area materialization
+
+REALMSCALE-1M
+  1,000,000 logical identities/cohort members
+  sparse named deviations
+  no million-object JS heap requirement
+
+WORLDSPACE-100M
+  100,000,000 deterministic addressable static feature slots/candidates
+  generated random-access from seed/counter
+  only touched deviations persisted
+
+TRANSITION-SOAK
+  1,000 repeated area transitions
+  no monotonic renderer/physics/asset memory leak
+
+CITY-CROWD
+  progressively 100 / 250 / 500 / 1,000 visible citizen proxies
+  measure WebGL baseline and optional WebGPU instanced-skinning branch
+```
+
+Passing such tests would not mean Alderwatch has one million meaningful hand-authored characters. It would prove the architecture can carry a realm far larger than its immediate content production rate.
+
+## Record-scale claim discipline
+
+The ambition is explicitly record-setting, but do not advertise “largest browser game ever” merely because a large coordinate range or procedural seed exists.
+
+Any future record-style claim must freeze a measurable definition first, for example:
+
+- persistent logical actors with independently addressable state;
+- persistent explorable area count;
+- unique authored/procedural POI count;
+- deterministic addressable world feature count;
+- concurrent visible animated agents at a target frame budget;
+- total cacheable realm content with bounded startup footprint;
+- active-memory-to-logical-world ratio;
+- offscreen catch-up throughput.
+
+Then compare against public evidence. Historical ambition is encouraged; fake Guinness-by-coordinate-system is not.
+
+## Revised implementation sequence after research pass 2
+
+The original sequence remains, with new substrate added rather than a rewrite detour.
+
+### Realm Expansion 1A — break area lifetime and persistence coupling
+
+- `RealmManager`, `AreaDefinition`, `AreaRuntime`;
+- Far March as first area;
+- tiny second proving area;
+- area transition and disposal;
+- area-aware persistence;
+- renderer/physics/memory instrumentation;
+- preserve old saves through migration.
+
+### Realm Expansion 1B — deterministic cell identity + persistence plane
+
+- stable area/cell IDs;
+- random-access keyed generation API;
+- seed + deviation model for new content;
+- IndexedDB/OPFS prototype behind save abstraction;
+- binary/snapshot format experiment;
+- cell-local asset manifests;
+- transition soak test.
+
+### Realm Expansion 1C — world capsule experiment
+
+Before betting the entire game on the frontier math, create one small exact experiment:
+
+- finite offscreen settlement state machine;
+- ordered event blocks represented as `(F,G)`;
+- canonical summary composition;
+- full tick-by-tick oracle implementation;
+- randomized/adversarial equivalence tests comparing block composition versus replay;
+- epoch checkpoint/rebase;
+- sparse named exceptions;
+- persistence-size and catch-up-speed measurement.
+
+Kill or narrow the approach if its assumptions force a toy simulation. Expand it aggressively if it preserves genuinely fun city consequences.
+
+### Realm Expansion 2 — Ironward Basin + Deep Iron Mine
+
+Use the architecture immediately on visible new content. Do not spend months making a perfect abstract substrate before the player gets a new city/region/dungeon.
+
+### Realm Expansion 3 — multiscale living population
+
+- Recast local nav;
+- realm/regional route hierarchy;
+- citizens that aggregate/disaggregate across fidelity levels;
+- schedules, markets, guards, caravans;
+- fidelity-morphism loss ledger;
+- full-sim-vs-coarse validation harness.
+
+### Realm Expansion 4 — crowd rendering ceiling branch
+
+Benchmark WebGPU/TSL instanced skinning and compute-driven crowd presentation against the existing WebGL renderer. This branch earns promotion only with measured Alderwatch wins.
+
+### Realm Expansion 5+ — realm factory
+
+Once the compiler/runtime survives synthetic scale and Ironward proves it in real gameplay, expansion becomes parallel content production: more regions, cities, dungeons, factions, events and regional economies using the same substrate.
+
+## Research sources retained for this plan
+
+Current external references worth preserving:
+
+- Three.js `BatchedMesh` docs — multi-draw batching and per-object frustum culling: https://threejs.org/docs/pages/BatchedMesh.html
+- Three.js `WebGPURenderer` manual — WebGPU + WebGL2 fallback, TSL, current experimental status: https://threejs.org/manual/en/webgpurenderer
+- Three.js WebGPU skinning/instancing examples: https://threejs.org/examples/?q=skinn
+- Three.js `IndirectStorageBufferAttribute` — indirect draw parameters under WebGPU: https://threejs.org/docs/pages/IndirectStorageBufferAttribute.html
+- recast-navigation-js — Recast/Detour WebAssembly, Three.js integration, crowd simulation, worker navmesh examples: https://github.com/isaac-mason/recast-navigation-js
+- HPA*, Botea/Müller/Schaeffer, *Near Optimal Hierarchical Path-Finding* (2004).
+- Xiong et al., *Hybrid modelling of crowd simulation* (2010), DOI 10.1016/j.procs.2010.04.008.
+- *HyPedSim: A Multi-Level Crowd-Simulation Framework* (2024).
+- *Coupling microscopic and mesoscopic models for crowd dynamics with emotional contagion* (Frontiers in Physics, 2025).
+- Salmon et al., *Parallel Random Numbers: As Easy as 1, 2, 3* (SC11) — counter-based Philox/Threefry.
+- MDN OPFS: https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system
+- MDN storage quotas: https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria
+- MDN Web Workers and transferable objects: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers
+- MDN SharedArrayBuffer / cross-origin isolation: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer
+- Khronos `EXT_mesh_gpu_instancing` — includes large-world cell-grouping guidance.
+- Khronos `KHR_meshopt_compression` — geometry/animation/instance-transform compression.
+- Khronos KTX2 / `KHR_texture_basisu` — GPU texture compression and mip streaming.
+- Kron reduction / Schur complement literature for boundary-preserving network reduction.
+- Spielman–Srivastava spectral sparsification literature.
+- Mori–Zwanzig coarse-graining literature.
+- Hilbert/Morton space-filling-curve partitioning/load-balancing literature.
+
+Estate sources retained:
+
+- `jaredwilder/msl-ore-estate/MEMORY.md`
+- `jaredwilder/msl-ore-estate/compression/VVC-MSL-KBK-CLOSURE-THEOREM.md`
+- Library `MSL_v1_5_EG411_LANGUAGE_AUTOPSY_2026-08-31.md`
+- Library `MSL_v1_5_EG411_EXTENDED_LANGUAGE_AUTOPSY_2026-08-31.md`
+- Library `HUMUHUMUNUKUNUKUAPUAA-FINISHER-REPORT.md`
+- Library math-technique / lifetime theorem banks for graph decomposition, spectral sparsification and Mori–Zwanzig projection.
+
 ## Acceptance standard
 
 The goal is not merely to claim that a huge realm exists in data.
 
 Alderwatch should visibly feel larger and more alive while preserving responsive combat, adult medieval art direction, readable daylight, existing saves, camera behavior, movement quality and real browser performance.
 
-The long-term historical ambition is intentionally extreme: build a browser-based medieval world whose persistent logical scale is far larger than what is simultaneously simulated or rendered, and make that invisible virtualization feel like one coherent living realm.
+The long-term historical ambition is intentionally extreme: build a browser-based medieval world whose persistent logical scale is far larger than what is simultaneously simulated or rendered, make that invisible virtualization feel like one coherent living realm, and use exact/validated representation boundaries wherever possible so scale does not require surrendering causality.
