@@ -15,9 +15,9 @@ const ZERO:Drive={pitch:0,yaw:0,roll:0};
 function driveFor(clip:string,bone:string):Drive{
  const b=bone.toLowerCase(),neck=b.includes('neck'),head=b.includes('head');
  if(clip==='attack')return bone==='pelvis'?{pitch:.018,yaw:.40,roll:-.035}:bone==='spine_01'?{pitch:.015,yaw:.19,roll:-.035}:bone==='spine_02'?{pitch:0,yaw:.10,roll:-.02}:bone==='spine_03'?{pitch:0,yaw:.055,roll:-.01}:neck?{pitch:.095,yaw:0,roll:0}:head?{pitch:.045,yaw:0,roll:0}:ZERO;
- // Axe side cuts are intentionally violent and transverse: large pelvis rotation, progressively lagged torso,
- // almost no extra downward pitch. The authored blade path supplies the chop; the body supplies the violence.
- if(clip==='chop')return bone==='pelvis'?{pitch:.002,yaw:.70,roll:.055}:bone==='spine_01'?{pitch:.002,yaw:.29,roll:.05}:bone==='spine_02'?{pitch:0,yaw:.15,roll:.027}:bone==='spine_03'?{pitch:0,yaw:.075,roll:.014}:neck?{pitch:.065,yaw:0,roll:0}:head?{pitch:.025,yaw:0,roll:0}:ZERO;
+ // Axe combat is a transverse kill stroke, not the old harvesting chop. Pelvis motion is intentionally
+ // dominant; progressively smaller torso drive arrives later so the hands/weapon read as the chain's end.
+ if(clip==='chop')return bone==='pelvis'?{pitch:.002,yaw:.86,roll:.065}:bone==='spine_01'?{pitch:.002,yaw:.34,roll:.055}:bone==='spine_02'?{pitch:0,yaw:.17,roll:.03}:bone==='spine_03'?{pitch:0,yaw:.082,roll:.015}:neck?{pitch:.065,yaw:0,roll:0}:head?{pitch:.025,yaw:0,roll:0}:ZERO;
  if(clip==='mine')return bone==='pelvis'?{pitch:.20,yaw:.065,roll:0}:bone==='spine_01'?{pitch:.16,yaw:.05,roll:0}:bone==='spine_02'?{pitch:.09,yaw:.025,roll:0}:ZERO;
  if(clip==='heavy')return bone==='pelvis'?{pitch:.14,yaw:.15,roll:0}:bone==='spine_01'?{pitch:.11,yaw:.12,roll:0}:bone==='spine_02'?{pitch:.065,yaw:.07,roll:0}:ZERO;
  return ZERO;
@@ -34,22 +34,22 @@ function driveWeight(t:number,impact:number,duration:number){
 type Segment='pelvis'|'spine1'|'spine2'|'spine3'|'other';
 function segmentFor(bone:string):Segment{return bone==='pelvis'?'pelvis':bone==='spine_01'?'spine1':bone==='spine_02'?'spine2':bone==='spine_03'?'spine3':'other';}
 /**
- * Side cuts use proximal-to-distal sequencing. Axe gets a more aggressive version: the hips coil earlier,
- * stay substantially rotated through impact, then overtake into follow-through while the torso lags behind.
+ * Side cuts use proximal-to-distal sequencing. The axe deliberately traverses from a deep counter-coil
+ * to an open pelvis through contact; this is angular displacement, not a static rotated pose.
  */
 function sideDriveShape(clip:string,bone:string,impact:number,duration:number){
  const tail=Math.max(.001,duration-impact),segment=segmentFor(bone),axe=clip==='chop';
  if(segment==='pelvis')return axe
-  ?{load:Math.max(.03,impact*.28),loadWeight:-1.15,contactWeight:.88,follow:impact+tail*.24,followWeight:1.08}
+  ?{load:Math.max(.025,impact*.24),loadWeight:-1.22,contactWeight:.96,follow:impact+tail*.20,followWeight:1.12}
   :{load:Math.max(.035,impact*.34),loadWeight:-1,contactWeight:.46,follow:impact+tail*.30,followWeight:.82};
  if(segment==='spine1')return axe
-  ?{load:Math.max(.035,impact*.42),loadWeight:-.68,contactWeight:.44,follow:impact+tail*.32,followWeight:.78}
+  ?{load:Math.max(.03,impact*.40),loadWeight:-.70,contactWeight:.48,follow:impact+tail*.30,followWeight:.82}
   :{load:Math.max(.04,impact*.46),loadWeight:-.72,contactWeight:.28,follow:impact+tail*.36,followWeight:.68};
  if(segment==='spine2')return axe
-  ?{load:Math.max(.04,impact*.52),loadWeight:-.40,contactWeight:.23,follow:impact+tail*.40,followWeight:.56}
+  ?{load:Math.max(.035,impact*.51),loadWeight:-.40,contactWeight:.25,follow:impact+tail*.38,followWeight:.58}
   :{load:Math.max(.04,impact*.56),loadWeight:-.44,contactWeight:.14,follow:impact+tail*.42,followWeight:.52};
  if(segment==='spine3')return axe
-  ?{load:Math.max(.04,impact*.59),loadWeight:-.27,contactWeight:.12,follow:impact+tail*.46,followWeight:.42}
+  ?{load:Math.max(.04,impact*.59),loadWeight:-.26,contactWeight:.13,follow:impact+tail*.44,followWeight:.43}
   :{load:Math.max(.04,impact*.62),loadWeight:-.30,contactWeight:.08,follow:impact+tail*.46,followWeight:.40};
  return {load:Math.max(.04,impact*.55),loadWeight:-1,contactWeight:0,follow:impact+tail*.42,followWeight:.72};
 }
