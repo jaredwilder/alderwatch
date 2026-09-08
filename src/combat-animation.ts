@@ -37,13 +37,21 @@ function amplifyRotation(track:T.KeyframeTrack){
  return out;
 }
 
+/** Sample a quaternion key track with normalized slerp so injected body keys stay smooth and type-safe. */
+function sampleQuaternion(track:T.KeyframeTrack,t:number,out:T.Quaternion){
+ const times=track.times,values=track.values,count=times.length;if(!count)return out.identity();
+ if(t<=times[0])return out.fromArray(values,0).normalize();if(t>=times[count-1])return out.fromArray(values,(count-1)*4).normalize();
+ let lo=0,hi=count-1;while(hi-lo>1){const mid=(lo+hi)>>1;if(times[mid]<=t)lo=mid;else hi=mid;}
+ const a=(t-times[lo])/Math.max(1e-6,times[hi]-times[lo]),next=new T.Quaternion().fromArray(values,hi*4).normalize();return out.fromArray(values,lo*4).normalize().slerp(next,a).normalize();
+}
+
 function addBodyDrive(track:T.KeyframeTrack,clip:string,impact:number,duration:number){
  if(!track.name.endsWith('.quaternion'))return track;const bone=track.name.slice(0,-'.quaternion'.length),drive=driveFor(clip,bone);if(!drive.pitch&&!drive.yaw&&!drive.roll)return track;
  const load=Math.max(.04,impact*.55),follow=impact+(duration-impact)*.42;
  const times=[...Array.from(track.times),0,load,impact,follow,duration].sort((a,b)=>a-b).filter((t,i,a)=>i===0||Math.abs(t-a[i-1])>1e-5);
- const interpolant=track.createInterpolant(new Float32Array(4)),values:number[]=[],q=new T.Quaternion(),extra=new T.Quaternion(),euler=new T.Euler();
- for(const t of times){q.fromArray(interpolant.evaluate(t) as ArrayLike<number>).normalize();const w=driveWeight(t,impact,duration);euler.set(drive.pitch*w,drive.yaw*w,drive.roll*w,'YXZ');extra.setFromEuler(euler);q.multiply(extra).normalize();values.push(q.x,q.y,q.z,q.w);}
- return new T.QuaternionKeyframeTrack(track.name,times,values);
+ const values:number[]=[],q=new T.Quaternion(),extra=new T.Quaternion(),euler=new T.Euler();
+ for(const t of times){sampleQuaternion(track,t,q);const w=driveWeight(t,impact,duration);euler.set(drive.pitch*w,drive.yaw*w,drive.roll*w,'YXZ');extra.setFromEuler(euler);q.multiply(extra).normalize();values.push(q.x,q.y,q.z,q.w);}
+ return new T.QuaternionKeyframeTrack(track.name,times,values,T.InterpolateLinear);
 }
 
 function retime(track:T.KeyframeTrack,clip:string,sourceImpact:number,targetImpact:number,targetDuration:number,sourceDuration:number){
