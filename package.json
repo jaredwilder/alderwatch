@@ -6,9 +6,10 @@
   "scripts": {
     "assets:animals": "node scripts/fetch_animals.mjs",
     "assets:medieval": "node scripts/fetch_medieval.mjs",
-    "predev": "npm run assets:animals && npm run assets:medieval",
+    "assets:characters": "node scripts/fetch_characters.mjs",
+    "predev": "npm run assets:animals && npm run assets:medieval && npm run assets:characters",
     "dev": "vite --host 127.0.0.1 --port 5190 --strictPort",
-    "prebuild": "npm run assets:animals && npm run assets:medieval",
+    "prebuild": "npm run assets:animals && npm run assets:medieval && npm run assets:characters",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5191 --strictPort",
     "test": "tsx --test tests/*.test.ts"
