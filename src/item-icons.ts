@@ -3,14 +3,24 @@ const positions:Record<string,[number,number]>={
  hammer:[0,1],sword:[1,1],fine_sword:[2,1],wood:[3,1],stone:[4,1],crow_crop:[5,1],
  iron:[0,2],fiber:[1,2],venison:[2,2],berries:[3,2],grilled_venison:[4,2],crow_milk:[5,2],
  hearty_stew:[0,3],hide:[1,3],health:[2,3],stamina:[3,3],speed:[4,3],wild_honey:[5,3],
+ hare_meat:[0,4],crow_meat:[1,4],goat_meat:[2,4],mutton:[3,4],bear_meat:[4,4],bison_meat:[5,4],
+ wolf_meat:[0,5],eagle_meat:[1,5],roasted_hare:[2,5],crow_skewer:[3,5],herbed_goat:[4,5],hearth_mutton:[5,5],
+ bear_steak:[0,6],bison_roast:[1,6],smoked_wolf:[2,6],eagle_roast:[3,6],
 };
 const names:Record<string,string>={
  'Woodland mushrooms':'mushroom','Wild herbs':'herb','Woodland broth':'woodland_broth','Iron axe':'axe','Mining pick':'pickaxe','Hunter’s bow':'bow',
  'Builder’s hammer':'hammer','Marcher’s sword':'sword','Tempered sword':'fine_sword','Tempered marcher’s sword':'fine_sword','Oak timber':'wood',
- 'Fieldstone':'stone','Iron ore':'iron','Wild flax':'fiber','Raw venison':'venison','Wild berries':'berries','Grilled venison':'grilled_venison',
- 'Marcher’s stew':'hearty_stew','Cured hide':'hide','Crow crop':'crow_crop','Crow milk':'crow_milk','Wild honey':'wild_honey',
+ 'Fieldstone':'stone','Iron ore':'iron','Wild flax':'fiber','Raw hare':'hare_meat','Raw crow':'crow_meat','Raw goat':'goat_meat','Raw mutton':'mutton',
+ 'Raw venison':'venison','Raw bear meat':'bear_meat','Raw bison':'bison_meat','Raw wolf meat':'wolf_meat','Raw eagle':'eagle_meat','Wild berries':'berries',
+ 'Rosemary hare':'roasted_hare','Charred crow skewer':'crow_skewer','Herbed goat chop':'herbed_goat','Hearth-roasted mutton':'hearth_mutton','Grilled venison':'grilled_venison',
+ 'Blackwood bear steak':'bear_steak','Bison herb roast':'bison_roast','Smoked wolf strips':'smoked_wolf','Highland eagle roast':'eagle_roast','Marcher’s stew':'hearty_stew',
+ 'Cured hide':'hide','Crow crop':'crow_crop','Crow milk':'crow_milk','Wild honey':'wild_honey',
 };
-const recipeNames:Record<string,string>={'Woodland broth':'woodland_broth','Crow milk':'crow_milk','Marcher’s sword':'sword','Tempered marcher’s sword':'fine_sword','Grilled venison':'grilled_venison','Marcher’s stew':'hearty_stew'};
+const recipeNames:Record<string,string>={
+ 'Woodland broth':'woodland_broth','Crow milk':'crow_milk','Marcher’s sword':'sword','Tempered marcher’s sword':'fine_sword',
+ 'Rosemary hare':'roasted_hare','Charred crow skewer':'crow_skewer','Herbed goat chop':'herbed_goat','Hearth-roasted mutton':'hearth_mutton','Grilled venison':'grilled_venison',
+ 'Blackwood bear steak':'bear_steak','Bison herb roast':'bison_roast','Smoked wolf strips':'smoked_wolf','Highland eagle roast':'eagle_roast','Marcher’s stew':'hearty_stew',
+};
 
 if(typeof document!=='undefined'){
  void import('./fun-systems');
@@ -18,16 +28,16 @@ if(typeof document!=='undefined'){
  void import('./ui-stack');
  void import('./backpack-ui');
  const pct=(n:number,max:number)=>max?`${n/max*100}%`:'0%';
- const rules=Object.entries(positions).map(([id,[x,y]])=>`.aw-item-icon[data-item="${id}"],.hotbar [data-item="${id}"]::before{background-position:${pct(x,5)} ${pct(y,3)}}`).join('\n');
+ const rules=Object.entries(positions).map(([id,[x,y]])=>`.aw-item-icon[data-item="${id}"],.hotbar [data-item="${id}"]::before{background-position:${pct(x,5)} ${pct(y,6)}}`).join('\n');
  const style=document.createElement('style');
- style.dataset.alderwatchItemIcons='generated-png-v1';
+ style.dataset.alderwatchItemIcons='species-meats-v1';
  style.textContent=`
-.aw-item-icon{display:inline-block;width:2.35rem;height:2.35rem;flex:0 0 auto;background-image:url('/assets/ui/item-icons.png');background-size:600% 400%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0008);vertical-align:middle;image-rendering:auto}
+.aw-item-icon{display:inline-block;width:2.35rem;height:2.35rem;flex:0 0 auto;background-image:url('/assets/ui/item-icons.svg');background-size:600% 700%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0008);vertical-align:middle;image-rendering:auto}
 .pack-item strong>.aw-item-icon{width:2.8rem;height:2.8rem;margin-right:.55rem}.pack-item strong{display:flex;align-items:center}
 .loot-icon.aw-item-icon{width:2.8rem;height:2.8rem;font-size:0}
 .recipe h3>.aw-item-icon{width:2.25rem;height:2.25rem;margin-right:.5rem}.recipe h3{display:flex;align-items:center}
-.hotbar button{position:relative;padding-left:3.15rem!important}.hotbar button::before{content:'';position:absolute;left:.42rem;top:50%;transform:translateY(-50%);width:2.35rem;height:2.35rem;background-image:url('/assets/ui/item-icons.png');background-size:600% 400%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0009);image-rendering:auto}
-.hotbar button:nth-child(1)::before{background-position:60% 0}.hotbar button:nth-child(2)::before{background-position:80% 0}.hotbar button:nth-child(3)::before{background-position:20% 33.333%}.hotbar button:nth-child(4)::before{background-position:0 33.333%}.hotbar button:nth-child(5)::before{background-position:100% 0}
+.hotbar button{position:relative;padding-left:3.15rem!important}.hotbar button::before{content:'';position:absolute;left:.42rem;top:50%;transform:translateY(-50%);width:2.35rem;height:2.35rem;background-image:url('/assets/ui/item-icons.svg');background-size:600% 700%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0009);image-rendering:auto}
+.hotbar button:nth-child(1)::before{background-position:60% 0}.hotbar button:nth-child(2)::before{background-position:80% 0}.hotbar button:nth-child(3)::before{background-position:20% 16.667%}.hotbar button:nth-child(4)::before{background-position:0 16.667%}.hotbar button:nth-child(5)::before{background-position:100% 0}
 .vitals::before{content:''!important;width:2.15rem!important;height:2.15rem!important;left:.55rem!important;border:0!important;box-shadow:none!important;background:url('/assets/ui/status-icons.png') 0 0/400% 200% no-repeat!important;filter:drop-shadow(0 2px 2px #0009)}
 .vitals::after{content:'';position:absolute;left:1.15rem;bottom:.36rem;width:1.15rem;height:1.15rem;background:url('/assets/ui/status-icons.png') 33.333% 0/400% 200% no-repeat;filter:drop-shadow(0 1px 2px #0009)}
 .buffs::before{content:'';display:inline-block;width:1.45rem;height:1.45rem;margin-right:.35rem;vertical-align:-.32rem;background:url('/assets/ui/status-icons.png') 66.667% 100%/400% 200% no-repeat;filter:drop-shadow(0 1px 1px #0009)}
