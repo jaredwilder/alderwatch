@@ -25,7 +25,7 @@ export function largeGameSightings(w:WorldState,p:PlayerState):LargeGameSighting
 }
 
 export class MiniMap {
- private terrain?:HTMLCanvasElement;private canvas?:HTMLCanvasElement;private label?:HTMLElement;private nextUpdate=0;private ui?:HTMLElement;private overlay?:HTMLElement;private lastWorld?:WorldState;private lastPlayer?:PlayerState;private lastObjective?:Vec3;private controlsBound=false;
+ private terrain?:HTMLCanvasElement;private canvas?:HTMLCanvasElement;private label?:HTMLElement;private nextUpdate=0;private nextWorldMapUpdate=0;private ui?:HTMLElement;private overlay?:HTMLElement;private lastWorld?:WorldState;private lastPlayer?:PlayerState;private lastObjective?:Vec3;private controlsBound=false;
  private ensureTerrain(){
   if(this.terrain)return this.terrain;
   const terrain=document.createElement('canvas');terrain.width=terrain.height=WORLD_SIZE;const ground=terrain.getContext('2d')!;
@@ -57,7 +57,7 @@ export class MiniMap {
   if(!this.ui||!this.lastWorld||!this.lastPlayer)return;this.closeWorldMap();
   const overlay=document.createElement('section');overlay.className='world-map-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-label','Full map of the Far March');
   overlay.innerHTML='<div class="world-map-frame"><header><div><small>ALDERWATCH CARTOGRAPHY</small><h2>THE FAR MARCH</h2></div><b>M / ESC · CLOSE</b></header><div class="world-map-layout"><div class="world-map-canvas-wrap"><canvas width="768" height="768" aria-label="North-up full world map"></canvas><span class="world-map-north">N ↑</span></div><aside class="world-map-sidebar"><div class="world-map-you"></div><h3>LARGE GAME SIGHTINGS</h3><div class="world-map-sightings"></div><div class="world-map-legend"><span>★ Massive bison</span><span>● Bison</span><span>▲ Bear</span><span>◆ Objective</span><span>⌂ Home / settlement</span></div><p>These are live sightings, not fast travel. Pick a bearing, close the map, and hunt.</p></aside></div></div>';
-  this.ui.append(overlay);this.overlay=overlay;this.suspendHeldInput();this.renderWorldMap();
+  this.ui.append(overlay);this.overlay=overlay;this.nextWorldMapUpdate=0;this.suspendHeldInput();this.renderWorldMap();
  }
  private closeWorldMap(){this.overlay?.remove();this.overlay=undefined;}
  private renderWorldMap(){
@@ -76,7 +76,7 @@ export class MiniMap {
   const list=this.overlay.querySelector<HTMLElement>('.world-map-sightings')!;list.replaceChildren();for(const s of sightings){const row=document.createElement('div');row.className='world-map-sighting'+(s.massive?' massive':'');row.innerHTML='<strong></strong><span></span>';row.querySelector('strong')!.textContent=s.massive?'★ MASSIVE BISON':s.kind==='bear'?'▲ Bear':'● Bison';row.querySelector('span')!.textContent=`${s.distance} m · ${s.region}`;list.append(row);}if(!sightings.length)list.textContent='No live large-game sightings remain in this March.';
  }
  update(w:WorldState,p:PlayerState,yaw:number,objective:Vec3|undefined,now:number){
-  this.lastWorld=w;this.lastPlayer=p;this.lastObjective=objective;if(this.overlay?.isConnected)this.renderWorldMap();
+  this.lastWorld=w;this.lastPlayer=p;this.lastObjective=objective;if(this.overlay?.isConnected&&now>=this.nextWorldMapUpdate){this.nextWorldMapUpdate=now+.25;this.renderWorldMap();}
   if(!this.canvas?.isConnected||now<this.nextUpdate)return;this.nextUpdate=now+.1;
   const ctx=this.canvas.getContext('2d');if(!ctx)return;const terrain=this.ensureTerrain();
   ctx.setTransform(2,0,0,2,0,0);ctx.clearRect(0,0,200,200);ctx.save();ctx.beginPath();ctx.arc(100,100,87,0,Math.PI*2);ctx.clip();ctx.fillStyle='#293d31';ctx.fillRect(0,0,200,200);
