@@ -16,3 +16,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Probe live painted icon response
+        run: |
+          echo '--- painted CSS ---'
+          curl -sSIL --max-time 30 https://alderwatch.167.233.105.77.sslip.io/assets/ui/painted-item-icons.css
+          echo '--- painted WebP ---'
+          curl -sSIL --max-time 30 https://alderwatch.167.233.105.77.sslip.io/assets/ui/painted-kling-icons.webp
