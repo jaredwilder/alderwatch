@@ -66,14 +66,14 @@ test('standing and walking melee visibly animate the live thigh instead of strai
  }
 });
 
-test('running attacks use longer lower cadence instead of full-amplitude high-knee marching',async()=>{
+test('running attacks use distance-matched lower combat strides instead of high-knee sprint playback',async()=>{
  const f=await fixture();f.input.keys.add('KeyW');f.input.keys.add('ShiftLeft');for(let i=0;i<30;i++)f.step();
  assert.ok(f.actor.velocity.length()>4.7,'fixture never reached sprint speed');assert.equal(f.actor.startAttack(),true);
- let weight=0,timeScale=Infinity,sawSprintStride=false;
- for(let i=0;i<18;i++){f.step();const stride=(f.actor as any).activeStrideAction as T.AnimationAction|undefined;if(stride?.getClip().name==='swing_stride_sprint'){sawSprintStride=true;weight=Math.max(weight,stride.getEffectiveWeight());timeScale=Math.min(timeScale,stride.timeScale);}}
+ let weight=0,sawSprintStride=false,manual=false;
+ for(let i=0;i<18;i++){f.step();const stride=(f.actor as any).activeStrideAction as T.AnimationAction|undefined;if(stride?.getClip().name==='swing_stride_sprint'){sawSprintStride=true;weight=Math.max(weight,stride.getEffectiveWeight());manual ||= stride.timeScale===0;}}
  assert.ok(sawSprintStride,'running swing never selected sprint combat footwork');
- assert.ok(weight>.4&&weight<.70,`running combat stride is either dead or still full-amplitude high stepping: ${weight}`);
- assert.ok(timeScale<.90,`running combat stride cadence is still too frantic for long grounded steps: ${timeScale}`);
+ assert.ok(weight>.7&&weight<.9,`running combat stride is either too faint to plant or overpowering: ${weight}`);
+ assert.ok(manual,'running combat stride is still time-driven instead of distance-matched');
  f.physics.free();
 });
 
