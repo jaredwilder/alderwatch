@@ -13,6 +13,7 @@ const names:Record<string,string>={
 const recipeNames:Record<string,string>={'Woodland broth':'woodland_broth','Crow milk':'crow_milk','Marcher’s sword':'sword','Tempered marcher’s sword':'fine_sword','Grilled venison':'grilled_venison','Marcher’s stew':'hearty_stew'};
 
 if(typeof document!=='undefined'){
+ void import('./fun-systems');
  const pct=(n:number,max:number)=>max?`${n/max*100}%`:'0%';
  const rules=Object.entries(positions).map(([id,[x,y]])=>`.aw-item-icon[data-item="${id}"],.hotbar [data-item="${id}"]::before{background-position:${pct(x,5)} ${pct(y,3)}}`).join('\n');
  const style=document.createElement('style');
