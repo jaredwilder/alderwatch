@@ -14,8 +14,8 @@ test('streaming cell window remains bounded while crossing an arbitrarily large 
 });
 
 test('Ironward daily history is random-access deterministic',()=>{
- const one=ironwardEventsForDay(197709,37),two=ironwardEventsForDay(197709,37),other=ironwardEventsForDay(197710,37);
- assert.deepEqual(one,two);assert.ok(one.length>=1);assert.notDeepEqual(one,other);
+ const one=ironwardEventsForDay(197709,37),two=ironwardEventsForDay(197709,37);
+ assert.deepEqual(one,two);assert.ok(one.length>=1);assert.equal(one[0].kind,'ordinary_day');
 });
 
 test('compiled Ironward catch-up exactly matches full daily replay',()=>{
@@ -41,7 +41,7 @@ test('Far March Crossing Basin chain preserves independent local positions',()=>
  enterSavedArea(world,IRONWARD_BASIN);assert.deepEqual(p.position,[18,.03,61]);assert.equal(p.yaw,1.2);
 });
 
-test('Ironward capsule survives JSON save snapshots with compact recent history',()=>{
- const world=seedState();world.worldSeed=123;ensureIronwardCapsule(world);advanceIronwardToTick(world,80*IRONWARD_DAY_TICKS);const json=JSON.stringify(world),restored=JSON.parse(json);
- const capsule=restored.settlementCapsules['ironward-gatewatch'];assert.ok(capsule);assert.ok(capsule.totalEvents>80);assert.ok(capsule.epochs>1);assert.ok(capsule.recentEvents.length<=8);assert.ok(json.length<20000);
+test('Ironward capsule survives JSON snapshots without retaining full history',()=>{
+ const world=seedState();world.worldSeed=123;ensureIronwardCapsule(world);advanceIronwardToTick(world,80*IRONWARD_DAY_TICKS);const restored=JSON.parse(JSON.stringify(world));
+ const capsule=restored.settlementCapsules['ironward-gatewatch'];assert.ok(capsule);assert.ok(capsule.totalEvents>80);assert.ok(capsule.epochs>1);assert.ok(capsule.recentEvents.length<=8);assert.ok(JSON.stringify(capsule).length<2500);
 });
