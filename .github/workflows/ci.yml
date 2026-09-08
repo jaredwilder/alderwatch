@@ -16,23 +16,28 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - name: Inspect painted atlas pixels
+      - name: Inspect painted WebP container
         run: |
-          python -m pip install --quiet pillow
           python - <<'PY'
-          from PIL import Image, ImageStat
-          p='public/assets/ui/painted-kling-icons.webp'
-          im=Image.open(p).convert('RGBA')
-          print('atlas', im.size, im.mode)
-          for row in range(15):
-            vals=[]
-            for col in range(3):
-              cell=im.crop((col*128,row*128,(col+1)*128,(row+1)*128))
-              a=cell.getchannel('A')
-              bbox=a.getbbox()
-              extrema=a.getextrema()
-              nonzero=sum(1 for v in a.getdata() if v)
-              rgb=ImageStat.Stat(cell.convert('RGB')).mean
-              vals.append(f'c{col}:bbox={bbox},alpha={extrema},nz={nonzero},rgb={tuple(round(x,1) for x in rgb)}')
-            print(f'row{row}: ' + ' | '.join(vals))
+          from pathlib import Path
+          import struct
+          p=Path('public/assets/ui/painted-kling-icons.webp')
+          b=p.read_bytes()
+          print('actual_bytes',len(b))
+          print('magic',b[:4],b[8:12])
+          print('riff_declared_total', struct.unpack('<I',b[4:8])[0]+8)
+          pos=12
+          i=0
+          while pos+8<=len(b):
+            tag=b[pos:pos+4]
+            size=struct.unpack('<I',b[pos+4:pos+8])[0]
+            data_start=pos+8
+            data_end=data_start+size
+            padded=data_end+(size&1)
+            print(i, 'tag', tag, 'size', size, 'start', data_start, 'end', data_end, 'padded_end', padded, 'available', len(b)-data_start, 'TRUNCATED' if data_end>len(b) else '')
+            if data_end>len(b): break
+            pos=padded
+            i+=1
+          print('parser_end',pos,'remaining',len(b)-pos)
+          print('tail_hex',b[-32:].hex())
           PY
