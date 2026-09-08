@@ -15,9 +15,9 @@ const ZERO:Drive={pitch:0,yaw:0,roll:0};
 function driveFor(clip:string,bone:string):Drive{
  const b=bone.toLowerCase(),neck=b.includes('neck'),head=b.includes('head');
  if(clip==='attack')return bone==='pelvis'?{pitch:.018,yaw:.40,roll:-.035}:bone==='spine_01'?{pitch:.015,yaw:.19,roll:-.035}:bone==='spine_02'?{pitch:0,yaw:.10,roll:-.02}:bone==='spine_03'?{pitch:0,yaw:.055,roll:-.01}:neck?{pitch:.095,yaw:0,roll:0}:head?{pitch:.045,yaw:0,roll:0}:ZERO;
- // Axe combat is a transverse kill stroke, not the old harvesting chop. Pelvis motion is intentionally
- // dominant; progressively smaller torso drive arrives later so the hands/weapon read as the chain's end.
- if(clip==='chop')return bone==='pelvis'?{pitch:.002,yaw:.86,roll:.065}:bone==='spine_01'?{pitch:.002,yaw:.34,roll:.055}:bone==='spine_02'?{pitch:0,yaw:.17,roll:.03}:bone==='spine_03'?{pitch:0,yaw:.082,roll:.015}:neck?{pitch:.065,yaw:0,roll:0}:head?{pitch:.025,yaw:0,roll:0}:ZERO;
+ // Axe combat is retargeted into a right-side load -> left-side finish. Negative transverse drive makes
+ // the pelvis lead that same spatial direction instead of counter-rotating against the reversed arms.
+ if(clip==='chop')return bone==='pelvis'?{pitch:.002,yaw:-.86,roll:-.065}:bone==='spine_01'?{pitch:.002,yaw:-.34,roll:-.055}:bone==='spine_02'?{pitch:0,yaw:-.17,roll:-.03}:bone==='spine_03'?{pitch:0,yaw:-.082,roll:-.015}:neck?{pitch:.065,yaw:0,roll:0}:head?{pitch:.025,yaw:0,roll:0}:ZERO;
  if(clip==='mine')return bone==='pelvis'?{pitch:.20,yaw:.065,roll:0}:bone==='spine_01'?{pitch:.16,yaw:.05,roll:0}:bone==='spine_02'?{pitch:.09,yaw:.025,roll:0}:ZERO;
  if(clip==='heavy')return bone==='pelvis'?{pitch:.14,yaw:.15,roll:0}:bone==='spine_01'?{pitch:.11,yaw:.12,roll:0}:bone==='spine_02'?{pitch:.065,yaw:.07,roll:0}:ZERO;
  return ZERO;
@@ -68,6 +68,11 @@ function headDriveWeight(t:number,impact:number,duration:number){
  return 1-smooth01((t-impact)/Math.max(.001,release-impact));
 }
 
+function reverseTrack(track:T.KeyframeTrack,duration:number){
+ const out=track.clone(),times=Array.from(track.times),values=Array.from(track.values),n=times.length,size=track.getValueSize();
+ for(let i=0;i<n;i++){out.times[i]=duration-times[n-1-i];for(let j=0;j<size;j++)out.values[i*size+j]=values[(n-1-i)*size+j];}
+ return out;
+}
 function amplifyRotation(track:T.KeyframeTrack){
  const gain=rotationGain(track.name),out=track.clone();if(gain===1||!track.name.endsWith('.quaternion'))return out;
  const v=out.values,base=new T.Quaternion().fromArray(v,0).normalize(),baseInv=base.clone().invert(),q=new T.Quaternion(),delta=new T.Quaternion(),scaled=new T.Quaternion(),axis=new T.Vector3();
@@ -102,8 +107,9 @@ function addBodyDrive(track:T.KeyframeTrack,clip:string,impact:number,duration:n
 }
 
 function retime(track:T.KeyframeTrack,clip:string,sourceImpact:number,targetImpact:number,targetDuration:number,sourceDuration:number){
- let out=amplifyRotation(track);const times=out.times,beforeScale=sourceImpact>1e-6?targetImpact/sourceImpact:1,sourceTail=Math.max(1e-6,sourceDuration-sourceImpact),targetTail=Math.max(0,targetDuration-targetImpact);
- for(let i=0;i<times.length;i++){const t=times[i];times[i]=t<=sourceImpact?t*beforeScale:targetImpact+(t-sourceImpact)*(targetTail/sourceTail);}
+ const reversed=clip==='chop'&&meleeBodyTrack(track.name),effectiveImpact=reversed?sourceDuration-sourceImpact:sourceImpact;
+ let out=reversed?reverseTrack(track,sourceDuration):track.clone();out=amplifyRotation(out);const times=out.times,beforeScale=effectiveImpact>1e-6?targetImpact/effectiveImpact:1,sourceTail=Math.max(1e-6,sourceDuration-effectiveImpact),targetTail=Math.max(0,targetDuration-targetImpact);
+ for(let i=0;i<times.length;i++){const t=times[i];times[i]=t<=effectiveImpact?t*beforeScale:targetImpact+(t-effectiveImpact)*(targetTail/sourceTail);}
  out=smoothDiscreteQuaternion(out,targetImpact);return addBodyDrive(out,clip,targetImpact,targetDuration);
 }
 
