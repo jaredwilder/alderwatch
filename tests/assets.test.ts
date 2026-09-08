@@ -5,7 +5,7 @@ import * as T from 'three';
 import {distantGround,highlandHeight,noise2,meadowDensity} from '../src/ecology';
 import {height} from '../src/terrain';
 import {NodeIO} from '@gltf-transform/core';
-import {clampDressingBounds,normalizeMedievalAsset} from '../src/medieval-asset-specs';
+import {clampDressingBounds,MEDIEVAL_ASSET_SPECS,normalizeMedievalAsset} from '../src/medieval-asset-specs';
 function glb(name:string){const b=fs.readFileSync(`public/assets/${name}.glb`);assert.equal(b.readUInt32LE(0),0x46546c67);return {bytes:b.length,json:JSON.parse(b.subarray(20,20+b.readUInt32LE(12)).toString())};}
 test('village-scale roof, loft and inhabited facade are real exported meshes',()=>{const {json:j}=glb('frontier-kit');for(const name of ['village_roof','village_gable','village_details']){const node=j.nodes.find((n:any)=>n.name===name);assert.ok(node,name);const primitives=j.meshes[node.mesh].primitives;assert.ok(primitives.every((p:any)=>p.attributes.TEXCOORD_0!==undefined));}const roof=j.nodes.find((n:any)=>n.name==='village_roof');const bounds=j.meshes[roof.mesh].primitives.map((p:any)=>j.accessors[p.attributes.POSITION]);assert.ok(Math.max(...bounds.map((p:any)=>p.max[0]))-Math.min(...bounds.map((p:any)=>p.min[0]))>7);assert.ok(fs.statSync('public/textures/plaster.webp').size>10000);});
 test('optimized survivor retains verified anatomical equipment sockets',()=>{const {json:j}=glb('survivor');for(const side of ['r','l']){const hand=j.nodes.find((n:any)=>n.name===`hand_${side}`);const socket=j.nodes.findIndex((n:any)=>n.name===`Grip_${side.toUpperCase()}`);assert.ok(socket>=0);assert.ok(hand.children.includes(socket));}});
@@ -26,6 +26,15 @@ test('shipping highland vertices match the runtime distant-tree placement contra
 test('third-party settlement roots are normalized to world metres before placement',()=>{
  const source=new T.Mesh(new T.BoxGeometry(20,50,30),new T.MeshStandardMaterial()),root=normalizeMedievalAsset('watchtower',source),box=new T.Box3().setFromObject(root),size=box.getSize(new T.Vector3());
  assert.equal(root.scale.x,1);assert.ok(Math.abs(size.y-9.5)<1e-5,`watchtower height=${size.y}`);assert.ok(size.x<10&&size.z<10);assert.ok(root.userData.awNormalized);
+});
+test('every MegaKit module used by close-camera assemblies has an explicit metre-scale contract',()=>{
+ for(const name of ['wall_plaster_straight','wall_plaster_door_flat','wall_plaster_window_wide_flat','doorframe_flat_wooddark','door_1_flat','window_wide_flat1','corner_exterior_wood','roof_roundtiles_6x6','chimney','crate','wagon','fence_wood_single','fence_wood_ext1','fence_wood_ext2','support','stairs_exterior','floor_wooddark','roof_wooden_2x1','wall_arch','vine_1','border_straight']){
+  const spec=MEDIEVAL_ASSET_SPECS[name];assert.ok(spec,`${name} can bypass normalization`);assert.ok(spec.target<=6.5,`${name} target is implausibly huge`);assert.ok(spec.maxSpan<=6.5,`${name} span can become a map slab`);
+ }
+});
+test('MegaKit wall normalization cannot preserve a map-spanning source slab',()=>{
+ const source=new T.Mesh(new T.BoxGeometry(180,300,20),new T.MeshStandardMaterial()),root=normalizeMedievalAsset('wall_plaster_straight',source),size=new T.Box3().setFromObject(root).getSize(new T.Vector3());
+ assert.ok(size.y<=3.001);assert.ok(Math.max(size.x,size.z)<=3.201);assert.ok(root.userData.awNormalized);
 });
 test('decorative imports have a hard bound against world-sized planes and beams',()=>{
  const root=new T.Group();root.add(new T.Mesh(new T.BoxGeometry(120,40,80),new T.MeshBasicMaterial()));clampDressingBounds(root);const size=new T.Box3().setFromObject(root).getSize(new T.Vector3());
