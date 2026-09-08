@@ -34,8 +34,14 @@ export const horizontalDistance=(a:Vec3,b:Vec3)=>Math.hypot(a[0]-b[0],a[2]-b[2])
 export function combatState(f:Fighter):CombatState{return f.combat??={kind:'idle',started:0,until:0,consumed:false,blocking:false,weapon:null};}
 export function actionBusy(f:Fighter,tick:number){return f.health<=0||combatState(f).until>tick;}
 export function attackProfile(f:Fighter){const c=combatState(f),w=c.weapon?WEAPONS[c.weapon]:undefined;return w&&c.kind==='heavy'?{...w,damage:Math.round(w.damage*1.7),reach:w.reach+.05,impact:25/30,duration:47/30,stamina:26}:w;}
+export function canCancelInto(f:Fighter,tick:number,action:'attack'|'heavy'|'dodge'){
+ const c=combatState(f);if(f.health<=0||c.until<=tick)return true;if(action!=='dodge'||!['attack','heavy'].includes(c.kind))return false;
+ const age=(tick-c.started)/60,profile=attackProfile(f);if(!profile)return false;
+ // Light attacks can evade after their contact frame. Heavy attacks keep commitment until late recovery.
+ return c.kind==='attack'?c.consumed&&age>=profile.impact+0.04:c.consumed&&c.until-tick<=14;
+}
 export function beginAction(f:Fighter,tick:number,action:'attack'|'heavy'|'dodge'){
- if(actionBusy(f,tick))return {ok:false,message:'Recover before acting again'};
+ if(actionBusy(f,tick)&&!canCancelInto(f,tick,action))return {ok:false,message:'Recover before acting again'};
  const weapon=f.equipped?WEAPONS[f.equipped]:undefined;
  if(action!=='dodge'&&!weapon)return {ok:false,message:'Equip a weapon or tool'};
  if(action==='heavy'&&!f.equipped?.includes('sword'))return {ok:false,message:'Equip a sword for a two-handed heavy strike'};
