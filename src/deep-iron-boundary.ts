@@ -1,4 +1,4 @@
-import {buildBoundaryQuotient,certificateStep,verifyBoundaryCongruence,type BoundaryMachine,type BoundaryQuotient} from './boundary-certificate';
+import {buildBoundaryQuotient,verifyBoundaryCongruence,type BoundaryMachine,type BoundaryQuotient} from './boundary-certificate';
 
 export type MineBoundaryInput='idle_day'|'dispatch_miners'|'dispatch_guards'|'seal_and_repair';
 export interface DeepMineMicroState{support:0|1|2|3;ore:0|1|2|3;threat:0|1|2|3;rubbleMask:number}
@@ -35,7 +35,15 @@ export const deepMineStateKey=(s:DeepMineMicroState)=>`${s.support},${s.ore},${s
 export const deepMineOutputKey=(o:MineBoundaryOutput)=>`${o.oreExport},${o.casualties},${o.alarm},${o.passage}`;
 export const DEEP_MINE_MACHINE:BoundaryMachine<DeepMineMicroState,MineBoundaryInput,MineBoundaryOutput>={states:DEEP_MINE_STATES,inputs:DEEP_MINE_INPUTS,stateKey:deepMineStateKey,outputKey:deepMineOutputKey,step:deepMineStep};
 let quotient:BoundaryQuotient<DeepMineMicroState>|undefined;
+/** Heavy Court path: compute and verify the coarsest stable partition over all 16,384 microstates. */
 export function deepMineQuotient(){if(!quotient){quotient=buildBoundaryQuotient(DEEP_MINE_MACHINE);verifyBoundaryCongruence(DEEP_MINE_MACHINE,quotient);}return quotient;}
-export function deepMineCertificateFor(state:DeepMineMicroState){const id=deepMineQuotient().classOf.get(deepMineStateKey(state));if(id===undefined)throw new Error('Deep Mine state missing from quotient');return id;}
-export function stepDeepMineCertificate(certificate:number,input:MineBoundaryInput){return certificateStep(DEEP_MINE_MACHINE,deepMineQuotient(),certificate,input);}
-export function deepMineRepresentative(certificate:number){const state=deepMineQuotient().classes[certificate]?.[0];if(!state)throw new Error('Unknown Deep Mine certificate');return state;}
+
+/** Runtime cut certificate. All dynamics and boundary outputs depend on rubble population, never rubble identity. */
+export const DEEP_MINE_CERTIFICATE_COUNT=4*4*4*9;
+export function deepMineCertificateFor(state:DeepMineMicroState){return (((state.support*4+state.ore)*4+state.threat)*9+rubbleCount(state.rubbleMask));}
+export function deepMineRepresentative(certificate:number):DeepMineMicroState{
+  if(!Number.isInteger(certificate)||certificate<0||certificate>=DEEP_MINE_CERTIFICATE_COUNT)throw new Error('Unknown Deep Mine certificate');
+  const rubble=certificate%9;let q=Math.floor(certificate/9);const threat=(q%4) as 0|1|2|3;q=Math.floor(q/4);const ore=(q%4) as 0|1|2|3;const support=Math.floor(q/4) as 0|1|2|3;
+  return {support,ore,threat,rubbleMask:canonicalMask(rubble)};
+}
+export function stepDeepMineCertificate(certificate:number,input:MineBoundaryInput){const step=deepMineStep(deepMineRepresentative(certificate),input);return {certificate:deepMineCertificateFor(step.state),output:step.output};}
