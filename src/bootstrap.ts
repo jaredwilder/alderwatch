@@ -4,13 +4,17 @@ import {advanceRealmPopulationToTick,ensureRealmPopulation} from './realm-popula
 import {advanceRealmSocietyToTick,ensureRealmSocial} from './realm-society';
 import {advanceRealmHistoryToTick,ensureRealmHistory} from './provenance-frontier';
 import {applyRealmConsequences,ensureRealmConsequences} from './realm-consequences';
+import {normalizeLegacyWorldShape} from './save-compat';
 
 const SAVE_KEY='alderwatch.realm.v1';
 
 function prepareSavedArea(){
   let world:any;
   try{world=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');}catch{world=null;}
-  if(!world?.players)return 'far-march';
+  if(!world?.players||!world?.resources)return 'far-march';
+  // Continue must be able to load every additive v1 save shape we have shipped.
+  // Normalize collection fields before newer realm systems or gathering migrations inspect them.
+  normalizeLegacyWorldShape(world);
   migrateRealmSave(world);
   ensureRealmPopulation(world);
   advanceRealmPopulationToTick(world);
