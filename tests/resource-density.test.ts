@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {seedState} from '../src/state';
-import {buildForageSpatialIndex,forageCandidates,FORAGE_CELL_SIZE} from '../src/forage-spatial';
+import {buildForageSpatialIndex,buildResourceSpatialIndex,forageCandidates,resourceCandidates,FORAGE_CELL_SIZE} from '../src/forage-spatial';
 import {DENSE_FORAGE_PREFIX,DENSE_GATHERABLE_ITEMS,DENSE_RESOURCE_PREFIX,RESOURCE_FIELD_CELL,RESOURCE_FIELD_MAX,RESOURCE_FIELD_MIN,regionAt,seedFrontier} from '../src/worldgen';
 
 function populated(seed=0x5eed1234){const w=seedState();w.worldSeed=seed;seedFrontier(w,seed);return w;}
@@ -41,10 +41,14 @@ test('dense seeding is deterministic, additive and never resurrects harvested st
  assert.equal(a.resources[resource.id].phase,'fallen');assert.equal(a.resources[resource.id].health,0);assert.equal(a.forage[plant.id].readyAt,987654321,'reseed reset forage respawn state');
 });
 
-test('dense forage rendering queries nearby cells instead of scanning the whole logical economy',()=>{
- const w=populated(0x4f726573),index=buildForageSpatialIndex(w.forage),all=Object.values(w.forage).filter(f=>f.id.startsWith('nature-')),origin:[number,number,number]=[0,0,18],candidates=forageCandidates(index,origin,65);
+test('dense presentation and wildlife obstacle queries stay local instead of scanning the whole economy',()=>{
+ const w=populated(0x4f726573),forageIndex=buildForageSpatialIndex(w.forage),resourceIndex=buildResourceSpatialIndex(w.resources),allForage=Object.values(w.forage).filter(f=>f.id.startsWith('nature-')),allResources=Object.values(w.resources),origin:[number,number,number]=[0,0,18];
+ const forage=forageCandidates(forageIndex,origin,65),resources=resourceCandidates(resourceIndex,origin,2);
  assert.equal(Math.ceil(65/FORAGE_CELL_SIZE),3,'65m visibility should fit a seven-by-seven spatial-cell query');
- assert.ok(all.length>500,`fixture is not dense enough to exercise the spatial query: ${all.length}`);
- assert.ok(candidates.length<all.length/3,`local query leaked too much of the logical forage world: ${candidates.length}/${all.length}`);
- const ids=new Set(candidates);assert.ok(all.some(f=>f.position[2]<-210&&!ids.has(f.id)),'far southern forage should remain logical-only while the player is near Alderbrook');
+ assert.ok(allForage.length>500,`fixture is not dense enough to exercise the spatial query: ${allForage.length}`);
+ assert.ok(forage.length<allForage.length/3,`local forage query leaked too much of the logical world: ${forage.length}/${allForage.length}`);
+ assert.ok(resources.length<allResources.length/5,`wildlife obstacle query leaked too much of the logical resource world: ${resources.length}/${allResources.length}`);
+ const forageIds=new Set(forage),resourceIds=new Set(resources);
+ assert.ok(allForage.some(f=>f.position[2]<-210&&!forageIds.has(f.id)),'far southern forage should remain logical-only while the player is near Alderbrook');
+ assert.ok(allResources.some(r=>r.position[2]<-210&&!resourceIds.has(r.id)),'far southern hard resources should never enter a local wildlife collision query near Alderbrook');
 });
