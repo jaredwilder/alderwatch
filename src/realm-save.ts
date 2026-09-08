@@ -25,10 +25,12 @@ declare module './state' {
 
 export const FAR_MARCH:AreaId='far-march';
 export const IRONWARD_CROSSING:AreaId='ironward-crossing';
+export const IRONWARD_BASIN:AreaId='ironward-basin';
 
 export const AREA_ENTRY:Record<string,SavedAreaLocation>={
   [FAR_MARCH]:{position:[0,0.03,18],yaw:Math.PI},
   [IRONWARD_CROSSING]:{position:[0,0.03,10],yaw:Math.PI},
+  [IRONWARD_BASIN]:{position:[0,0.03,-130],yaw:0},
 };
 
 export function currentPlayer(world:WorldState):PlayerState|undefined {
@@ -68,7 +70,6 @@ export function enterSavedArea(world:WorldState,target:AreaId):PlayerState {
   const prior=world.realmAreas![target];
   if(prior){prior.lastVisitedTick=world.tick;prior.visitCount+=1;}
   else world.realmAreas![target]={id:target,discoveredAtTick:world.tick,lastVisitedTick:world.tick,visitCount:1};
-  // The outgoing location remains recorded even though only one area is rendered locally.
   if(!world.realmAreas![outgoing])world.realmAreas![outgoing]={id:outgoing,discoveredAtTick:world.tick,lastVisitedTick:world.tick,visitCount:1};
   else world.realmAreas![outgoing].lastVisitedTick=world.tick;
   return player;
