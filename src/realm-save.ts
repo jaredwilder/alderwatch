@@ -26,11 +26,13 @@ declare module './state' {
 export const FAR_MARCH:AreaId='far-march';
 export const IRONWARD_CROSSING:AreaId='ironward-crossing';
 export const IRONWARD_BASIN:AreaId='ironward-basin';
+export const DEEP_IRON_MINE:AreaId='deep-iron-mine';
 
 export const AREA_ENTRY:Record<string,SavedAreaLocation>={
   [FAR_MARCH]:{position:[0,0.03,18],yaw:Math.PI},
   [IRONWARD_CROSSING]:{position:[0,0.03,10],yaw:Math.PI},
   [IRONWARD_BASIN]:{position:[0,0.03,-130],yaw:0},
+  [DEEP_IRON_MINE]:{position:[0,0.03,4],yaw:0},
 };
 
 export function currentPlayer(world:WorldState):PlayerState|undefined {
