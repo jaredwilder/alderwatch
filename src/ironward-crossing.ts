@@ -10,6 +10,7 @@ import {ACTION_CAMERA} from './follow-camera';
 import {FAR_MARCH,IRONWARD_CROSSING,rememberCurrentArea,requestAreaTravel} from './realm-save';
 import './style.css';
 import './loading-experience.css';
+import './realm-travel.css';
 
 const app=document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML='<div id="loading"><div class="sigil">A</div><h1>IRONWARD CROSSING</h1><p id="load-status">Climbing beyond the old March…</p><div class="load-line"></div></div><div id="ui"></div>';
@@ -24,12 +25,12 @@ scene.add(new T.HemisphereLight('#d6e6ef','#4d493d',1.05));
 const sun=new T.DirectionalLight('#ffe1b3',3.0);sun.position.set(-32,48,24);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-28,right:28,top:28,bottom:-28,near:1,far:120});sun.shadow.camera.updateProjectionMatrix();scene.add(sun,sun.target);
 const worldRoot=new T.Group();scene.add(worldRoot);
 const assets=new Assets();const input=new Input(renderer.domElement);
-const authority=new LocalAuthority(loadWorld()!);
-const player=Object.values(authority.state.players)[0];
-if(!player)location.assign('/');
+const saved=loadWorld();if(!saved)throw new Error('Ironward Crossing requires an existing Alderwatch realm');
+const authority=new LocalAuthority(saved);
+const player=Object.values(authority.state.players)[0];if(!player)throw new Error('Ironward Crossing requires a surviving player record');
 player.areaId=IRONWARD_CROSSING;
 let physics:RAPIER.World,character:Character;
-let yaw=0,pitch=ACTION_CAMERA.pitch,distance=ACTION_CAMERA.distance,last=0,acc=0,elapsed=0,autosave=0,frames=0,fps=0,fpsClock=0;
+let yaw=0,pitch=ACTION_CAMERA.pitch,distance=ACTION_CAMERA.distance,last=0,acc=0,autosave=0,frames=0,fps=0,fpsClock=0;
 const gatePosition=new T.Vector3(0,0,-12.5);
 
 function addAuthored(name:string,position:[number,number,number],yaw=0,scale=1){const source=assets.medieval[name];if(!source)return;const object=source.clone(true);object.position.fromArray(position);object.rotation.y=yaw;object.scale.setScalar(scale);worldRoot.add(object);return object;}
@@ -44,8 +45,11 @@ function buildCrossing(){
  const shelter=assets.authoredCampShelter();shelter.position.set(-7,0,1);shelter.rotation.y=.32;worldRoot.add(shelter);
  const gate=assets.authoredFortification();gate.position.copy(gatePosition);gate.rotation.y=Math.PI;gate.scale.setScalar(1.7);worldRoot.add(gate);
  const house=assets.authoredLonghouse();house.position.set(12,0,-2);house.rotation.y=-Math.PI/2;house.scale.setScalar(.8);worldRoot.add(house);
- addAuthored('watchtower',[-13,0,-8],.2,.9);addAuthored('wagon',[7,0,7],-.5,.8);addAuthored('barrel',[-5,0,4],.2,.8);addAuthored('barrel',[-4.1,0,4.4,-.1] as any);
+ addAuthored('watchtower',[-13,0,-8],.2,.9);addAuthored('wagon',[7,0,7],-.5,.8);addAuthored('barrel',[-5,0,4],.2,.8);addAuthored('barrel',[-4.1,0,4.4],-.1,.82);
  addAuthored('wood_pile',[8,0,-8],.4,.8);addAuthored('campfire_burning_q',[-7,0,4],0,.9);addAuthored('fence_wood_ext1',[-11,0,7],Math.PI/2,.9);addAuthored('fence_wood_ext2',[11,0,7],-Math.PI/2,.9);
+ physics.createCollider(RAPIER.ColliderDesc.cuboid(3.4,2.2,3.6).setTranslation(12,2.2,-2));
+ physics.createCollider(RAPIER.ColliderDesc.cuboid(1.8,3.2,1.8).setTranslation(-13,3.2,-8));
+ physics.createCollider(RAPIER.ColliderDesc.cuboid(2.2,1.5,1.8).setTranslation(-7,1.5,1));
  character=new Character(assets,physics,player,worldRoot);character.getTick=()=>authority.state.tick;character.onActionRequest=action=>authority.dispatch({type:'combat_action',playerId:player.id,action}).ok;character.onImpact=()=>{};
  input.active=true;input.captureCamera=true;
 }
@@ -56,7 +60,7 @@ function travelBack(){save();requestAreaTravel(FAR_MARCH);input.active=false;sho
 function showTransition(title:string,status:string){const el=document.createElement('div');el.className='realm-transition-loader';el.innerHTML='<div class="realm-loader-card"><div class="sigil"><span>A</span></div><small>ALDERWATCH REALM</small><h2></h2><div class="realm-loader-status"></div><div class="realm-loader-track"><i></i></div></div>';el.querySelector('h2')!.textContent=title;el.querySelector<HTMLElement>('.realm-loader-status')!.textContent=status;document.body.append(el);}
 function hud(){ui.innerHTML='<div class="compass">N · IRONWARD ROAD</div><div class="location"><small>IRONWARD</small><span>The Crossing</span></div><div class="quest"><small>BEYOND THE MARCH</small><p>The road north is only beginning to open.</p></div><div class="vitals"><div class="health"><i></i><span></span></div><div class="stamina"><i></i></div></div><div class="interaction" hidden></div><div class="controls">WASD Move · Shift Sprint · Space Dodge · Mouse Look · E Travel at the gate</div><output id="performance"></output><button id="return-road" class="realm-road-button">Return along the old road</button>';ui.querySelector<HTMLButtonElement>('#return-road')!.onclick=travelBack;}
 function updateHud(){const max=stats(player),health=ui.querySelector<HTMLElement>('.health i'),stamina=ui.querySelector<HTMLElement>('.stamina i'),label=ui.querySelector<HTMLElement>('.health span')!;if(health)health.style.width=player.health/max.health*100+'%';if(stamina)stamina.style.width=player.stamina/max.stamina*100+'%';label.textContent=Math.ceil(player.health)+' / '+max.health;const d=character.root.position.distanceTo(gatePosition),prompt=ui.querySelector<HTMLElement>('.interaction')!;prompt.hidden=d>3.4;prompt.textContent='E · Return through the Ironward gate to the Far March';ui.querySelector<HTMLElement>('#performance')!.textContent=`${fps} FPS · ${renderer.info.render.calls} draws`;}
-function frame(now:number){const frameDt=last?(now-last)/1000:.016,dt=Math.min(frameDt,.05);last=now;elapsed+=dt;frames++;fpsClock+=frameDt;if(fpsClock>1){fps=Math.round(frames/fpsClock);frames=0;fpsClock=0;}
+function frame(now:number){const frameDt=last?(now-last)/1000:.016,dt=Math.min(frameDt,.05);last=now;frames++;fpsClock+=frameDt;if(fpsClock>1){fps=Math.round(frames/fpsClock);frames=0;fpsClock=0;}
  if(input.take('Escape'))travelBack();if(input.take('KeyE')&&character.root.position.distanceTo(gatePosition)<3.4)travelBack();
  yaw+=input.dx*.003;pitch=T.MathUtils.clamp(pitch+input.dy*.002,ACTION_CAMERA.minPitch,ACTION_CAMERA.maxPitch);distance=T.MathUtils.clamp(distance+input.wheel*.85,ACTION_CAMERA.minDistance,ACTION_CAMERA.maxDistance);
  acc+=dt;while(acc>=1/60){character.preStep(1/60,input,yaw,true);physics.step();character.postStep(1/60);tickVitals(authority.state,1/60);authority.state.tick++;acc-=1/60;}
