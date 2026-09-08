@@ -21,13 +21,13 @@ export class Character {
   const socket=this.model.getObjectByName('Grip_R'),hand=this.model.getObjectByName('hand_r');if(!socket||!hand||socket.parent!==hand)throw new Error('Equipment release blocker: Grip_R must be a child of hand_r');this.grip=socket;
   this.body=physics.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(state.position[0],state.position[1]+.9,state.position[2]));this.collider=physics.createCollider(RAPIER.ColliderDesc.capsule(.58,.3),this.body);this.controller=physics.createCharacterController(.02);this.controller.enableAutostep(.24,.1,true);this.controller.enableSnapToGround(.4);this.controller.setMaxSlopeClimbAngle(Math.PI*.28);this.controller.setApplyImpulsesToDynamicBodies(true);
   this.customize();this.play('idle');this.mixer.update(.001);this.root.updateMatrixWorld(true);this.equip(state.equipped);
-  const walk=assets.survivor.animations.find(a=>a.name==='walk')!,guard=assets.survivor.animations.find(a=>a.name==='guard')!,attack=assets.survivor.animations.find(a=>a.name==='attack')!,heavy=assets.survivor.animations.find(a=>a.name==='heavy')!;
+  const walk=assets.survivor.animations.find(a=>a.name==='walk')!,guard=assets.survivor.animations.find(a=>a.name==='guard')!,attack=assets.survivor.animations.find(a=>a.name==='attack')!,heavy=assets.survivor.animations.find(a=>a.name==='heavy')!,chop=assets.survivor.animations.find(a=>a.name==='chop')!;
   const clips:[string,T.AnimationClip,number,number,number][]=[
    ['attack',attack,13/30,WEAPONS.sword!.impact,WEAPONS.sword!.duration],
    ['heavy',heavy,25/30,HEAVY_IMPACT,HEAVY_DURATION],
-   // The exported `chop` is a harvesting motion. Combat axe uses the combat strike skeleton, then receives
-   // axe-specific transverse pelvis/torso drive in combat-animation.ts. This keeps the blade arc offensive.
-   ['chop',attack,13/30,WEAPONS.axe!.impact,WEAPONS.axe!.duration],
+   // Preserve the low lateral silhouette from the authored axe chop, but retime it as a combat strike and
+   // retarget its transverse kinetic chain in combat-animation.ts. This avoids turning side-axe into overhand.
+   ['chop',chop,17/30,WEAPONS.axe!.impact,WEAPONS.axe!.duration],
    ['mine',heavy,25/30,WEAPONS.pickaxe!.impact,WEAPONS.pickaxe!.duration],
   ];
   for(const [name,source,sourceImpact,targetImpact,duration] of clips)this.actions.set(name,this.mixer.clipAction(combatClip(source,name,sourceImpact,targetImpact,duration)));
