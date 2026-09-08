@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {bestItemQuality,craftedQuality,enemyDropQuality,qualityDamageMultiplier,qualityTier} from '../src/loot';
 import {animalBountyCrowns,animalDisplayName,ensureWildTrait,recordAnimalAct} from '../src/wildlife-notoriety';
+import {ensureOutlawLegend} from '../src/outlaw-legends';
 import {makePlayer,type EnemyState} from '../src/state';
 import type {AnimalState} from '../src/wildlife-species';
 
@@ -23,4 +24,9 @@ test('captains guarantee exciting quality loot',()=>{
 test('rare beast traits are deterministic, persistent and raise bounty value',()=>{
  let rare:AnimalState|undefined;for(let i=0;i<500&&!rare;i++){const a:AnimalState={id:'elite-search-'+i,kind:'wolf',position:[0,0,0],home:[0,0,0],yaw:0,phase:0};if(ensureWildTrait(a))rare=a;}
  assert.ok(rare);const first=ensureWildTrait(rare!)!;assert.equal(ensureWildTrait(rare!)?.id,first.id);const base=animalBountyCrowns(rare!);recordAnimalAct(rare!,'livestock_kill',1);recordAnimalAct(rare!,'livestock_kill',2);assert.ok(animalBountyCrowns(rare!)>base);assert.match(animalDisplayName(rare!),new RegExp(first.prefix));
+});
+
+test('outlaw champions become persistent named captain-grade encounters exactly once',()=>{
+ let elite:EnemyState|undefined;for(let i=0;i<100&&!elite;i++){const e:EnemyState={id:'outlaw-search-'+i,name:'Frontier outlaw',position:[0,0,0],home:[0,0,0],yaw:0,health:70,maxHealth:70,stamina:100,equipped:'axe',phase:'patrol',decisionAt:0,rewarded:false};if(ensureOutlawLegend(e))elite=e;}
+ assert.ok(elite);const max=elite!.maxHealth,name=elite!.name;assert.ok(max>70);assert.equal(elite!.role,'captain');assert.match(name,/Frontier outlaw,/);ensureOutlawLegend(elite!);assert.equal(elite!.maxHealth,max);assert.equal(elite!.name,name);
 });
