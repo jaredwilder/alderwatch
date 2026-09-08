@@ -51,3 +51,6 @@ export function forageBonus(item:ItemId):{item:ItemId;count:number}|undefined{
 }
 
 export const SPECIAL_GATHERABLES:readonly SpecialGatherable[]=['wild_garlic','juniper','sage','truffle','pine_resin'];
+
+// Browser follow-up: register the deep recipe ladder and compendium without coupling save seeding to UI code.
+if(typeof document!=='undefined')void import('./crafting-expansion');
