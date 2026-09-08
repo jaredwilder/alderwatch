@@ -22,7 +22,8 @@ test('frontier wildlife roster is organized and wolf packs never exceed three',(
 
 test('every species owns complete gameplay tuning in one registry',()=>{
  for(const [kind,config] of Object.entries(WILDLIFE_SPECIES)){assert.ok(config.maxHealth>0,kind);assert.ok(config.turnRate>0,kind);if(config.authored)assert.ok((config.modelHeight??0)>0,kind);}
- assert.deepEqual(WILDLIFE_SPECIES.wolf.predator?.prey,['bison','eagle']);assert.equal(WILDLIFE_SPECIES.wolf.herd,true);
+ assert.deepEqual(WILDLIFE_SPECIES.wolf.predator?.prey,['hare','goat','sheep','deer','bison','eagle']);assert.equal(WILDLIFE_SPECIES.wolf.herd,true);
+ assert.ok(WILDLIFE_SPECIES.bear.predator?.prey.includes('wolf'));
 });
 
 test('seeding is additive and never resets an existing animal transform or health',()=>{
