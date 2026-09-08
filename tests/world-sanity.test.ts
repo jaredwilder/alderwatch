@@ -7,6 +7,9 @@ import {NPC_ROSTER} from '../src/npcs';
 test('pathological long thin decorative slabs are removed before live placement',()=>{
  const root=new T.Group();const bad=new T.Mesh(new T.BoxGeometry(70,1.2,1.5),new T.MeshBasicMaterial());root.add(bad);assert.equal(hasPathologicalSlab(root),true);sanitizeWorldProp(root);assert.equal(bad.visible,false);assert.equal(hasPathologicalSlab(root),false);assert.equal(root.userData.awTrimmedPathologicalSlabs,1);
 });
+test('tall malformed beams cannot evade the slab filter',()=>{
+ const root=new T.Group();const bad=new T.Mesh(new T.BoxGeometry(58,7,2.5),new T.MeshBasicMaterial());root.add(bad);assert.equal(hasPathologicalSlab(root),true);sanitizeWorldProp(root);assert.equal(bad.visible,false);
+});
 test('normal medieval buildings survive the visual sanity gate',()=>{
  const root=new T.Group();const house=new T.Mesh(new T.BoxGeometry(12,7,8),new T.MeshBasicMaterial());root.add(house);sanitizeWorldProp(root);assert.equal(house.visible,true);
 });
