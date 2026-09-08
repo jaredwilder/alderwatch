@@ -17,16 +17,17 @@ if(typeof document!=='undefined'){
  const pct=(n:number,max:number)=>max?`${n/max*100}%`:'0%';
  const rules=Object.entries(positions).map(([id,[x,y]])=>`.aw-item-icon[data-item="${id}"],.hotbar [data-item="${id}"]::before{background-position:${pct(x,5)} ${pct(y,3)}}`).join('\n');
  const style=document.createElement('style');
- style.dataset.alderwatchItemIcons='1';
+ style.dataset.alderwatchItemIcons='generated-png-v1';
  style.textContent=`
-.aw-item-icon{display:inline-block;width:2.35rem;height:2.35rem;flex:0 0 auto;background-image:url('/assets/ui/item-icons.svg');background-size:600% 400%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0008);vertical-align:middle}
-.aw-item-icon[data-item="wild_honey"]{background-image:url('/assets/ui/honey-icon.svg');background-size:100% 100%;background-position:center}
+.aw-item-icon{display:inline-block;width:2.35rem;height:2.35rem;flex:0 0 auto;background-image:url('/assets/ui/item-icons.png');background-size:600% 400%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0008);vertical-align:middle;image-rendering:auto}
 .pack-item strong>.aw-item-icon{width:2.8rem;height:2.8rem;margin-right:.55rem}.pack-item strong{display:flex;align-items:center}
 .loot-icon.aw-item-icon{width:2.8rem;height:2.8rem;font-size:0}
 .recipe h3>.aw-item-icon{width:2.25rem;height:2.25rem;margin-right:.5rem}.recipe h3{display:flex;align-items:center}
-.hotbar button{position:relative;padding-left:3.15rem!important}.hotbar button::before{content:'';position:absolute;left:.42rem;top:50%;transform:translateY(-50%);width:2.35rem;height:2.35rem;background-image:url('/assets/ui/item-icons.svg');background-size:600% 400%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0009)}
+.hotbar button{position:relative;padding-left:3.15rem!important}.hotbar button::before{content:'';position:absolute;left:.42rem;top:50%;transform:translateY(-50%);width:2.35rem;height:2.35rem;background-image:url('/assets/ui/item-icons.png');background-size:600% 400%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0009);image-rendering:auto}
 .hotbar button:nth-child(1)::before{background-position:60% 0}.hotbar button:nth-child(2)::before{background-position:80% 0}.hotbar button:nth-child(3)::before{background-position:20% 33.333%}.hotbar button:nth-child(4)::before{background-position:0 33.333%}.hotbar button:nth-child(5)::before{background-position:100% 0}
-.buffs::before{content:'';display:inline-block;width:1.45rem;height:1.45rem;margin-right:.35rem;vertical-align:-.32rem;background:url('/assets/ui/item-icons.svg') 80% 100%/600% 400% no-repeat;filter:drop-shadow(0 1px 1px #0009)}
+.vitals::before{content:''!important;width:2.15rem!important;height:2.15rem!important;left:.55rem!important;border:0!important;box-shadow:none!important;background:url('/assets/ui/status-icons.png') 0 0/400% 200% no-repeat!important;filter:drop-shadow(0 2px 2px #0009)}
+.vitals::after{content:'';position:absolute;left:1.15rem;bottom:.36rem;width:1.15rem;height:1.15rem;background:url('/assets/ui/status-icons.png') 33.333% 0/400% 200% no-repeat;filter:drop-shadow(0 1px 2px #0009)}
+.buffs::before{content:'';display:inline-block;width:1.45rem;height:1.45rem;margin-right:.35rem;vertical-align:-.32rem;background:url('/assets/ui/status-icons.png') 66.667% 100%/400% 200% no-repeat;filter:drop-shadow(0 1px 1px #0009)}
 ${rules}`;
  document.head.append(style);
 
@@ -38,7 +39,11 @@ ${rules}`;
   root.querySelectorAll<HTMLElement>('.recipe h3:not([data-aw-icon])').forEach(el=>{const hit=matchName(el.textContent||'',recipeNames);if(!hit)return;el.prepend(icon(hit[1]));el.dataset.awIcon='1';});
  };
  const tagHotbar=()=>document.querySelectorAll<HTMLElement>('.hotbar button').forEach(b=>{const hit=matchName(b.textContent||'');b.dataset.item=hit?.[1]??'';});
- const observer=new MutationObserver(records=>{if(records.length&&records.every(r=>(r.target as Element).classList?.contains('buffs')))return;queueMicrotask(()=>{decorate();tagHotbar();});});
+ const surface='.pack-item,.loot-row,.recipe,.hotbar';
+ const relevant=(node:Node)=>node instanceof Element&&(node.matches(surface)||Boolean(node.querySelector(surface)));
+ let queued=false;
+ const refresh=()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;decorate();tagHotbar();});};
+ const observer=new MutationObserver(records=>{if(records.some(record=>Array.from(record.addedNodes).some(relevant)))refresh();});
  const start=()=>{decorate();tagHotbar();const ui=document.querySelector('#ui');if(ui)observer.observe(ui,{subtree:true,childList:true});else requestAnimationFrame(start);};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 }
