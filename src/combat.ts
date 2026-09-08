@@ -64,7 +64,7 @@ export class Combat {
  feedback(out:StrikeResult,attackerId:string){
   this.events.push({tick:this.authority.state.tick,attackerId,...out});if(this.events.length>30)this.events.shift();
   if(!out.outcome||out.outcome==='miss')return;
-  if(out.outcome==='dodged'){this.onNotice('Evaded');return;}
+  if(out.outcome==='dodged'){this.onNotice(out.perfectDodge?'PERFECT DODGE · counter now':'Evaded');return;}
   const attacker=attackerId===this.player.state.id?this.player:this.raiders.get(attackerId)?.actor,attackerState=attackerId===this.player.state.id?this.player.state:this.raiders.get(attackerId)?.state;
   if(out.outcome==='parried'){
    const parried=this.raiders.get(attackerId);if(parried){this.copyToActor(parried.state,parried.actor);parried.actor.syncCombatPose();}else this.player.syncCombatPose();
@@ -79,6 +79,8 @@ export class Combat {
   this.sound.combat(profile.sound);this.impulse(profile.shake,profile.shakeDuration);this.freeze(attacker,profile.freeze);this.freeze(target,out.outcome==='blocked'?profile.freeze*.55:profile.freeze*.8);
   this.burst(target.root.position.clone().add(new T.Vector3(0,1.1,0)),profile.particles);
   if(out.outcome==='killed'){this.onNotice(out.targetId===this.player.state.id?'You have fallen. Your gathered supplies remain here.':'Enemy defeated — collect the supplies and check the strongbox.');}
+  else if(out.guardBreak)this.onNotice(attackerId===this.player.state.id?'GUARD BROKEN · punish now':'YOUR GUARD BROKE');
+  else if(out.counter&&attackerId===this.player.state.id)this.onNotice('RIPOSTE · '+out.damage+' damage');
   else if(out.outcome==='blocked')this.onNotice('Guard held · '+out.damage+' damage');
   else if(attackerId===this.player.state.id)this.onNotice(out.damage+' damage · '+(e?.state.name??'Hit'));
  }
