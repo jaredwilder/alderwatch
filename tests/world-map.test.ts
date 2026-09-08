@@ -4,6 +4,7 @@ import {makePlayer,seedState,type Vec3} from '../src/state';
 import {seedNature} from '../src/nature';
 import {largeGameSightings,worldMapPoint} from '../src/minimap';
 
+// Full-world map contract: the March edges and center project exactly and remain inside the atlas.
 test('full March projection is north-up and covers the entire 768 metre realm',()=>{
  assert.deepEqual(worldMapPoint([-384,0,-384]),{x:0,y:0,inside:true});
  assert.deepEqual(worldMapPoint([0,0,0]),{x:50,y:50,inside:true});
