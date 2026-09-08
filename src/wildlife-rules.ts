@@ -1,7 +1,8 @@
 import type {ItemId,PlayerState,WorldState} from './state';
 import {PREDATOR_SPECIES,species,type AnimalState,type PredatorKind,type WildlifeKiller} from './wildlife-species';
 import {groundPredatorCanReach,releaseCarry} from './wildlife-aerial';
-import {recordAnimalAct} from './wildlife-notoriety';
+import {animalBountyCrowns,recordAnimalAct} from './wildlife-notoriety';
+import {ensureRenown,recordRenownEvent} from './renown';
 import {stats} from './definitions';
 import {attackProfile,combatState,faces,horizontalDistance,killFighter,type StrikeResult} from './combat-rules';
 import {combatSkillFor,gainSkill} from './skills';
@@ -15,7 +16,19 @@ export function ensureAnimalVitals(animal:AnimalState){
 export function animalAlive(animal:AnimalState){return !ensureAnimalVitals(animal).dead&&animal.health!>0;}
 export function corpseId(animalId:string){return 'corpse-'+animalId;}
 
-function completeTrackedBeastBounty(world:WorldState,animal:AnimalState){const player=animal.lastAttackerId?world.players[animal.lastAttackerId]:undefined,progress=player?.bounties;if(!player||progress?.active!=='wild-most-wanted'||progress.activeAnimal!==animal.id)return;progress.completedAnimals??=[];if(!progress.completedAnimals.includes(animal.id))progress.completedAnimals.push(animal.id);progress.active=undefined;progress.activeAnimal=undefined;animal.bountyClaimed=true;}
+function completeTrackedBeastBounty(world:WorldState,animal:AnimalState){
+ const player=animal.lastAttackerId?world.players[animal.lastAttackerId]:undefined,progress=player?.bounties;
+ if(!player||progress?.active!=='wild-most-wanted'||progress.activeAnimal!==animal.id)return;
+ progress.completedAnimals??=[];
+ if(!progress.completedAnimals.includes(animal.id)){
+  progress.completedAnimals.push(animal.id);
+  const r=ensureRenown(player),before=r.gold,reward=animalBountyCrowns(animal);
+  recordRenownEvent(player,'complete_bounty',1,world.tick);
+  // `complete_bounty` already grants 15 crowns; top it up so the total equals the beast's posted reward.
+  r.gold+=Math.max(0,reward-(r.gold-before));
+ }
+ progress.active=undefined;progress.activeAnimal=undefined;animal.bountyClaimed=true;
+}
 export function killAnimal(world:WorldState,animal:AnimalState,killer:WildlifeKiller){
  ensureAnimalVitals(animal);if(animal.dead)return false;
  const animals=world.animals??{};
