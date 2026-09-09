@@ -54,5 +54,8 @@ test('terrain shader bridges distant geometry into statistical green biomass wit
  assert.match(shader.fragmentShader,/awGroundNear/);assert.match(shader.fragmentShader,/fineUv/);assert.match(shader.fragmentShader,/microDetail\*\.58/);
  assert.match(shader.fragmentShader,/awMeadowBridge/);assert.match(shader.fragmentShader,/awCanopyTint/);
  assert.match(material.customProgramCacheKey(),/observer-detail-ground-v3-horizon-bridge/);
- assert.equal(Object.keys(shader.uniforms).filter(k=>k.startsWith('aw')).length,6);
+ const awUniforms=Object.keys(shader.uniforms).filter(k=>k.startsWith('aw'));
+ assert.equal(awUniforms.length,7,'six texture inputs plus one scalar perceptual-market control');
+ assert.equal(awUniforms.filter(k=>shader.uniforms[k]?.value instanceof T.Texture).length,6,'the market must not add another texture object');
+ assert.equal(shader.uniforms.awGroundDetailQuality?.value,1);
 });
