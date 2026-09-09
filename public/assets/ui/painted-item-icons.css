@@ -1,6 +1,6 @@
 /* Painted Kling item art — generated from user-approved Alderwatch asset sheets. */
 /* The existing icon system still provides fallbacks for every item not listed here. */
-:root{--aw-painted-icons:url('/assets/ui/painted-kling-icons.webp')}
+:root{--aw-painted-icons:url('/assets/ui/painted-kling-icons.webp?v=20260909-hotfix')}
 .aw-item-icon{background-repeat:no-repeat}
 .aw-item-icon[data-item="woodland_broth"],.hotbar [data-item="woodland_broth"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:0% 0%!important}
 .aw-item-icon[data-item="garlic_mushrooms"],.hotbar [data-item="garlic_mushrooms"]::before{background-image:var(--aw-painted-icons)!important;background-size:300% 1500%!important;background-position:50% 0%!important}
