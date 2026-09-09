@@ -15,12 +15,18 @@ export interface StreamedObserverGrassOptions{
   targetFrameMs?:number;
 }
 
-/** Same frontier representation doctrine as Far March, with a lower streamed-area vertex budget. */
-export const STREAMED_GRASS_RINGS=OBSERVER_GRASS_RINGS.map((ring,index)=>({
-  ...ring,
-  blades:[12,5,3,1][index],
-  density:ring.density*(index===0?1:index===1?.96:index===2?.90:.82),
-})) as readonly GrassRingSpec[];
+const STREAMED_BLADE_BUDGET:Record<string,number>={hero:12,near:5,mid:3,far:1};
+const STREAMED_DENSITY_SCALE:Record<string,number>={hero:1,near:.96,mid:.90,far:.82};
+
+/**
+ * Same frontier representation doctrine as Far March, with a lower streamed-area
+ * vertex budget. Select by semantic ring id rather than array length so parallel
+ * horizon/vista research can add farther bands without silently inflating every
+ * streamed realm.
+ */
+export const STREAMED_GRASS_RINGS=OBSERVER_GRASS_RINGS
+ .filter(ring=>ring.id in STREAMED_BLADE_BUDGET)
+ .map(ring=>({...ring,blades:STREAMED_BLADE_BUDGET[ring.id],density:ring.density*STREAMED_DENSITY_SCALE[ring.id]})) as readonly GrassRingSpec[];
 
 export function streamedGrassBudget(rings:readonly GrassRingSpec[]=STREAMED_GRASS_RINGS){
  return rings.reduce((a,r)=>({slots:a.slots+r.size*r.size,maxTriangles:a.maxTriangles+r.size*r.size*r.blades*4,drawCalls:a.drawCalls+1}),{slots:0,maxTriangles:0,drawCalls:0});
