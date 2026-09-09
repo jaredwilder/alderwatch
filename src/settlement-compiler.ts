@@ -34,6 +34,7 @@ function dist(a:SettlementVec2,b:SettlementVec2){return Math.hypot(a.x-b.x,a.z-b
 function yawToward(a:SettlementVec2,b:SettlementVec2){return Math.atan2(b.x-a.x,b.z-a.z);}
 function lerp(a:number,b:number,t:number){return a+(b-a)*t;}
 function vecLerp(a:SettlementVec2,b:SettlementVec2,t:number):SettlementVec2{return{x:lerp(a.x,b.x,t),z:lerp(a.z,b.z,t)}}
+function pointSegmentDistance(p:SettlementVec2,a:SettlementVec2,b:SettlementVec2){const dx=b.x-a.x,dz=b.z-a.z,l2=dx*dx+dz*dz;if(l2<1e-9)return dist(p,a);const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/l2)),q={x:a.x+dx*t,z:a.z+dz*t};return dist(p,q);}
 
 function validateCharter(charter:SettlementCharter){
  if(!charter.id)throw new Error('settlement charter requires id');
@@ -57,3 +58,5 @@ export class SettlementCompiler{
 export function placementsWithin(plan:SettlementPlan,minX:number,maxX:number,minZ:number,maxZ:number){return plan.placements.filter(p=>p.position.x>=minX&&p.position.x<maxX&&p.position.z>=minZ&&p.position.z<maxZ);}
 export function pathsWithin(plan:SettlementPlan,minX:number,maxX:number,minZ:number,maxZ:number){return plan.paths.filter(path=>path.points.some(p=>p.x>=minX&&p.x<maxX&&p.z>=minZ&&p.z<maxZ));}
 export function faceToward(position:SettlementVec2,target:SettlementVec2){return yawToward(position,target);}
+/** Environment clearing derives from the same semantic plan as the settlement. */
+export function settlementClearanceAt(plan:SettlementPlan,x:number,z:number,margin=1.5){const p={x,z};if(plan.zones.some(zone=>dist(p,zone.center)<=zone.radius+margin))return true;for(const path of plan.paths)for(let i=1;i<path.points.length;i++)if(pointSegmentDistance(p,path.points[i-1],path.points[i])<=path.width*.5+margin)return true;return false;}
