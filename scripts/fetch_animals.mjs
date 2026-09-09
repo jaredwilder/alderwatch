@@ -6,6 +6,8 @@ const ROOT=join(dirname(fileURLToPath(import.meta.url)),'..');
 const OUT=join(ROOT,'public','assets','animals');
 
 const SOURCES=[
+ {name:'hare',file:'hare.glb',minBytes:220_000,url:'https://raw.githubusercontent.com/JacksonHe04/iNon/a4b591ccec462e7413b703903f20fecaeee2bce8/public/archive-world/quaternius-animals/Bunny.glb'},
+ {name:'crow',file:'crow.glb',minBytes:85_000,url:'https://raw.githubusercontent.com/danajerban/erbandanaj.com/da89c1ea30957fe61b8b113a9b045cc6acbfae95/public/models/Pigeon.glb'},
  {name:'goat',file:'goat.glb',minBytes:100_000,url:'https://raw.githubusercontent.com/SeloSlav/medieval-settlement-threejs/adebb282df90627f3ec63c8e89f076cf1cf14fe9/public/assets/models/livestock/quaternius-goat.glb'},
  {name:'sheep',file:'sheep.glb',minBytes:100_000,url:'https://raw.githubusercontent.com/SeloSlav/medieval-settlement-threejs/adebb282df90627f3ec63c8e89f076cf1cf14fe9/public/assets/models/livestock/quaternius-sheep.glb'},
  {name:'deer',file:'deer.glb',minBytes:300_000,url:'https://raw.githubusercontent.com/SeloSlav/medieval-settlement-threejs/adebb282df90627f3ec63c8e89f076cf1cf14fe9/public/assets/models/deer/quaternius-deer.glb'},
