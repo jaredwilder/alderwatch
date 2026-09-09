@@ -24,9 +24,14 @@ export const CROWNROAD_POIS:readonly CrownroadPoi[]=[
 ] as const;
 
 export const crownroadCellInBounds=(coord:CellCoord)=>Math.abs(coord.x)<=CROWNROAD_RADIUS&&Math.abs(coord.z)<=CROWNROAD_RADIUS;
+export const crownroadIsGreyhavenCell=(coord:CellCoord)=>Math.abs(coord.x)<=1&&Math.abs(coord.z)<=1;
 export function crownroadCellIndex(coord:CellCoord):number{if(!crownroadCellInBounds(coord))throw new Error('Crownroad cell outside major-region address space');return (coord.z+CROWNROAD_RADIUS)*CROWNROAD_GRID_WIDTH+(coord.x+CROWNROAD_RADIUS);}
 export function crownroadWardForCell(coord:CellCoord):number{const i=crownroadCellIndex(coord);return CROWNROAD_WARD_START+(i%CROWNROAD_WARD_COUNT);}
 export function crownroadWardForPosition(x:number,z:number):number{const coord={x:Math.max(-CROWNROAD_RADIUS,Math.min(CROWNROAD_RADIUS,Math.floor(x/CROWNROAD_CELL))),z:Math.max(-CROWNROAD_RADIUS,Math.min(CROWNROAD_RADIUS,Math.floor(z/CROWNROAD_CELL)))};return crownroadWardForCell(coord);}
 export function crownroadLocationName(x:number,z:number):string{
- const coord={x:Math.round(x/CROWNROAD_CELL),z:Math.round(z/CROWNROAD_CELL)},poi=CROWNROAD_POIS.find(p=>p.cell.x===coord.x&&p.cell.z===coord.z);if(poi)return poi.name;if(Math.abs(z)<30)return "King's Road";if(z<-150)return 'South Grainlands';if(z>150)return 'North Crownfields';if(x>150)return 'Blackbarrow Reach';if(x<-150)return "Saint's Crossing";return 'Crownroad Vale';
+ const coord={x:Math.round(x/CROWNROAD_CELL),z:Math.round(z/CROWNROAD_CELL)},poi=CROWNROAD_POIS.find(p=>p.cell.x===coord.x&&p.cell.z===coord.z);if(poi)return poi.name;
+ if(crownroadIsGreyhavenCell(coord)){
+  if(coord.z<0)return 'Greyhaven · South Ward';if(coord.z>0)return 'Greyhaven · North Ward';if(coord.x<0)return 'Greyhaven · West Ward';if(coord.x>0)return 'Greyhaven · East Ward';return 'Greyhaven';
+ }
+ if(Math.abs(z)<30)return "King's Road";if(z<-150)return 'South Grainlands';if(z>150)return 'North Crownfields';if(x>150)return 'Blackbarrow Reach';if(x<-150)return "Saint's Crossing";return 'Crownroad Vale';
 }
