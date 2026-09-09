@@ -1,4 +1,5 @@
 import {observerMetric} from './observer-grass-clipmap';
+import {perceptualChannelQuality} from './perceptual-resource-market';
 
 export type CanopyBandId='crown'|'mass';
 export interface CanopyBandSpec{
@@ -56,4 +57,5 @@ export function enteringHorizonCells(previous:HorizonGridOrigin|undefined,next:H
 }
 export function horizonCanopyBudget(fields:readonly CanopyBandSpec[]=HORIZON_CANOPY_FIELDS){return fields.reduce((a,f)=>({slots:a.slots+f.size*f.size,maxTriangles:a.maxTriangles+f.size*f.size*f.triangles,drawCalls:a.drawCalls+1}),{slots:0,maxTriangles:0,drawCalls:0});}
 export function canopyMetric(dx:number,dz:number,spec:CanopyBandSpec){return observerMetric(dx,dz,spec.metricPower);}
-export function horizonCanopyQuality(quality:number,id:CanopyBandId){const q=Math.max(.56,Math.min(1,quality));return id==='crown'?.42+.58*q:.10+.90*Math.pow(q,2.5);}
+/** Canopy representations compete in the same global graphics market as grass, ecology and shading. */
+export function horizonCanopyQuality(quality:number,id:CanopyBandId){return perceptualChannelQuality(quality,`canopy.${id}`);}
