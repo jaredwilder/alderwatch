@@ -56,6 +56,9 @@ if(area===IRONWARD_CROSSING){
 }else if(area===CROWNROAD_VALE){
   await import('./crownroad-vale');
 }else{
+  // Install before main constructs Assets so bark/stone receive observer-detail
+  // shaders during the ordinary asset load rather than through a late scene walk.
+  await import('./natural-detail-runtime');
   await import('./main');
   await installFarMarchPlayerUI();
   try{await import('./runtime-extensions');}
