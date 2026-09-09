@@ -1,5 +1,5 @@
 import './canon-authority-bridge';
-import {consumePendingArea,currentPlayer,DEEP_IRON_MINE,enterSavedArea,IRONWARD_BASIN,IRONWARD_CROSSING,migrateRealmSave,playerArea,CROWNROAD_VALE} from './realm-save';
+import {consumePendingArea,currentPlayer,DEEP_IRON_MINE,enterSavedArea,IRONWARD_BASIN,IRONWARD_CROSSING,migrateRealmSave,playerArea,CROWNROAD_VALE,WOLFPINE} from './realm-save';
 import {advanceRealmPopulationToTick,ensureRealmPopulation} from './realm-population';
 import {advanceRealmSocietyToTick,ensureRealmSocial} from './realm-society';
 import {advanceRealmHistoryToTick,ensureRealmHistory} from './provenance-frontier';
@@ -53,6 +53,13 @@ async function installStreamedAreaSurface(){
   }
 }
 
+async function installStreamedFrontierGraphics(){
+  try{
+    const [{Character},{installStreamedFrontierGraphics}]=await Promise.all([import('./character'),import('./streamed-frontier-graphics-runtime')]);
+    installStreamedFrontierGraphics(Character);
+  }catch(error){console.error('Alderwatch streamed frontier graphics failed to install',error);}
+}
+
 const area=prepareSavedArea();
 // Explicitly opt-in on a deployed build with ?dev=1. The module is inert otherwise.
 try{await import('./dev-tools');}catch(error){console.error('Alderwatch dev tools failed to install',error);}
@@ -61,6 +68,7 @@ if(area===IRONWARD_CROSSING){
   await import('./ironward-crossing');
   await installStreamedAreaSurface();
 }else if(area===IRONWARD_BASIN){
+  await installStreamedFrontierGraphics();
   await import('./ironward-basin');
   await import('./ironward-society-overlay');
   await installStreamedAreaSurface();
@@ -68,7 +76,12 @@ if(area===IRONWARD_CROSSING){
   await import('./deep-iron-mine');
   await installStreamedAreaSurface();
 }else if(area===CROWNROAD_VALE){
+  await installStreamedFrontierGraphics();
   await import('./crownroad-vale');
+  await installStreamedAreaSurface();
+}else if(area===WOLFPINE){
+  await installStreamedFrontierGraphics();
+  await import('./wolfpine');
   await installStreamedAreaSurface();
 }else{
   // Compose the frontier visual research layers before Assets/Landscape are constructed.
