@@ -30,7 +30,7 @@ test('exact household reputation improves the next Greyhaven deal',()=>{
 
 test('market strain can raise the barter ask without erasing household memory',()=>{
  const {world,player}=worldWithPlayer(),base=greyhavenProvisionQuote(world,player);
- for(let i=0;i<4;i++)promoteCanonicalEvent(world,{source:'world',actorName:'Greyhaven market',ward:base.ward,channel:'market',externalKey:`market-strain-${i}`,summary:'Greyhaven market shortages tightened local provisioning and raised demand.'});
+ for(let i=0;i<4;i++)promoteCanonicalEvent(world,{source:'world',actorId:'greyhaven-market',actorName:'Greyhaven market',ward:base.ward,channel:'market',externalKey:`market-strain-${i}`,summary:'Greyhaven market shortages tightened local provisioning and raised demand.'});
  applyRealmConsequences(world);const strained=greyhavenProvisionQuote(world,player);
  assert.ok(strained.marketPressure>base.marketPressure);assert.ok(strained.timberCost>=base.timberCost);
 });
