@@ -50,7 +50,7 @@ export function forageAvailable(f:ForageState,tick:number){return !f.harvested||
 export class Nature {
  plants=new Map<string,T.Object3D>();animals=new Map<string,AnimalVisual>();onNotice=(text:string)=>{};
  private forageIndex:ForageSpatialIndex=new Map();private resourceIndex:ResourceSpatialIndex=new Map();private nextForageRefresh=0;
- constructor(private root:T.Group,private assets:Assets,private w:WorldState,private land:Landscape){seedNature(w);this.forageIndex=buildForageSpatialIndex(w.forage);this.resourceIndex=buildResourceSpatialIndex(w.resources);for(const a of Object.values(w.animals!))if(a.kind==='hare'||a.kind==='crow')this.spawnLegacy(a);void this.loadAuthoredAnimals();this.update(0);}
+ constructor(private root:T.Group,private assets:Assets,private w:WorldState,private land:Landscape){seedNature(w);this.forageIndex=buildForageSpatialIndex(w.forage);this.resourceIndex=buildResourceSpatialIndex(w.resources);for(const a of Object.values(w.animals!))if(!AUTHORED_ANIMAL_SET.has(a.kind))this.spawnLegacy(a);void this.loadAuthoredAnimals();this.update(0);}
  private refreshForage(){
   if(this.w.tick<this.nextForageRefresh)return;this.nextForageRefresh=this.w.tick+12;
   // Only the local camera needs authored plant meshes. Simulated/offscreen players still
@@ -72,7 +72,7 @@ export class Nature {
     const mixer=animations.length?new T.AnimationMixer(root):undefined,clips=animalClips(animations);const idle=mixer&&clips.idle?mixer.clipAction(clips.idle):undefined,walk=mixer&&clips.walk?mixer.clipAction(clips.walk):undefined,run=mixer&&clips.run?mixer.clipAction(clips.run):undefined,attack=mixer&&clips.attack?mixer.clipAction(clips.attack):undefined,fly=mixer&&clips.fly?mixer.clipAction(clips.fly):undefined;
     const visual:AnimalVisual={group,mixer,idle,walk,run,attack,fly};this.animals.set(a.id,visual);this.useAction(visual,a.kind==='eagle'?fly??idle??walk??run:idle??walk??run);if(a.dead)this.poseDead(a,visual);
    }
-  }catch(error){console.warn('Alderwatch authored wildlife could not load; legacy hare/crow wildlife remains available.',error);}
+  }catch(error){console.warn('Alderwatch authored wildlife could not load.',error);}
  }
  private useAction(v:AnimalVisual,next?:T.AnimationAction){if(!next||v.active===next)return;next.reset().fadeIn(.18).play();if(v.active&&v.active!==next)v.active.fadeOut(.18);v.active=next;}
  private poseDead(a:AnimalState,v:AnimalVisual){v.active?.stop();v.mixer?.stopAllAction();v.group.position.fromArray(a.position);v.group.rotation.y=a.yaw;v.group.rotation.z=species(a.kind).deathRoll;}
@@ -128,10 +128,10 @@ export class Nature {
     if(!animalAlive(prey)){a.huntTargetId=undefined;a.huntBestDistance=undefined;a.huntCooldownUntil=this.w.tick+240;}
    }
    const ground=height(a.position[0],a.position[2]);let targetY=ground;
-   if(airborne&&aerial)targetY=ground+(hunting?aerial.huntHeight:aerial.cruiseHeight)+(carrying?.7:0)+Math.sin(a.phase*1.7)*.18;else if(a.kind==='crow'&&moving)targetY=ground+1.7+Math.sin(a.phase*3)*.12;else if(a.kind==='hare'&&moving)targetY=ground+Math.max(0,Math.sin(a.phase*(flee?14:8)))*.15;
+   if(airborne&&aerial)targetY=ground+(hunting?aerial.huntHeight:aerial.cruiseHeight)+(carrying?.7:0)+Math.sin(a.phase*1.7)*.18;else if(a.kind==='crow'&&moving)targetY=ground+1.7+Math.sin(a.phase*3)*.12;
    a.position[1]=T.MathUtils.damp(a.position[1],targetY,flight?4:16,dt);
    if(!visual)continue;const model=visual.group;model.position.fromArray(a.position);model.rotation.y=a.yaw;visual.mixer?.update(dt);
-   if(AUTHORED_ANIMAL_SET.has(a.kind)){const attacking=(a.attackingUntil??0)>this.w.tick;this.useAction(visual,attacking?visual.attack??(airborne?visual.fly:visual.run)??visual.walk:airborne?visual.fly??visual.run??visual.walk:moving?((flee||hunting)?visual.run??visual.walk:visual.walk??visual.run):visual.idle??visual.walk);}
+   if(AUTHORED_ANIMAL_SET.has(a.kind)){const attacking=(a.attackingUntil??0)>this.w.tick;this.useAction(visual,attacking?visual.attack??(flight?visual.fly:visual.run)??visual.walk:flight?visual.fly??visual.run??visual.walk:moving?((flee||hunting)?visual.run??visual.walk:visual.walk??visual.run):visual.idle??visual.walk);}
    else model.traverse(part=>{if(part.name.startsWith('Hare_front'))part.rotation.x=moving?Math.sin(a.phase*(flee?14:8))*.55:0;if(part.name.startsWith('Hare_hind'))part.rotation.x=moving?-Math.sin(a.phase*(flee?14:8))*.65:0;if(part.name==='Hare_head')part.rotation.x=moving?.08:Math.sin(a.phase*1.3)*.13;if(part.name.startsWith('Hare_ear'))part.rotation.z=Math.sin(a.phase*2)*.04;if(part.name.startsWith('Crow_wing'))part.rotation.z=(part.name.endsWith('-1')?-1:1)*(flight?Math.sin(a.phase*13)*.85:.95);});
   }
  }
