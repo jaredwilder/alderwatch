@@ -10,22 +10,12 @@ const SOURCES=[
  {name:'sheep',file:'sheep.glb',minBytes:100_000,url:'https://raw.githubusercontent.com/SeloSlav/medieval-settlement-threejs/adebb282df90627f3ec63c8e89f076cf1cf14fe9/public/assets/models/livestock/quaternius-sheep.glb'},
  {name:'deer',file:'deer.glb',minBytes:300_000,url:'https://raw.githubusercontent.com/SeloSlav/medieval-settlement-threejs/adebb282df90627f3ec63c8e89f076cf1cf14fe9/public/assets/models/deer/quaternius-deer.glb'},
  {name:'bear',file:'bear.glb',minBytes:300_000,url:'https://raw.githubusercontent.com/TuanTran0168/myunivokai-personalized-3d-worlds/9112af6c04ea14cd849ca90f82f45c875d3c7f50/apps/myunivokai-personalization/public/assets/nature/models/animal-bear.glb'},
- {name:'bison',file:'bison.glb',minBytes:40_000,url:'https://github.com/series-ai/jam-ready-assets/raw/e93aa129978daafda85f3c907eebc8f1807ec43f/kenney-prototype-kit/3D/prototype-blocks/Models/GLB%20format/animal-bison.glb'},
+ {name:'bison',file:'bison.glb',minBytes:900_000,url:'https://raw.githubusercontent.com/SeloSlav/medieval-settlement-threejs/adebb282df90627f3ec63c8e89f076cf1cf14fe9/public/assets/models/livestock/quaternius-bull.glb'},
  {name:'wolf',file:'wolf.glb',minBytes:1_500_000,url:'https://raw.githubusercontent.com/StateDev08/War-of-the-Kindom-Mobile/9b5a2827ed8f2b7adf657ddf7e47cb026bab0b39/client/assets/models/quaternius/animals/wolf.glb'},
  {name:'eagle',file:'eagle.glb',minBytes:3_000_000,url:'https://raw.githubusercontent.com/maramilod/LYMonada/677cdce7c62c731bc46fd59edebc40e4e2376dd4/src/assets/3d/eagle.glb'},
 ];
 
 await mkdir(OUT,{recursive:true});
-
-// The bison GLB references a companion palette rather than embedding it.
-// Fetch it on clean CI installs too; otherwise the deployed animal renders without its authored color.
-const palette=join(OUT,'Textures','colormap.png');
-try{await stat(palette);}catch{
- const response=await fetch('https://media.githubusercontent.com/media/series-ai/jam-ready-assets/e93aa129978daafda85f3c907eebc8f1807ec43f/kenney-prototype-kit/3D/prototype-blocks/Models/GLB%20format/Textures/colormap.png');
- if(!response.ok)throw new Error(`Bison palette: HTTP ${response.status}`);
- const bytes=Buffer.from(await response.arrayBuffer());if(bytes.readUInt32BE(0)!==0x89504e47)throw new Error('Invalid bison palette PNG');
- await mkdir(dirname(palette),{recursive:true});await writeFile(palette,bytes);
-}
 
 function glbHeader(bytes){return bytes.length>=4&&bytes[0]===0x67&&bytes[1]===0x6c&&bytes[2]===0x54&&bytes[3]===0x46;}
 
