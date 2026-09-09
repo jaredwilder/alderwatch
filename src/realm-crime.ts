@@ -1,6 +1,6 @@
 import type {WorldState} from './state';
 import {applyRealmConsequences,REALM_DISTRICT_COUNT,REALM_DISTRICT_SIZE} from './realm-consequences';
-import {BidirectionalSocialRouter,historicalWardCertificates,liftProvenance,promoteCanonicalEvent} from './provenance-frontier';
+import {BidirectionalSocialRouter,historicalWardCertificates,liftProvenance,promoteCanonicalEvent,type ProvenanceTransition} from './provenance-frontier';
 import {zeroSocialSignal} from './social-separator';
 
 export type RealmCrimeKind='assault'|'theft'|'murder';
@@ -73,7 +73,7 @@ export function advanceRealmCrimeKnowledge(world:WorldState,targetDay=Math.floor
   if(!incident.atomId)continue;const sourceDistrict=districtForWard(incident.ward),age=Math.max(0,targetDay-incident.day),signal=zeroSocialSignal();signal.watch=3;const known=state.knowledge[incident.id]??={};
   for(let district=0;district<REALM_DISTRICT_COUNT;district++){
    if(district===sourceDistrict)continue;const hops=Math.abs(district-sourceDistrict);if(hops>age)continue;
-   const transition=liftProvenance(router.route(incident.ward,districtRepresentative(district)),{provenance:incident.atomId,signal});if(transition.provenance!==incident.atomId)throw new Error('crime provenance changed during social routing');
+   const transition:ProvenanceTransition<string>=liftProvenance<string>(router.route(incident.ward,districtRepresentative(district)),{provenance:incident.atomId,signal});if(transition.provenance!==incident.atomId)throw new Error('crime provenance changed during social routing');
    const routed=transition.signal.watch/3;if(routed<=0)continue;const strength=Math.round(clamp(routed/(1+hops*.2),.05,.95)*1000)/1000,prior=known[String(district)];
    if(!prior||strength>prior.strength)known[String(district)]={incidentId:incident.id,district,kind:'rumor',strength,firstKnownDay:incident.day+hops,provenance:incident.atomId};
   }
