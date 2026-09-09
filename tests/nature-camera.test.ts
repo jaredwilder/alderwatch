@@ -4,7 +4,7 @@ import * as T from 'three';
 import fs from 'node:fs';
 import {LocalAuthority,makePlayer,quantity,addItem} from '../src/state';
 import {seedNature,forageAvailable} from '../src/nature';
-import {FollowCamera,ACTION_CAMERA} from '../src/follow-camera';
+import {FollowCamera,ACTION_CAMERA,cameraOrbitPitch} from '../src/follow-camera';
 import {stats} from '../src/definitions';
 import {model} from './load-assets';
 import {Assets} from '../src/assets';
@@ -50,22 +50,31 @@ test('gathered mushrooms and herbs cook into real timed stamina food',()=>{
  const a=new LocalAuthority(),p=makePlayer('Warden');a.state.players[p.id]=p;p.position=[...a.state.stations['alderbrook-fire'].position];addItem(a.state,p,'mushroom',2);addItem(a.state,p,'herb',1);addItem(a.state,p,'wood',1);
  assert.ok(a.dispatch({type:'craft',playerId:p.id,recipeId:'woodland_broth',stationId:'alderbrook-fire'}).ok);assert.ok(a.dispatch({type:'eat',playerId:p.id,item:'woodland_broth'}).ok);assert.equal(stats(p).stamina,140);assert.equal(quantity(p,'mushroom'),0);
 });
-test('default action camera frames a wide elevated play area at every zoom limit',()=>{
+test('default action camera keeps tactical framing while granting a true skyward view',()=>{
  const p=new T.Vector3(3,4,7),c=new FollowCamera(),a=ACTION_CAMERA;
  const view=c.update(p,0,a.pitch,a.distance,1/60,()=>undefined);
- assert.ok(view.position.y-p.y>12,'Camera must look down from above the survivor');
+ assert.ok(view.position.y-p.y>12,'Default camera must still look down from above the survivor');
  assert.ok(view.position.distanceTo(view.aim)>13);
  assert.ok(2*a.distance*Math.tan(T.MathUtils.degToRad(a.fov/2))>10,'At least ten metres of vertical coverage');
  for(const distance of [a.minDistance,a.maxDistance]){c.reset();const v=c.update(p,0,a.pitch,distance,1/60,()=>undefined);assert.ok(Math.abs(v.position.distanceTo(v.aim)-distance)<.001);assert.ok(v.position.y>p.y+6);}
- assert.ok(a.minPitch>0&&a.maxPitch<Math.PI/2,'Orbit cannot cross the pole or drop below ground');
- assert.ok(a.minPitch<=.2&&a.maxPitch>=1.4&&a.maxPitch-a.minPitch>1.15,'Vertical orbit must span low exploration framing through near-overhead tactical framing');
- c.reset();const low=c.update(p,0,a.minPitch,a.distance,1/60,()=>undefined);c.reset();const high=c.update(p,0,a.maxPitch,a.distance,1/60,()=>undefined);
- assert.ok(high.position.y-low.position.y>10,'Vertical mouse travel must materially change camera height');
- assert.ok(Math.hypot(low.position.x-low.aim.x,low.position.z-low.aim.z)>10,'Low pitch must expose the horizon instead of remaining top-down');
- assert.ok(Math.hypot(high.position.x-high.aim.x,high.position.z-high.aim.z)<3,'High pitch must reach a true tactical near-overhead view');
+ assert.ok(a.minPitch<-1.3&&a.maxPitch>1.3,'View pitch must span almost straight up through the tactical overhead view');
+ assert.ok(a.minOrbitPitch>0&&a.maxPitch<Math.PI/2,'Physical camera boom must remain terrain-safe and avoid the pole');
+ assert.equal(cameraOrbitPitch(a.minPitch),a.minOrbitPitch,'Skyward look must not drag the physical camera under the world');
+ c.reset();const skyward=c.update(p,0,a.minPitch,a.distance,1/60,()=>undefined);c.reset();const high=c.update(p,0,a.maxPitch,a.distance,1/60,()=>undefined);
+ assert.ok(skyward.position.y>p.y+3,'Skyward look must keep the physical camera safely above the survivor');
+ assert.ok(skyward.aim.y>skyward.position.y+40,'Maximum skyward pitch must actually aim high into the sky');
+ assert.ok(high.position.y-skyward.position.y>10,'Vertical mouse travel must still materially change camera height');
+ assert.ok(Math.hypot(high.position.x-high.aim.x,high.position.z-high.aim.z)<3,'High pitch must retain the tactical near-overhead view');
 });
 test('mouse orbit is immediate while follow translation and collision recovery are damped',()=>{
  const c=new FollowCamera(),p=new T.Vector3();c.update(p,0,.2,5,1/60,()=>undefined);const turn=c.update(p,Math.PI/2,.2,5,1/60,()=>undefined);assert.ok(turn.position.x<-4.8);assert.ok(Math.abs(turn.position.z)<.01);
  const up=c.update(p,0,.8,5,1/60,()=>undefined);assert.ok(up.position.y>turn.position.y+2,'Accepted vertical look direction changed');
  c.update(p,0,.2,5,1/60,()=>1.3);assert.ok(c.distance<=1.08);c.update(p,0,.2,5,1/60,()=>undefined);assert.ok(c.distance>1.08&&c.distance<2,'Collision release snapped back');
+});
+test('beautiful sky is a compact baked panorama rather than a full-screen procedural noise pass',()=>{
+ const bytes=fs.statSync('public/assets/alderwatch-sky.webp').size;
+ assert.ok(bytes<100_000,'Sky panorama must stay tiny enough for a browser-first realm');
+ const main=fs.readFileSync('src/main.ts','utf8');
+ assert.match(main,/alderwatch-sky\.webp/,'Runtime must load the baked sky panorama');
+ assert.doesNotMatch(main,/float noise\(vec2 p\)/,'Per-pixel procedural cloud noise must not return');
 });
