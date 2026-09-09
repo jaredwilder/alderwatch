@@ -20,6 +20,8 @@ const HEAD_TERMS=['muzzle','snout','nose','head','neck'];
 const BODY_TERMS=['pelvis','hips','hip','spine','chest','torso','body'];
 interface NamedPoint {node:T.Object3D;priority:number;position:T.Vector3}
 const SKINS:Record<AuthoredAnimalKind,{body:string;dark:string;light:string}>={
+ hare:{body:'#8f7967',dark:'#3b3028',light:'#c8b6a0'},
+ crow:{body:'#171b1f',dark:'#080a0c',light:'#3e4850'},
  goat:{body:'#92775c',dark:'#403126',light:'#c2aa89'},
  sheep:{body:'#d8d0ba',dark:'#3e352f',light:'#eee7d5'},
  deer:{body:'#8f5936',dark:'#493020',light:'#d1af84'},
@@ -61,7 +63,7 @@ function skinnedMaterial(material:T.Material,kind:AuthoredAnimalKind,label:strin
  const dark=/hoof|horn|nose|snout|muzzle|eye|beak|claw|talon|paw|mane|foot/.test(name),light=/belly|chest|neck|tail|wool|featherwhite|headwhite/.test(name);
  const target=new T.Color(dark?palette.dark:light?palette.light:palette.body);
  if('color' in m&&m.color instanceof T.Color){if(m.map)m.color.multiply(target.clone().lerp(new T.Color('#ffffff'),.58));else m.color.copy(target);}
- if('roughness' in m)m.roughness=kind==='eagle'?.82:.94;
+ if('roughness' in m)m.roughness=(kind==='eagle'||kind==='crow')?.82:.94;
  if('metalness' in m)m.metalness=0;
  // Models with anonymous one-material submeshes still get enough tonal breakup to stop reading as white test geometry.
  if(!m.map&&index%5===3&&'color' in m&&m.color instanceof T.Color)m.color.lerp(new T.Color(palette.light),.22);
