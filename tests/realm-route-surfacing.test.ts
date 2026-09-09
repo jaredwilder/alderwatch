@@ -27,3 +27,10 @@ test('Far March map gets the beyond-March atlas while area chat shares the exist
  assert.match(runtime,/realm-route-surfacing/);assert.match(routes,/BEYOND THE FAR MARCH/);assert.match(routes,/CONTINUE →/);
  assert.match(chat,/alderwatch\.playerbots\./);assert.match(chat,/\/api\/npc-chat/);assert.match(chat,/alderwatch:map-cursor/);assert.match(chat,/e\.code==='Enter'/);
 });
+
+test('Deep Iron and Crownroad own a real M-key atlas until their complete survivor shells land',()=>{
+ const routes=readFileSync(new URL('../src/realm-route-surfacing.ts',import.meta.url),'utf8');
+ assert.match(routes,/installFallbackAtlas/);assert.match(routes,/e\.code==='KeyM'/);assert.match(routes,/alderwatch:map-cursor/);
+ assert.match(routes,/import\('\.\/crownroad-world'\)/);assert.match(routes,/CROWNROAD_POIS\.map/);assert.match(routes,/Greyhaven is at the centre/);
+ assert.match(routes,/import\('\.\/deep-iron-dungeon'\)/);assert.match(routes,/state\.discovered/);assert.match(routes,/Only discovered workings are charted/);
+});
