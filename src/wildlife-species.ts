@@ -1,7 +1,7 @@
 import type {ItemId,Vec3} from './state';
 
 export type AnimalKind='hare'|'crow'|'goat'|'sheep'|'deer'|'bear'|'bison'|'wolf'|'eagle';
-export type AuthoredAnimalKind=Exclude<AnimalKind,'hare'|'crow'>;
+export type AuthoredAnimalKind=AnimalKind;
 export type PredatorKind='bear'|'wolf'|'eagle';
 export type WildlifeKiller='player'|PredatorKind;
 
@@ -91,8 +91,8 @@ export interface WildlifeSpecies {
 }
 
 export const WILDLIFE_SPECIES:Record<AnimalKind,WildlifeSpecies>={
- hare:{authored:false,aimHeight:.28,deathRoll:1.18,maxHealth:18,loot:{hare_meat:1},rareLoot:{item:'hare_saddle',count:1,oneIn:10},herd:false,grazes:false,fleeRadius:6,homeRadius:8,wanderSpeed:.6,escapeSpeed:3.8,turnRate:4.8},
- crow:{authored:false,aimHeight:.25,deathRoll:1.18,maxHealth:10,loot:{crow_meat:1,crow_crop:1},rareLoot:{item:'crow_breast',count:1,oneIn:12},herd:false,grazes:false,fleeRadius:6,homeRadius:8,wanderSpeed:.6,escapeSpeed:3.8,turnRate:4.8},
+ hare:{authored:true,modelHeight:.55,aimHeight:.28,deathRoll:1.18,maxHealth:18,loot:{hare_meat:1},rareLoot:{item:'hare_saddle',count:1,oneIn:10},herd:false,grazes:false,fleeRadius:6,homeRadius:8,wanderSpeed:.6,escapeSpeed:3.8,turnRate:4.8},
+ crow:{authored:true,modelHeight:.48,aimHeight:.25,deathRoll:1.18,maxHealth:10,loot:{crow_meat:1,crow_crop:1},rareLoot:{item:'crow_breast',count:1,oneIn:12},herd:false,grazes:false,fleeRadius:6,homeRadius:8,wanderSpeed:.6,escapeSpeed:3.8,turnRate:4.8},
  goat:{authored:true,modelHeight:.9,aimHeight:.62,deathRoll:1.18,maxHealth:52,loot:{goat_meat:2,hide:1},rareLoot:{item:'goat_tenderloin',count:1,oneIn:8},herd:true,grazes:false,fleeRadius:7.5,homeRadius:13,wanderSpeed:.62,escapeSpeed:3.6,turnRate:4.8},
  sheep:{authored:true,modelHeight:.95,aimHeight:.62,deathRoll:1.18,maxHealth:46,loot:{mutton:2,hide:2},rareLoot:{item:'mutton_rack',count:1,oneIn:8},herd:true,grazes:false,fleeRadius:8,homeRadius:13,wanderSpeed:.56,escapeSpeed:3.5,turnRate:4.8},
  deer:{authored:true,modelHeight:1.75,aimHeight:.85,deathRoll:1.18,maxHealth:62,loot:{venison:4,hide:2},rareLoot:{item:'hart_tenderloin',count:1,oneIn:10},herd:true,grazes:true,fleeRadius:12,homeRadius:22,wanderSpeed:.82,escapeSpeed:5.6,turnRate:4.8},
