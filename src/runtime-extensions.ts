@@ -14,4 +14,5 @@ import './item-icons';
 import './overnight-overdrive';
 import './profile-paperdoll-install';
 import './realm-travel-ui';
+import './realm-route-surfacing';
 import './world-boss-runtime';
