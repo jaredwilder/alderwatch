@@ -14,8 +14,8 @@ export const CHARCOAL_CAMP_CHARTER:SettlementCharter={
 
 export function compileCharcoalCamp():SettlementPlan{
  const c=new SettlementCompiler(CHARCOAL_CAMP_CHARTER),fire={x:0,z:-45};
- const arrival=c.zone('arrival','arrival',{x:0,z:-25},4,Math.PI,['social']);
- const social=c.zone('fire-court','social',fire,7,0,['arrival','shelter','work-yard']);
+ const arrival=c.zone('arrival','arrival',{x:0,z:-25},4,Math.PI,['fire-court']);
+ const social=c.zone('fire-court','social',fire,7,0,['arrival','sleep-shelter','charcoal-work']);
  const shelter=c.zone('sleep-shelter','shelter',{x:-15,z:-53},6,faceToward({x:-15,z:-53},fire),['fire-court']);
  const storage=c.zone('covered-store','storage',{x:-18,z:-41},6,faceToward({x:-18,z:-41},{x:0,z:-33}),['fire-court','loading-yard']);
  const work=c.zone('charcoal-work','work',{x:13,z:-49},7,faceToward({x:13,z:-49},{x:23,z:-44}),['fire-court','loading-yard']);
