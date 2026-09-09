@@ -42,19 +42,34 @@ async function installFarMarchPlayerUI(){
   }
 }
 
+async function installStreamedAreaSurface(){
+  const surface=[
+    ['Realm routes',()=>import('./realm-route-surfacing')],
+    ['Realm chat',()=>import('./area-realm-chat')],
+  ] as const;
+  for(const [name,load] of surface){
+    try{await load();}
+    catch(error){console.error(`Alderwatch streamed-area ${name} failed to install`,error);}
+  }
+}
+
 const area=prepareSavedArea();
 // Explicitly opt-in on a deployed build with ?dev=1. The module is inert otherwise.
 try{await import('./dev-tools');}catch(error){console.error('Alderwatch dev tools failed to install',error);}
 
 if(area===IRONWARD_CROSSING){
   await import('./ironward-crossing');
+  await installStreamedAreaSurface();
 }else if(area===IRONWARD_BASIN){
   await import('./ironward-basin');
   await import('./ironward-society-overlay');
+  await installStreamedAreaSurface();
 }else if(area===DEEP_IRON_MINE){
   await import('./deep-iron-mine');
+  await installStreamedAreaSurface();
 }else if(area===CROWNROAD_VALE){
   await import('./crownroad-vale');
+  await installStreamedAreaSurface();
 }else{
   // Install before main constructs Assets so bark/stone receive observer-detail
   // shaders during the ordinary asset load rather than through a late scene walk.
