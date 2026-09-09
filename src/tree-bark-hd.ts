@@ -21,11 +21,17 @@ if(!globalState[marker]){
         for(const material of (Array.isArray(o.material)?o.material:[o.material]) as T.MeshStandardMaterial[]){
           if(material.name!=='AW_bark'||seen.has(material))continue;
           seen.add(material);
+          // The generated bark is the high-detail colour source. Preserve the compact
+          // authored normal/roughness maps installed by Assets so the later
+          // screen-space bandwidth shader can still spend its relief/roughness bands.
           material.map=bark;
-          material.bumpMap=bark;
-          material.bumpScale=.032;
-          material.normalMap=null;
-          material.roughnessMap=null;
+          if(material.normalMap){
+            material.bumpMap=null;
+          }else{
+            // Fallback for any bark material that genuinely has no normal source.
+            material.bumpMap=bark;
+            material.bumpScale=.032;
+          }
           material.roughness=.95;
           material.metalness=0;
           material.color.setRGB(.96,.96,.96);
