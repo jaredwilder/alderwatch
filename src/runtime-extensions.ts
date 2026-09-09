@@ -4,6 +4,7 @@ import './canon-authority-bridge';
 import './fun-systems';
 import './simulated-players';
 import './chat-bank-expansion';
+import './chat-bank-chaos-addendum';
 import './simulated-player-society';
 import './realm-chat-network';
 import './canon-social-bridge';
