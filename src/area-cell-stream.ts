@@ -13,6 +13,11 @@ const key=(x:number,z:number)=>`${x},${z}`;
 /**
  * Keeps only a square neighborhood of streaming cells materialized around a point.
  * Total active runtime is bounded by (2r+1)^2 regardless of total area size.
+ *
+ * Cells are authored around coord*cellSize, so coord 0 spans roughly
+ * [-cellSize/2,+cellSize/2]. Select the nearest cell centre; floor(x/cellSize)
+ * would move the active window half a cell too early and cause visible popping at
+ * the world origin / every centre line.
  */
 export class CellWindow<T>{
   readonly active=new Map<string,CellHandle<T>>();
@@ -21,7 +26,7 @@ export class CellWindow<T>{
     if(!Number.isInteger(options.radius)||options.radius<0)throw new Error('radius must be a non-negative integer');
   }
   centerFor(x:number,z:number):CellCoord{
-    return {x:Math.floor(x/this.options.cellSize),z:Math.floor(z/this.options.cellSize)};
+    return {x:Math.round(x/this.options.cellSize),z:Math.round(z/this.options.cellSize)};
   }
   update(x:number,z:number){
     const center=this.centerFor(x,z),wanted=new Set<string>();
