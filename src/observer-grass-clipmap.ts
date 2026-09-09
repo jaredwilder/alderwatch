@@ -8,19 +8,24 @@ export interface GrassRingSpec {
  maxHeight:number;
  density:number;
  seed:number;
+ fadeIn:number;
+ fadeFull:number;
+ fadeStart:number;
+ fadeOut:number;
 }
 
 export interface GridOrigin {x:number;z:number}
 export interface ClipCell {gx:number;gz:number;slot:number}
 
 /**
- * Two fixed-capacity observer rings. Apparent world size can grow without changing
- * their resident instance count. The hero ring carries dense, short-range biomass;
- * the near ring carries cheaper silhouette continuity out to roughly 38 m per axis.
+ * Fixed-capacity observer rings. The new mid/far bands remove the visible
+ * savannah boundary without reintroducing world-sized vegetation allocation.
  */
 export const OBSERVER_GRASS_RINGS=[
- {id:'hero',cell:.72,size:48,blades:20,tuftRadius:.48,minHeight:.34,maxHeight:.72,density:1,seed:0x51f15e},
- {id:'near',cell:1.35,size:56,blades:8,tuftRadius:.82,minHeight:.30,maxHeight:.64,density:.82,seed:0x7a2d91},
+ {id:'hero',cell:.72,size:48,blades:20,tuftRadius:.48,minHeight:.34,maxHeight:.72,density:1,seed:0x51f15e,fadeIn:0,fadeFull:0,fadeStart:11,fadeOut:16.5},
+ {id:'near',cell:1.35,size:56,blades:8,tuftRadius:.82,minHeight:.30,maxHeight:.64,density:.88,seed:0x7a2d91,fadeIn:10,fadeFull:16,fadeStart:28,fadeOut:36.5},
+ {id:'mid',cell:2.10,size:72,blades:6,tuftRadius:1.12,minHeight:.28,maxHeight:.60,density:.94,seed:0x3b7a11,fadeIn:27,fadeFull:36,fadeStart:61,fadeOut:74},
+ {id:'far',cell:3.20,size:88,blades:3,tuftRadius:1.62,minHeight:.24,maxHeight:.54,density:.98,seed:0x19c4d3,fadeIn:59,fadeFull:72,fadeStart:118,fadeOut:138},
 ] as const satisfies readonly GrassRingSpec[];
 
 export function observerHash(x:number,z:number,salt=0){
@@ -30,6 +35,7 @@ export function observerHash(x:number,z:number,salt=0){
 }
 
 function mod(n:number,m:number){return((n%m)+m)%m;}
+function smoothstep(a:number,b:number,x:number){if(b<=a)return x>=b?1:0;const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);}
 
 /** Stable toroidal slot: a world cell returns to the same slot modulo ring extent. */
 export function slotForCell(gx:number,gz:number,size:number){return mod(gx,size)+mod(gz,size)*size;}
@@ -63,7 +69,17 @@ export function enteringClipmapCells(previous:GridOrigin|undefined,next:GridOrig
  return out;
 }
 
-/** Four ribbon triangles per blade; no world-area term exists in this budget. */
+/** Stable radial visibility used by the shader and Court to overlap bands without a hard ring. */
+export function observerRingVisibility(distance:number,spec:GrassRingSpec){
+ const d=Math.max(0,distance),inside=spec.fadeFull<=spec.fadeIn?1:smoothstep(spec.fadeIn,spec.fadeFull,d),outside=1-smoothstep(spec.fadeStart,spec.fadeOut,d);
+ return Math.max(0,Math.min(1,inside*outside));
+}
+
+export function combinedObserverCoverage(distance:number,rings:readonly GrassRingSpec[]=OBSERVER_GRASS_RINGS){
+ return Math.min(1,rings.reduce((sum,spec)=>sum+observerRingVisibility(distance,spec)*spec.density,0));
+}
+
+/** Four ribbon triangles per blade; still no world-area term exists in this budget. */
 export function clipmapBudget(rings:readonly GrassRingSpec[]=OBSERVER_GRASS_RINGS){
  return rings.reduce((a,r)=>({
   slots:a.slots+r.size*r.size,

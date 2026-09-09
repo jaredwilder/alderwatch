@@ -26,7 +26,8 @@ function woodlandGround(textures:Record<string,T.Texture>){
    vec2 groundUv=awGround.xz*.32;
    float macro=.5+.5*sin(awGround.x*.047+sin(awGround.z*.037)*1.4)*sin(awGround.z*.054);
    float wear=smoothstep(.28,.86,awSoilMix);
-   float awGroundNear=1.0-smoothstep(18.0,86.0,length(vViewPosition));
+   float awViewDistance=length(vViewPosition);
+   float awGroundNear=1.0-smoothstep(18.0,86.0,awViewDistance);
    vec2 warp=awWarp(awGround.xz)*.31;
    vec2 fieldUvA=groundUv+warp,fieldUvB=mat2(.80,-.60,.60,.80)*(groundUv*1.87)+vec2(7.13,3.71);
    vec2 litterUvA=groundUv*.72+warp*.63,litterUvB=mat2(.66,.75,-.75,.66)*(groundUv*1.31)+vec2(2.87,9.41);
@@ -42,6 +43,13 @@ function woodlandGround(textures:Record<string,T.Texture>){
    }
    diffuseColor.rgb=mix(field*vec3(.70,.96,.64),litter*vec3(.37,.36,.27),wear*.80)*mix(.86,1.08,macro);
    diffuseColor.rgb*=mix(vec3(1.0),vec3(.94,1.03,.91),awGroundNear*(1.0-wear)*.18);
+
+   // Horizon bridge: when individual blades fall below useful pixel size, the
+   // same resident field texture carries the missing biomass statistically.
+   float awMeadowBridge=smoothstep(32.0,92.0,awViewDistance)*(1.0-smoothstep(.16,.68,wear));
+   float awCanopyBreak=.86+.18*breakup+.08*(macro-.5);
+   vec3 awCanopyTint=field*mix(vec3(.54,.84,.46),vec3(.66,.96,.54),macro*.45)*awCanopyBreak;
+   diffuseColor.rgb=mix(diffuseColor.rgb,awCanopyTint,awMeadowBridge*.58);
   `);
   s.fragmentShader=s.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
    float awFieldR=mix(texture2D(awFieldRough,fieldUvA).r,texture2D(awFieldRough,fieldUvB).r,.24);
@@ -57,5 +65,5 @@ function woodlandGround(textures:Record<string,T.Texture>){
    vec3 tangent=normalize(dx*ty.y-dy*tx.y),bitangent=normalize(-dx*ty.x+dy*tx.x);
    normal=normalize(normal+(.29*detail.x*tangent+.29*detail.y*bitangent));
   `);
- };material.customProgramCacheKey=()=> 'aw-observer-detail-ground-v2-lush';return material;
+ };material.customProgramCacheKey=()=> 'aw-observer-detail-ground-v3-horizon-bridge';return material;
 }
