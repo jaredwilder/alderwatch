@@ -17,10 +17,10 @@ test('witnessed crime preserves exact perpetrator provenance and local legal cer
  const atom=ensureRealmHistory(world).atoms[crime.atomId!];assert.equal(atom.actorId,player.id);assert.ok(atom.subjects.includes('witness:citizen-a'));assert.ok(atom.subjects.includes('witness:citizen-b'));
 });
 
-test('crime reports propagate by time instead of instantly making every district omniscient',()=>{
+test('crime reports cross into an adjacent district only after time passes, with weaker exact-source rumor knowledge',()=>{
  const {world,player}=worldWithPlayer();const crime=recordRealmCrime(world,{externalKey:'slow-murder-report',kind:'murder',perpetratorId:player.id,perpetratorName:player.name,ward:112,witnesses:['gate-clerk']});
- const sourceDistrict=Math.floor(112/16),remoteWard=0;assert.notEqual(Math.floor(remoteWard/16),sourceDistrict);assert.equal(crimeKnowledgeAt(world,crime.id,remoteWard),undefined);
- world.tick=3600*sourceDistrict;advanceRealmCrimeKnowledge(world);const remote=crimeKnowledgeAt(world,crime.id,remoteWard);if(remote){assert.equal(remote.kind,'rumor');assert.equal(remote.provenance,crime.atomId);assert.ok(remote.strength<1);}assert.ok(wantedLevelAt(world,player.id,112)>wantedLevelAt(world,player.id,remoteWard));
+ const remoteWard=96;assert.equal(Math.floor(112/16)-Math.floor(remoteWard/16),1);assert.equal(crimeKnowledgeAt(world,crime.id,remoteWard),undefined);
+ world.tick=3600;advanceRealmCrimeKnowledge(world);const remote=crimeKnowledgeAt(world,crime.id,remoteWard);assert.ok(remote,'one-day-old witnessed murder should reach the adjacent district through the social road');assert.equal(remote.kind,'rumor');assert.equal(remote.provenance,crime.atomId);assert.ok(remote.strength>0&&remote.strength<1);assert.ok(wantedLevelAt(world,player.id,112)>wantedLevelAt(world,player.id,remoteWard));
 });
 
 test('crime recording and propagation are idempotent under duplicate external keys',()=>{
