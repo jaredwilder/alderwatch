@@ -36,8 +36,17 @@ export class AreaGameplayShell {
  private mode:AreaShellMode='world';
  private map?:HTMLElement;
  private panels:GamePanels;
+ private onKey=(e:KeyboardEvent)=>{
+  const target=e.target as HTMLElement|undefined;if(target?.matches('input,textarea,select'))return;
+  // Generic Input deliberately leaves M to a map owner because Far March MiniMap
+  // captures it. Streamed areas need their own capture owner or M never reaches
+  // AreaGameplayShell at all.
+  if(e.code!=='KeyM'||e.repeat||(this.mode!=='world'&&this.mode!=='map'))return;
+  e.preventDefault();e.stopImmediatePropagation();if(this.mode==='map')this.close();else this.openMap();
+ };
  constructor(private o:AreaGameplayShellOptions){
   this.panels=new GamePanels(o.ui,o.authority,o.player,()=>{throw new Error(`Building is not area-addressed in ${o.areaId}`);},()=>this.close(),c=>this.command(c));
+  window.addEventListener('keydown',this.onKey,true);
  }
  get blocked(){return this.mode!=='world';}
 
