@@ -6,7 +6,8 @@ import './dev-tools.css';
 
 const ENABLE_KEY='alderwatch.devtools';
 const query=new URLSearchParams(location.search);
-if(query.get('dev')==='1')localStorage.setItem(ENABLE_KEY,'1');
+const explicitEnable=query.get('dev')==='1';
+if(explicitEnable)localStorage.setItem(ENABLE_KEY,'1');
 if(query.get('dev')==='0')localStorage.removeItem(ENABLE_KEY);
 const enabled=import.meta.env.DEV||localStorage.getItem(ENABLE_KEY)==='1';
 
@@ -23,20 +24,23 @@ function command(raw:string){const [op,...args]=raw.trim().split(/\s+/);if(!op)r
 
 function install(){
  if(!enabled)return;
- const toggle=document.createElement('button');toggle.className='aw-dev-toggle';toggle.textContent='DEV';toggle.title='Alderwatch developer tools (`)';
- const panel=document.createElement('aside');panel.className='aw-dev-panel aw-dev-hidden';panel.setAttribute('aria-label','Alderwatch developer tools');
- panel.innerHTML='<header><strong>ALDERWATCH DEV TOOLS</strong><span class="aw-dev-badge">local save harness</span></header><section><div class="aw-dev-state"></div></section><section><div class="aw-dev-grid"><button data-cmd="tp ironward">TP · Ironward gate</button><button data-cmd="travel crossing">Travel · Crossing</button><button data-cmd="travel basin">Travel · Basin</button><button data-cmd="travel march">Return · Far March</button><button data-cmd="heal">Heal / stamina</button><button data-cmd="reload">Reload area</button></div></section><section><div class="aw-dev-command"><input spellcheck="false" placeholder="status | tp 350 35 | give iron 99"><button>RUN</button></div><div class="aw-dev-log"></div></section>';
+ const toggle=document.createElement('button');toggle.className='aw-dev-toggle';toggle.textContent='DEV';toggle.title='Alderwatch developer tools · click or press F2';
+ const panel=document.createElement('aside');panel.className='aw-dev-panel'+(explicitEnable?'':' aw-dev-hidden');panel.setAttribute('aria-label','Alderwatch developer tools');
+ panel.innerHTML='<header><strong>ALDERWATCH DEV TOOLS</strong><span class="aw-dev-badge">F2 · CLICK DEV</span></header><section><div class="aw-dev-state"></div></section><section><div class="aw-dev-grid"><button data-cmd="tp ironward">TP · Ironward gate</button><button data-cmd="travel crossing">Travel · Crossing</button><button data-cmd="travel basin">Travel · Basin</button><button data-cmd="travel march">Return · Far March</button><button data-cmd="heal">Heal / stamina</button><button data-cmd="reload">Reload area</button></div></section><section><div class="aw-dev-command"><input spellcheck="false" placeholder="status | tp 350 35 | give iron 99"><button>RUN</button></div><div class="aw-dev-log"></div></section>';
  document.body.append(toggle,panel);
  const refresh=()=>{panel.querySelector<HTMLElement>('.aw-dev-state')!.textContent=stateText();};refresh();
  const log=panel.querySelector<HTMLElement>('.aw-dev-log')!,input=panel.querySelector<HTMLInputElement>('input')!;
  const run=(value:string)=>{try{log.textContent=command(value);}catch(error){log.textContent=error instanceof Error?error.message:String(error);log.classList.add('aw-dev-danger');return;}log.classList.remove('aw-dev-danger');refresh();};
- toggle.onclick=()=>{panel.classList.toggle('aw-dev-hidden');refresh();};
+ const togglePanel=()=>{panel.classList.toggle('aw-dev-hidden');refresh();if(!panel.classList.contains('aw-dev-hidden'))input.focus();};
+ toggle.onclick=togglePanel;
  for(const button of panel.querySelectorAll<HTMLButtonElement>('[data-cmd]'))button.onclick=()=>run(button.dataset.cmd!);
  panel.querySelector<HTMLButtonElement>('.aw-dev-command button')!.onclick=()=>run(input.value);
  input.onkeydown=e=>{if(e.key==='Enter')run(input.value);e.stopPropagation();};
- window.addEventListener('keydown',e=>{if(e.code==='Backquote'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();panel.classList.toggle('aw-dev-hidden');refresh();}},true);
- (window as any).AlderwatchDev={command,state:()=>stateText(),teleport,travel,enabled:true,area:()=>areaName(world())};
- console.info('Alderwatch dev tools enabled. window.AlderwatchDev.command("status")');
+ window.addEventListener('keydown',e=>{
+  if((e.code==='F2'||e.code==='Backquote')&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();togglePanel();}
+ },true);
+ (window as any).AlderwatchDev={command,state:()=>stateText(),teleport,travel,enabled:true,area:()=>areaName(world()),toggle:togglePanel};
+ console.info('Alderwatch dev tools enabled. Click DEV or press F2. window.AlderwatchDev.command("status")');
 }
 
 if(typeof window!=='undefined')install();
