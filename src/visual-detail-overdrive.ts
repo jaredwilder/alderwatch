@@ -6,7 +6,7 @@ import {height,roadX} from './terrain';
 import {trailDistance} from './worldgen';
 import {OBSERVER_GRASS_RINGS,clipmapOrigin,enteringClipmapCells,observerHash,type GrassRingSpec,type GridOrigin} from './observer-grass-clipmap';
 
-const FIELD=Symbol.for('alderwatch.observerGrassField.v2');
+const FIELD=Symbol.for('alderwatch.observerGrassField.v3');
 const UP=new T.Vector3(0,1,0),HIDDEN=new T.Matrix4().makeScale(0,0,0);
 
 function fract(n:number){return n-Math.floor(n);}
@@ -23,9 +23,11 @@ export function createObserverGrassGeometry(spec:GrassRingSpec){
   const u=fract(.5+a1*(b+1)+phase),v=fract(.5+a2*(b+1)+phase*.61803398875),a=u*Math.PI*2;
   const r=Math.sqrt(v)*spec.tuftRadius,x=Math.cos(a)*r,z=Math.sin(a)*r,yaw=observerHash(b,spec.seed,31)*Math.PI*2;
   const h=spec.minHeight+(spec.maxHeight-spec.minHeight)*(.28+.72*observerHash(b,spec.seed,47));
-  const w=(spec.id==='hero'?.014:.019)+observerHash(b,spec.seed,53)*(spec.id==='hero'?.014:.017);
-  const bend=.045+observerHash(b,spec.seed,61)*.15,base=positions.length/3,species=observerHash(b,spec.seed,71);
-  const c=new T.Color(species>.965?'#a09255':species>.70?'#688344':species>.28?'#4e7735':'#315c29');
+  const baseWidth=spec.id==='hero'?.014:spec.id==='near'?.019:spec.id==='mid'?.027:.040;
+  const widthJitter=spec.id==='hero'?.014:spec.id==='near'?.017:spec.id==='mid'?.022:.030;
+  const w=baseWidth+observerHash(b,spec.seed,53)*widthJitter;
+  const bend=.045+observerHash(b,spec.seed,61)*(spec.id==='far'?.22:.15),base=positions.length/3,species=observerHash(b,spec.seed,71);
+  const c=new T.Color(species>.965?'#9a9155':species>.70?'#658344':species>.28?'#4b7634':'#2f5b28');
   for(let j=0;j<3;j++){
    const t=j/2,curve=bend*t*t;
    for(const side of [-1,1]){
@@ -40,6 +42,37 @@ export function createObserverGrassGeometry(spec:GrassRingSpec){
  return geometry;
 }
 
+/**
+ * Each clip band receives a stable stochastic fade. The probability field is
+ * keyed from instance translation, not screen pixels, so transitions soften into
+ * density rather than producing a moving circular cutoff or temporal shimmer.
+ */
+function observerRingMaterial(base:T.Material,spec:GrassRingSpec){
+ const material=base.clone(),previous=base.onBeforeCompile,baseKey=base.customProgramCacheKey.bind(base);
+ material.name=`${base.name||'grass'} observer ${spec.id}`;
+ material.onBeforeCompile=(shader,renderer)=>{
+  previous.call(base,shader,renderer);
+  shader.vertexShader='varying vec2 awObserverAnchor;\n'+shader.vertexShader;
+  shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+   awObserverAnchor=vec2(0.0);
+   #ifdef USE_INSTANCING
+    awObserverAnchor=instanceMatrix[3].xz;
+   #endif
+  `);
+  shader.fragmentShader='varying vec2 awObserverAnchor;\n'+shader.fragmentShader;
+  const fadeIn=spec.fadeFull<=spec.fadeIn?'1.0':`smoothstep(${spec.fadeIn.toFixed(2)},${spec.fadeFull.toFixed(2)},awObserverDistance)`;
+  shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+   float awObserverDistance=length(vViewPosition);
+   float awObserverVisibility=${fadeIn}*(1.0-smoothstep(${spec.fadeStart.toFixed(2)},${spec.fadeOut.toFixed(2)},awObserverDistance));
+   vec2 awObserverCell=floor(awObserverAnchor*2.713+vec2(${(spec.seed%997).toFixed(1)},${(spec.seed%619).toFixed(1)}));
+   float awObserverRank=fract(sin(dot(awObserverCell,vec2(12.9898,78.233)))*43758.5453123);
+   if(awObserverRank>awObserverVisibility)discard;
+  `);
+ };
+ material.customProgramCacheKey=()=>`${baseKey()}-observer-ring-${spec.id}-v3`;
+ material.needsUpdate=true;return material;
+}
+
 function sharpenLoadedSurfaces(assets:Assets){
  for(const key of ['oak-color','oak-normal','oak-rough','rock-color','rock-normal','rock-rough']){
   const texture=assets.textures[key];if(!texture)continue;
@@ -49,8 +82,8 @@ function sharpenLoadedSurfaces(assets:Assets){
  assets.kit?.scene.traverse(o=>{
   if(!(o instanceof T.Mesh))return;
   for(const m of (Array.isArray(o.material)?o.material:[o.material]) as T.MeshStandardMaterial[]){
-   if(m.name==='AW_bark'&&m.normalMap){m.normalScale.set(atLeast(m.normalScale.x,.98),atLeast(m.normalScale.y,.98));m.roughness=.92;}
-   if(m.name==='AW_stone'&&m.normalMap){m.normalScale.set(atLeast(m.normalScale.x,1.05),atLeast(m.normalScale.y,1.05));m.roughness=.96;}
+   if(m.name==='AW_bark'&&m.normalMap){m.normalScale.set(atLeast(m.normalScale.x,1.04),atLeast(m.normalScale.y,1.04));m.roughness=.91;}
+   if(m.name==='AW_stone'&&m.normalMap){m.normalScale.set(atLeast(m.normalScale.x,1.12),atLeast(m.normalScale.y,1.12));m.roughness=.96;}
   }
  });
 }
@@ -64,20 +97,20 @@ function blockedByBuild(landscape:Landscape,x:number,z:number){
 
 class ToroidalGrassRing{
  mesh:T.InstancedMesh;origin?:GridOrigin;dummy=new T.Object3D();normal=new T.Vector3();slope=new T.Quaternion();writes=0;
- constructor(public landscape:Landscape,public spec:GrassRingSpec,material:T.Material){
-  const capacity=spec.size*spec.size;
+ constructor(public landscape:Landscape,public spec:GrassRingSpec,baseMaterial:T.Material){
+  const capacity=spec.size*spec.size,material=observerRingMaterial(baseMaterial,spec);
   this.mesh=new T.InstancedMesh(createObserverGrassGeometry(spec),material,capacity);this.mesh.count=0;this.mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
   this.mesh.name=`Observer grass ${spec.id} torus`;this.mesh.castShadow=false;this.mesh.receiveShadow=true;this.mesh.frustumCulled=false;
-  this.mesh.userData.observerDetail={ring:spec.id,capacity,blades:spec.blades,cell:spec.cell};landscape.scene.add(this.mesh);
+  this.mesh.userData.observerDetail={ring:spec.id,capacity,blades:spec.blades,cell:spec.cell,fade:[spec.fadeIn,spec.fadeFull,spec.fadeStart,spec.fadeOut]};landscape.scene.add(this.mesh);
  }
  private write(gx:number,gz:number,slot:number){
   const {spec,landscape}=this,jx=(observerHash(gx,gz,spec.seed+11)-.5)*spec.cell*.78,jz=(observerHash(gx,gz,spec.seed+23)-.5)*spec.cell*.78;
   const x=(gx+.5)*spec.cell+jx,z=(gz+.5)*spec.cell+jz,y=height(x,z),road=z>45?trailDistance(x,z):Math.abs(x-roadX(z));
   const woods=forestDensity(x,z),edge=forestEdge(x,z),meadow=meadowDensity(x,z);
-  const density=T.MathUtils.clamp((.64+meadow*.34+edge*.20-woods*.18)*spec.density,.20,.995);
+  const density=T.MathUtils.clamp((.69+meadow*.31+edge*.18-woods*.15)*spec.density,.24,.998);
   const blocked=!Number.isFinite(y)||y<-1.06||road<3.0||landscape.ambientOccupied(x,z)||blockedByBuild(landscape,x,z)||observerHash(gx,gz,spec.seed+73)>density;
   if(blocked){this.mesh.setMatrixAt(slot,HIDDEN);return;}
-  const horizontal=.86+observerHash(gx,gz,spec.seed+101)*.34,vertical=.80+observerHash(gx,gz,spec.seed+131)*.42+meadow*.10-woods*.08;
+  const horizontal=.88+observerHash(gx,gz,spec.seed+101)*.34,vertical=.82+observerHash(gx,gz,spec.seed+131)*.40+meadow*.10-woods*.06;
   this.dummy.position.set(x,y-.035,z);this.dummy.rotation.set(0,observerHash(gx,gz,spec.seed+211)*Math.PI*2,0);
   this.normal.set(height(x-.34,z)-height(x+.34,z),.68,height(x,z-.34)-height(x,z+.34)).normalize();this.slope.setFromUnitVectors(UP,this.normal);this.dummy.quaternion.premultiply(this.slope);
   this.dummy.scale.set(horizontal,vertical,horizontal);this.dummy.updateMatrix();this.mesh.setMatrixAt(slot,this.dummy.matrix);
@@ -107,15 +140,15 @@ class ObserverGrassField{
 }
 
 function install(){
- const g=globalThis as Record<PropertyKey,unknown>,marker=Symbol.for('alderwatch.visual-detail-overdrive.v2');if(g[marker])return;g[marker]=true;
+ const g=globalThis as Record<PropertyKey,unknown>,marker=Symbol.for('alderwatch.visual-detail-overdrive.v3');if(g[marker])return;g[marker]=true;
  const assetsProto=Assets.prototype as any,oldLoad=assetsProto.load;
- if(!assetsProto.__awDetailLoadV2){assetsProto.load=async function(...args:any[]){const out=await oldLoad.apply(this,args);sharpenLoadedSurfaces(this);return out;};assetsProto.__awDetailLoadV2=true;}
+ if(!assetsProto.__awDetailLoadV3){assetsProto.load=async function(...args:any[]){const out=await oldLoad.apply(this,args);sharpenLoadedSurfaces(this);return out;};assetsProto.__awDetailLoadV3=true;}
  const landscapeProto=Landscape.prototype as any;
- if(!landscapeProto.__awObserverGrassV2){
+ if(!landscapeProto.__awObserverGrassV3){
   const oldPopulate=landscapeProto.populate,oldUpdate=landscapeProto.update;
   landscapeProto.populate=function(...args:any[]){const out=oldPopulate.apply(this,args);try{this[FIELD]=new ObserverGrassField(this);}catch(error){console.error('Alderwatch observer grass field failed to initialize',error);}return out;};
   landscapeProto.update=function(...args:any[]){const out=oldUpdate.apply(this,args);this[FIELD]?.update();return out;};
-  landscapeProto.__awObserverGrassV2=true;
+  landscapeProto.__awObserverGrassV3=true;
  }
 }
 
