@@ -17,47 +17,73 @@ For any branch that is behind `main`:
 7. Treat the post-merge `main` CI and, for live-facing changes, the production deploy/live probe as the authoritative gate.
 8. Do not delete a branch containing unique work until this ledger records where that work landed or why it was intentionally killed.
 
-## Current protected work
+## Rapid-merge audit — 2026-09-09
+
+Audit window: the large merge burst beginning after the Alderwatch master-mission checkpoint and covering PRs #91 through #105.
+
+Result: **no wholesale feature-tree loss found.** Comparing the checkpoint to audited current main showed the repository moving strictly forward with no removed files in the recent feature set. The current boot chain still composes dev tools, streamed-area route/chat surfaces, observer-detail graphics layers, core UI, simulated-player society, conversation banks and world bosses rather than replacing one subsystem with another.
+
+Verified current survivors include:
+
+- dev console + Ironward arrival gate from #91/#98, later expanded by #105;
+- Greyhaven household-memory barter from #92;
+- provenance-bound crime knowledge from #93;
+- cross-area survivor shell from #94, extended into Gatewatch by #101 and repaired for M-key map ownership by #105;
+- expanded conversation/persona bank from #95;
+- observer-detail / grass / material research chain #96/#97/#100/#103/#104;
+- image-generated HD bark from #102;
+- persistent realm road/chat surfacing from #99;
+- streamed cell-boundary correctness and every current realm surfaced in dev tools from #105.
+
+Two composition issues were found instead of hidden:
+
+1. **HD bark vs screen-space material bandwidth.** The #102 bark wrapper was clearing the bark material's normal and roughness maps after #104 installed bandwidth-limited relief/roughness sampling. This audit branch repairs the composition: the HD generated image owns bark colour, while the existing normal/roughness maps remain available to the #104 shader. A source-level Court prevents those maps from being nulled again.
+2. **Parallel conversation-bank race.** `feat/chat-bank-chaos-expansion` was created in parallel while the larger #95 conversation-bank PR landed first. Its unique lines were never on main. This audit branch recovers those lines as a separate additive `chat-bank-chaos-addendum` loaded after #95; it does not replace the larger persona/topic bank.
+
+The one-word `temp` graphics-plan commit after #105 was inspected: it touched only `docs/FRONTIER_GRAPHICS_MASTER_PLAN.md` and the immediately following commit replaced that placeholder with the full plan. It did not touch runtime/gameplay code.
+
+## Accounted protected / historical work
 
 ### PR #79 — melee timing / axe arc
 
 Branch: `chatgpt/melee-timing-axe-arc`  
-Protected head at audit: `7ab574d0368a7d61207e1582f420528514f92519`
+Protected historical head: `7ab574d0368a7d61207e1582f420528514f92519`
 
-Status: **UNMERGED BY DESIGN — PRESERVE.**
+Status: **MERGED / CURRENT.**
 
-This is measured combat-animation timing work. Its own PR explicitly requires live visual acceptance before merge. Do not auto-merge it during a generic cleanup sweep and do not delete or force-reset its branch. When Jared accepts the visuals, forward-port its seven-file combat/test slice onto then-current `main`, rerun full CI, and merge the exact tested head.
+PR #79 was intentionally protected until live review, then merged on 2026-09-09. The recent #91–#105 merge burst did not subsequently modify `src/combat-animation.ts`, so that measured combat-animation slice was not overwritten. Keep the branch as historical evidence; it is no longer an unmerged obligation.
 
 ### `fix/core-gameplay-runtime-parity`
 
-Protected head at audit: `27499968346b5ad40bf5f64b49c89b480ec83414`
+Protected historical head: `27499968346b5ad40bf5f64b49c89b480ec83414`
 
-Status: **UNIQUE WORK — NOT YET INTEGRATED.**
+Status: **FORWARD-PORTED / CURRENT.**
 
-Unique files:
+Its unique `AreaGameplayShell` and CSS were forward-ported onto current architecture in PR #94 and given a real Ironward Crossing consumer. PR #101 carried the shell into Gatewatch/Ironward Basin, and PR #105 repaired streamed-area M-key ownership while preserving the shell. Do not merge the stale source branch wholesale; its intended work is accounted for on current main.
 
-- `src/area-gameplay-shell.ts`
-- `src/area-gameplay-shell.css`
+### `feat/chat-bank-chaos-expansion`
 
-This is a shared cross-area survivor HUD/menu/map shell intended to make streamed realms retain Pack / Map / Journal / Recipes / food / 1–5 gear behavior without mutating Far March coordinates. It has no current consumer on `main`, so blindly merging two dormant files would not finish the feature. Preserve the branch until an area-runtime pass wires it into Ironward/Crownroad/Deep Iron with tests.
+Status: **UNIQUE PARALLEL CONTENT RECOVERED BY THE 2026-09-09 AUDIT BRANCH; DO NOT DELETE UNTIL THAT RECOVERY MERGES.**
+
+The branch contains additional short MMO player lines and physical NPC ambient lines that were not present in merged #95. The recovery is intentionally additive: current #95 owns the large bot/NPC persona-topic expansion; `chat-bank-chaos-addendum` carries only the parallel unique lines after it.
 
 ### `mega-overnight-world-boss-backpack`
 
 Status: **PARTIALLY HARVESTED; NEVER MERGE WHOLESALE.**
 
-This branch is hundreds of commits behind modern `main`. Valuable work has already been recovered into current architecture:
+This branch is hundreds of commits behind modern `main`. Valuable work already recovered into current architecture includes:
 
 - five named giants/world bosses → recovered in PR #59;
 - backpack/runtime UI startup → superseded by the current Backpack/UI bootstrap and hardened again by PR #83;
 - save/runtime-shape safety intent → superseded by the explicit save compatibility path in PR #82;
 - current rare-beast/quality/legend systems evolved substantially in later merged work.
 
-Still unique and therefore **owed / preserved**:
+Still unique and therefore **owed / preserved** as of this audit:
 
 - deterministic weapon-affix prototype in `src/item-affixes.ts` (`Keen`, `Hunter’s`, `Ironward`, `Marchwarden’s`, humorous suffixes, bounded damage bonuses);
 - authored outer-region content concepts in `src/world-expansion.ts`: **Greymoor, Wolfpine, Blackfen, Giant’s Step, Stonewake** plus their named camps/rest sites/wildlife placements.
 
-Do not revive the old coordinate-expansion implementation: it predates the current addressable/streamed realm architecture. Forward-port the affix design into current loot/equipment systems and migrate the named regions/sites into the realm-address/content pipeline instead.
+Both source files were re-read directly from the preserved branch during this audit. They are not on current main, but they are not lost. Do not revive the old coordinate-expansion implementation: it predates the current addressable/streamed realm architecture. Forward-port the affix design into current loot/equipment systems and migrate the named regions/sites into the realm-address/content pipeline instead.
 
 ## Explicitly accounted historical branches
 
