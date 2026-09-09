@@ -46,12 +46,14 @@ export function createObserverGrassGeometry(spec:GrassRingSpec){
  * Each clip band receives a stable stochastic fade. The probability field is
  * keyed from instance translation, not screen pixels, so transitions soften into
  * density rather than producing a moving circular cutoff or temporal shimmer.
+ * A scalar quality gate lets the perceptual governor shed far population without
+ * changing deterministic population rank or reallocating the torus.
  */
 function observerRingMaterial(base:T.Material,spec:GrassRingSpec){
- const material=base.clone(),previous=base.onBeforeCompile,baseKey=base.customProgramCacheKey.bind(base);
- material.name=`${base.name||'grass'} observer ${spec.id}`;
+ const material=base.clone(),previous=base.onBeforeCompile,baseKey=base.customProgramCacheKey.bind(base),quality={value:1};
+ material.name=`${base.name||'grass'} observer ${spec.id}`;material.userData.awObserverQuality=quality;
  material.onBeforeCompile=(shader,renderer)=>{
-  previous.call(base,shader,renderer);
+  previous.call(base,shader,renderer);shader.uniforms.awObserverQuality=quality;
   shader.vertexShader='varying vec2 awObserverAnchor;\n'+shader.vertexShader;
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
    awObserverAnchor=vec2(0.0);
@@ -59,17 +61,17 @@ function observerRingMaterial(base:T.Material,spec:GrassRingSpec){
     awObserverAnchor=instanceMatrix[3].xz;
    #endif
   `);
-  shader.fragmentShader='varying vec2 awObserverAnchor;\n'+shader.fragmentShader;
+  shader.fragmentShader='uniform float awObserverQuality;varying vec2 awObserverAnchor;\n'+shader.fragmentShader;
   const fadeIn=spec.fadeFull<=spec.fadeIn?'1.0':`smoothstep(${spec.fadeIn.toFixed(2)},${spec.fadeFull.toFixed(2)},awObserverDistance)`;
   shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
    float awObserverDistance=length(vViewPosition);
-   float awObserverVisibility=${fadeIn}*(1.0-smoothstep(${spec.fadeStart.toFixed(2)},${spec.fadeOut.toFixed(2)},awObserverDistance));
+   float awObserverVisibility=${fadeIn}*(1.0-smoothstep(${spec.fadeStart.toFixed(2)},${spec.fadeOut.toFixed(2)},awObserverDistance))*awObserverQuality;
    vec2 awObserverCell=floor(awObserverAnchor*2.713+vec2(${(spec.seed%997).toFixed(1)},${(spec.seed%619).toFixed(1)}));
    float awObserverRank=fract(sin(dot(awObserverCell,vec2(12.9898,78.233)))*43758.5453123);
    if(awObserverRank>awObserverVisibility)discard;
   `);
  };
- material.customProgramCacheKey=()=>`${baseKey()}-observer-ring-${spec.id}-v3`;
+ material.customProgramCacheKey=()=>`${baseKey()}-observer-ring-${spec.id}-v4-quality`;
  material.needsUpdate=true;return material;
 }
 
