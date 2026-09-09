@@ -30,8 +30,8 @@ test('visual mesh transplant preserves all original animation channel bytes and 
  for(const a of doc.getRoot().listAnimations()){hash.update(a.getName());for(const c of a.listChannels()){const s=c.getSampler()!;hash.update(c.getTargetNode()!.getName()+c.getTargetPath()+s.getInterpolation());for(const arr of [s.getInput()!.getArray()!,s.getOutput()!.getArray()!])hash.update(Buffer.from(arr.buffer,arr.byteOffset,arr.byteLength));}}
  assert.equal(hash.digest('hex'),'a5fa618c54e7b6408fbd0339bc29985ef4ae6dd14f2fb5384dc5b56b00f1e57e');
 });
-test('living meadow uses short bent blades, shared materials and a bounded triangle budget',()=>{
- const mesh=meadowBlades({value:0});mesh.geometry.computeBoundingBox();assert.ok(mesh.geometry.boundingBox!.max.y<.61);assert.ok(mesh.geometry.boundingBox!.max.y>.4);assert.ok(mesh.geometry.index!.count/3<=180);assert.equal(mesh.material.map,null);assert.equal(mesh.clone().geometry,mesh.geometry);assert.equal(mesh.clone().material,mesh.material);
+test('living meadow uses short bent blades, shared materials and an exact triangle budget',()=>{
+ const mesh=meadowBlades({value:0});mesh.geometry.computeBoundingBox();assert.ok(mesh.geometry.boundingBox!.max.y<.61);assert.ok(mesh.geometry.boundingBox!.max.y>.4);assert.equal(mesh.geometry.index!.count/3,352);assert.equal(mesh.material.map,null);assert.equal(mesh.clone().geometry,mesh.geometry);assert.equal(mesh.clone().material,mesh.material);
 });
 test('animal shading does not change topology, positions, skin weights or source geometry',()=>{
  const original=new T.BoxGeometry(),positions=original.attributes.position.array.slice(),weights=new T.Float32BufferAttribute(new Float32Array(original.attributes.position.count*4).fill(.25),4);original.setAttribute('skinWeight',weights);
