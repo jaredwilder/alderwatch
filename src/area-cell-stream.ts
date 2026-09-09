@@ -25,8 +25,12 @@ export class CellWindow<T>{
     if(!(options.cellSize>0))throw new Error('cellSize must be positive');
     if(!Number.isInteger(options.radius)||options.radius<0)throw new Error('radius must be a non-negative integer');
   }
+  private cellIndex(value:number){
+    const rounded=Math.round(value/this.options.cellSize);
+    return rounded===0?0:rounded;
+  }
   centerFor(x:number,z:number):CellCoord{
-    return {x:Math.round(x/this.options.cellSize),z:Math.round(z/this.options.cellSize)};
+    return {x:this.cellIndex(x),z:this.cellIndex(z)};
   }
   update(x:number,z:number){
     const center=this.centerFor(x,z),wanted=new Set<string>();
