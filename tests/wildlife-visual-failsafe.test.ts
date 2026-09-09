@@ -3,12 +3,15 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {AUTHORED_ANIMAL_SET,LEGACY_ANIMAL_FALLBACK_SET,WILDLIFE_SPECIES} from '../src/wildlife-species';
 
-test('hare crow and sheep are immediate-visible fallbacks that still upgrade to authored models',()=>{
-  for(const kind of ['hare','crow','sheep'] as const){
+test('hare and crow have synchronous legacy fallbacks while sheep stays authored-only',()=>{
+  for(const kind of ['hare','crow'] as const){
     assert.equal(WILDLIFE_SPECIES[kind].authored,true,`${kind} must attempt its authored GLB`);
     assert.equal(AUTHORED_ANIMAL_SET.has(kind),true,`${kind} must stay in the authored upgrade set`);
     assert.equal(LEGACY_ANIMAL_FALLBACK_SET.has(kind),true,`${kind} must remain visible while the GLB loads or fails`);
   }
+  assert.equal(WILDLIFE_SPECIES.sheep.authored,true,'sheep must attempt the authored GLB');
+  assert.equal(AUTHORED_ANIMAL_SET.has('sheep'),true,'sheep must stay in the authored upgrade set');
+  assert.equal(LEGACY_ANIMAL_FALLBACK_SET.has('sheep'),false,'sheep is not present in wildlife.glb and must never call assets.prop("sheep")');
 });
 
 test('one broken authored animal cannot reject the entire wildlife visual library',()=>{
