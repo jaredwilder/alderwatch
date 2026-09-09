@@ -7,9 +7,8 @@ export interface CellWindowOptions<T> {
   create:(coord:CellCoord)=>T;
   dispose:(handle:CellHandle<T>)=>void;
   /**
-   * Optional bounded handoff reserve. Warm cells are constructed one/few at a
-   * time before the player crosses a cell boundary, then promoted into the
-   * active window without rebuilding them on the boundary frame.
+   * Optional bounded handoff reserve. By default CellWindow warms one incoming
+   * strip (2r+1 cells). Set this to 0 for callers that require no reserve.
    */
   prefetchBudget?:number;
   /** Distance from the current cell centre, expressed as a fraction of cell size. Boundary is 0.5. */
@@ -29,10 +28,10 @@ const key=(x:number,z:number)=>`${x},${z}`;
  * would move the active window half a cell too early and cause visible popping at
  * the world origin / every centre line.
  *
- * Large streamed areas may opt into a tiny warm handoff reserve. The reserve is
- * deliberately separate from `active`: the logical/interaction bubble remains
- * the same size, while the next incoming strip can be constructed over several
- * ordinary frames instead of all at once on the seam.
+ * The default handoff reserve is one incoming strip. It is deliberately separate
+ * from `active`: the logical/interaction bubble remains the same size while the
+ * next strip is constructed over ordinary frames instead of all at once on the
+ * seam. Runtime residency therefore remains bounded at active + one strip.
  */
 export class CellWindow<T>{
   readonly active=new Map<string,CellHandle<T>>();
@@ -137,7 +136,7 @@ export class CellWindow<T>{
   }
 
   get maxActive(){const width=this.options.radius*2+1;return width*width;}
-  get maxWarm(){return this.options.prefetchBudget??0;}
+  get maxWarm(){return this.options.prefetchBudget??(this.options.radius*2+1);}
   get residentSize(){return this.active.size+this.warm.size;}
   get maxResident(){return this.maxActive+this.maxWarm;}
 }
