@@ -76,6 +76,8 @@ if(area===IRONWARD_CROSSING){
   await import('./natural-detail-runtime');
   try{await import('./visual-detail-overdrive');}
   catch(error){console.error('Alderwatch visual detail overdrive failed to install',error);}
+  try{await import('./tree-bark-hd');}
+  catch(error){console.error('Alderwatch HD tree bark failed to install',error);}
   await import('./main');
   await installFarMarchPlayerUI();
   try{await import('./runtime-extensions');}
