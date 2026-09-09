@@ -21,12 +21,19 @@ export function animalCoat(material:T.MeshStandardMaterial,kind:string){
   s.vertexShader='varying vec3 awCoat;\n'+s.vertexShader;
   s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nawCoat=position;');
   s.fragmentShader='varying vec3 awCoat;\n'+s.fragmentShader;
+  const sheepDetail=kind==='sheep'?`
+   float curlA=sin(coat.x*1.13+sin(coat.y*.71+coat.z*.43));
+   float curlB=sin(coat.z*1.07+sin(coat.x*.59-coat.y*.67));
+   float fleece=abs(curlA*curlB);
+   float fleeceAA=1.0-smoothstep(.45,2.0,max(length(dFdx(coat)),length(dFdy(coat))));
+  `:'float fleece=0.0; float fleeceAA=0.0;';
   s.fragmentShader=s.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
-   vec3 coat=awCoat*${kind==='sheep'?'58.0':'115.0'};
+   vec3 coat=awCoat*${kind==='sheep'?'46.0':'115.0'};
    float grain=sin(coat.x+sin(coat.z*1.7))*sin(coat.y*1.9+sin(coat.x*.7));
    float mottling=sin(coat.x*.047+sin(coat.z*.065))*sin(coat.y*.075);
+   ${sheepDetail}
    float antialias=1.0-smoothstep(.4,1.8,max(length(dFdx(coat)),length(dFdy(coat))));
-   diffuseColor.rgb*=.94+grain*.09*antialias+mottling*.12;
+   diffuseColor.rgb*=.94+grain*.09*antialias+mottling*.12+fleece*.055*fleeceAA;
   `);
- };material.customProgramCacheKey=()=> 'aw-soft-animal-coat-v1-'+kind;
+ };material.customProgramCacheKey=()=> 'aw-soft-animal-coat-v2-'+kind;
 }
