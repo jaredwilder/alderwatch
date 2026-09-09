@@ -56,9 +56,11 @@ if(area===IRONWARD_CROSSING){
 }else if(area===CROWNROAD_VALE){
   await import('./crownroad-vale');
 }else{
-  // Install before main constructs Assets so bark/stone receive observer-detail
-  // shaders during the ordinary asset load rather than through a late scene walk.
+  // Preserve the observer-detail runtime already on main, then layer the lush
+  // placement prototype before main constructs Landscape/Assets.
   await import('./natural-detail-runtime');
+  try{await import('./visual-detail-overdrive');}
+  catch(error){console.error('Alderwatch visual detail overdrive failed to install',error);}
   await import('./main');
   await installFarMarchPlayerUI();
   try{await import('./runtime-extensions');}
