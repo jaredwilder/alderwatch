@@ -74,8 +74,12 @@ export function skinAnimalModel(root:T.Object3D,kind:AuthoredAnimalKind){let ind
 
 export async function loadExtendedAnimalLibrary(){
  const loader=new GLTFLoader();loader.setMeshoptDecoder(MeshoptDecoder);
- const entries=await Promise.all(AUTHORED_ANIMAL_KINDS.map(async kind=>[kind,await loader.loadAsync(`/assets/animals/${kind}.glb`)] as const));
- return Object.fromEntries(entries) as Record<AuthoredAnimalKind,GLTF>;
+ const library:Partial<Record<AuthoredAnimalKind,GLTF>>={};
+ await Promise.all(AUTHORED_ANIMAL_KINDS.map(async kind=>{
+  try{library[kind]=await loader.loadAsync(`/assets/animals/${kind}.glb`);}
+  catch(error){console.warn(`Alderwatch authored ${kind} model could not load; keeping its fallback when available.`,error);}
+ }));
+ return library;
 }
 
 export function instantiateAnimal(kind:AuthoredAnimalKind,gltf:GLTF):AnimalInstance{
