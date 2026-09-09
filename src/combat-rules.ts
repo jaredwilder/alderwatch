@@ -4,13 +4,14 @@ import {height} from './terrain';
 import {combatSkillFor,gainSkill} from './skills';
 
 export interface Fighter {id:string;position:Vec3;yaw:number;health:number;stamina:number;equipped:ItemId|null;combat?:CombatState}
-export const HEAVY_IMPACT=18/30,HEAVY_DURATION=34/30;
+// Responsive action-combat timing: contact lives in the first third-ish of the action and recovery sells weight.
+export const HEAVY_IMPACT=10/30,HEAVY_DURATION=28/30;
 export const WEAPONS:Partial<Record<ItemId,{damage:number;reach:number;impact:number;duration:number;stamina:number}>>={
- sword:{damage:24,reach:1.95,impact:10/30,duration:19/30,stamina:12},
- fine_sword:{damage:34,reach:2.05,impact:10/30,duration:19/30,stamina:12},
- axe:{damage:20,reach:2.2,impact:13/30,duration:23/30,stamina:14},
- pickaxe:{damage:12,reach:2.1,impact:13/30,duration:23/30,stamina:14},
- hammer:{damage:10,reach:1.5,impact:.43,duration:.88,stamina:12},
+ sword:{damage:24,reach:1.95,impact:6/30,duration:17/30,stamina:12},
+ fine_sword:{damage:34,reach:2.05,impact:6/30,duration:17/30,stamina:12},
+ axe:{damage:20,reach:2.2,impact:7/30,duration:20/30,stamina:14},
+ pickaxe:{damage:12,reach:2.1,impact:8/30,duration:21/30,stamina:14},
+ hammer:{damage:10,reach:1.5,impact:7/30,duration:20/30,stamina:12},
  bow:{damage:32,reach:38,impact:.32,duration:.76,stamina:9},
 };
 export type ImpactSound='light_sword'|'heavy_sword'|'axe'|'pick'|'animal'|'hit'|'block'|'parry';

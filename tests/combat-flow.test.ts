@@ -43,8 +43,9 @@ test('axe pressure breaks an exhausted guard and creates a punish window',()=>{
 });
 
 test('weapon identity changes guard pressure instead of every block costing the same',()=>{
- const sword=duel();sword.enemy.stamina=60;sword.enemy.combat={kind:'idle',started:0,until:0,consumed:false,blocking:true,guardSince:0,weapon:sword.enemy.equipped};beginAction(sword.player,0,'attack');sword.w.tick=impactTick(sword.player);const swordOut=resolveStrike(sword.w,sword.player,sword.enemy);assert.equal(swordOut.outcome,'blocked');const swordLeft=sword.enemy.stamina;
- const axe=duel();axe.player.equipped='axe';axe.enemy.stamina=60;axe.enemy.combat={kind:'idle',started:0,until:0,consumed:false,blocking:true,guardSince:0,weapon:axe.enemy.equipped};beginAction(axe.player,0,'attack');axe.w.tick=impactTick(axe.player);const axeOut=resolveStrike(axe.w,axe.player,axe.enemy);assert.equal(axeOut.outcome,'blocked');assert.ok(axe.enemy.stamina<swordLeft,'Axe should punish guard stamina harder than sword');assert.ok((axeOut.damage??0)>(swordOut.damage??0),'Axe should chip guard harder than sword');
+ // This is deliberately a sustained guard, not the separate frame-tight parry mechanic.
+ const sword=duel();sword.enemy.stamina=60;sword.enemy.combat={kind:'idle',started:0,until:0,consumed:false,blocking:true,guardSince:-20,weapon:sword.enemy.equipped};beginAction(sword.player,0,'attack');sword.w.tick=impactTick(sword.player);const swordOut=resolveStrike(sword.w,sword.player,sword.enemy);assert.equal(swordOut.outcome,'blocked');const swordLeft=sword.enemy.stamina;
+ const axe=duel();axe.player.equipped='axe';axe.enemy.stamina=60;axe.enemy.combat={kind:'idle',started:0,until:0,consumed:false,blocking:true,guardSince:-20,weapon:axe.enemy.equipped};beginAction(axe.player,0,'attack');axe.w.tick=impactTick(axe.player);const axeOut=resolveStrike(axe.w,axe.player,axe.enemy);assert.equal(axeOut.outcome,'blocked');assert.ok(axe.enemy.stamina<swordLeft,'Axe should punish guard stamina harder than sword');assert.ok((axeOut.damage??0)>(swordOut.damage??0),'Axe should chip guard harder than sword');
 });
 
 test('light attacks become dodge-cancellable only after contact is committed',()=>{

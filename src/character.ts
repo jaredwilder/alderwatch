@@ -25,6 +25,8 @@ export class Character {
   const clips:[string,T.AnimationClip,number,number,number][]=[
    ['attack',attack,13/30,WEAPONS.sword!.impact,WEAPONS.sword!.duration],
    ['heavy',heavy,25/30,HEAVY_IMPACT,HEAVY_DURATION],
+   // Preserve the low lateral silhouette from the authored axe chop, but retime it as a combat strike and
+   // retarget its transverse kinetic chain in combat-animation.ts. This avoids turning side-axe into overhand.
    ['chop',chop,17/30,WEAPONS.axe!.impact,WEAPONS.axe!.duration],
    ['mine',heavy,25/30,WEAPONS.pickaxe!.impact,WEAPONS.pickaxe!.duration],
   ];
