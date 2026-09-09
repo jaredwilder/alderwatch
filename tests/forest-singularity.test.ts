@@ -23,17 +23,17 @@ test('ground-contact realism is one fixed observer draw rather than per-tree dec
  assert.deepEqual(forestContactBudget(),{capacity:96,segments:20,maxTriangles:1920,drawCalls:1});assert.equal(FOREST_CONTACT_CAPACITY,96);
 });
 
-test('perceptual governor sheds far detail first and recovers with hysteresis',()=>{
+test('perceptual governor sheds horizon detail first and recovers with hysteresis',()=>{
  const g=new PerceptualGovernor(16.67);for(let i=0;i<120;i++)g.sample(28);const stressed=g.quality;assert.ok(stressed>=.56&&stressed<.70);
- const low={hero:observerRingQuality(stressed,'hero'),near:observerRingQuality(stressed,'near'),mid:observerRingQuality(stressed,'mid'),far:observerRingQuality(stressed,'far')};
- assert.equal(low.hero,1);assert.ok(low.hero>=low.near&&low.near>=low.mid&&low.mid>=low.far);
+ const low={hero:observerRingQuality(stressed,'hero'),near:observerRingQuality(stressed,'near'),mid:observerRingQuality(stressed,'mid'),far:observerRingQuality(stressed,'far'),horizon:observerRingQuality(stressed,'horizon'),vista:observerRingQuality(stressed,'vista')};
+ assert.equal(low.hero,1);assert.ok(low.hero>=low.near&&low.near>=low.mid&&low.mid>=low.far&&low.far>=low.horizon&&low.horizon>=low.vista);
  for(let i=0;i<30;i++)g.sample(12.5);assert.ok(g.quality>stressed,'headroom should restore quality');assert.ok(g.quality<1,'recovery should be deliberately slower than shedding');
 });
 
 test('runtime composes canopy depth, phenotype, contact field and the grass quality gate',()=>{
  const runtime=source('src/forest-singularity-runtime.ts'),grass=source('src/visual-detail-overdrive.ts'),boot=source('src/bootstrap.ts');
  assert.match(runtime,/AW_leaf/);assert.match(runtime,/gl_FrontFacing/);assert.match(runtime,/GroundContactField/);assert.match(runtime,/treePhenotype/);assert.match(runtime,/rockPhenotype/);assert.match(runtime,/PerceptualGovernor/);
- assert.match(grass,/awObserverQuality/);assert.match(grass,/awObserverVisibility=.*awObserverQuality/);assert.match(grass,/v4-quality/);
+ assert.match(grass,/awObserverQuality/);assert.match(grass,/awObserverVisibility=.*awObserverQuality/);assert.match(grass,/v4-quality/);assert.match(grass,/awObserverCenter/);
  assert.ok(boot.indexOf("import('./tree-bark-hd')")<boot.indexOf("import('./forest-singularity-runtime')"),'forest pass must layer after generated bark and existing observer-detail materials');
  assert.ok(boot.indexOf("import('./forest-singularity-runtime')")<boot.indexOf("import('./main')"),'forest runtime must patch prototypes before world construction');
 });

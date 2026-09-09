@@ -12,9 +12,9 @@ const UP=new T.Vector3(0,1,0),HIDDEN=new T.Matrix4().makeScale(0,0,0);
 function fract(n:number){return n-Math.floor(n);}
 
 /**
- * Compact low-discrepancy grass tuft. R2-style irrational increments avoid the
- * clumping of independent random points, while per-world-cell rotation destroys
- * visible repetition between instances. Geometry is shared by every cell.
+ * Compact low-discrepancy grass tuft. Near fields use individual curved ribbons;
+ * horizon/vista fields use crossed ribbons so one ultra-cheap latent tuft remains
+ * readable from arbitrary view azimuth. Shared geometry still serves every cell.
  */
 export function createObserverGrassGeometry(spec:GrassRingSpec){
  const positions:number[]=[],colors:number[]=[],normals:number[]=[],indices:number[]=[];
@@ -23,19 +23,23 @@ export function createObserverGrassGeometry(spec:GrassRingSpec){
   const u=fract(.5+a1*(b+1)+phase),v=fract(.5+a2*(b+1)+phase*.61803398875),a=u*Math.PI*2;
   const r=Math.sqrt(v)*spec.tuftRadius,x=Math.cos(a)*r,z=Math.sin(a)*r,yaw=observerHash(b,spec.seed,31)*Math.PI*2;
   const h=spec.minHeight+(spec.maxHeight-spec.minHeight)*(.28+.72*observerHash(b,spec.seed,47));
-  const baseWidth=spec.id==='hero'?.014:spec.id==='near'?.019:spec.id==='mid'?.027:.040;
-  const widthJitter=spec.id==='hero'?.014:spec.id==='near'?.017:spec.id==='mid'?.022:.030;
+  const baseWidth=spec.id==='hero'?.014:spec.id==='near'?.019:spec.id==='mid'?.027:spec.id==='far'?.040:spec.id==='horizon'?.070:.125;
+  const widthJitter=spec.id==='hero'?.014:spec.id==='near'?.017:spec.id==='mid'?.022:spec.id==='far'?.030:spec.id==='horizon'?.050:.085;
   const w=baseWidth+observerHash(b,spec.seed,53)*widthJitter;
-  const bend=.045+observerHash(b,spec.seed,61)*(spec.id==='far'?.22:.15),base=positions.length/3,species=observerHash(b,spec.seed,71);
+  const bend=.045+observerHash(b,spec.seed,61)*(spec.id==='vista'?.34:spec.id==='horizon'?.27:spec.id==='far'?.22:.15),species=observerHash(b,spec.seed,71);
   const c=new T.Color(species>.965?'#9a9155':species>.70?'#658344':species>.28?'#4b7634':'#2f5b28');
-  for(let j=0;j<3;j++){
-   const t=j/2,curve=bend*t*t;
-   for(const side of [-1,1]){
-    positions.push(x+Math.cos(yaw)*w*(1-t)*side+Math.sin(yaw)*curve,h*t,z-Math.sin(yaw)*w*(1-t)*side+Math.cos(yaw)*curve);
-    const shade=.46+t*.58;colors.push(c.r*shade,c.g*shade,c.b*shade);normals.push(0,1,0);
+  const ribbons=spec.crossed?[yaw,yaw+Math.PI/2]:[yaw];
+  for(const ribbonYaw of ribbons){
+   const base=positions.length/3;
+   for(let j=0;j<3;j++){
+    const t=j/2,curve=bend*t*t;
+    for(const side of [-1,1]){
+     positions.push(x+Math.cos(ribbonYaw)*w*(1-t)*side+Math.sin(ribbonYaw)*curve,h*t,z-Math.sin(ribbonYaw)*w*(1-t)*side+Math.cos(ribbonYaw)*curve);
+     const shade=.46+t*.58;colors.push(c.r*shade,c.g*shade,c.b*shade);normals.push(0,1,0);
+    }
    }
+   for(let j=0;j<2;j++){const k=base+j*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}
   }
-  for(let j=0;j<2;j++){const k=base+j*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}
  }
  const geometry=new T.BufferGeometry();
  geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));geometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));geometry.setAttribute('normal',new T.Float32BufferAttribute(normals,3));geometry.setIndex(indices);geometry.computeBoundingSphere();
@@ -43,17 +47,15 @@ export function createObserverGrassGeometry(spec:GrassRingSpec){
 }
 
 /**
- * Each clip band receives a stable stochastic fade. The probability field is
- * keyed from instance translation, not screen pixels, so transitions soften into
- * density rather than producing a moving circular cutoff or temporal shimmer.
- * A scalar quality gate lets the perceptual governor shed far population without
- * changing deterministic population rank or reallocating the torus.
+ * Stable stochastic fade over an Lp observer metric. p rises with distance, using
+ * more of the square toroidal domain than a circular cutoff without exposing a
+ * hard square edge. Low-discrepancy rank avoids visibly clumped fade populations.
  */
 function observerRingMaterial(base:T.Material,spec:GrassRingSpec){
- const material=base.clone(),previous=base.onBeforeCompile,baseKey=base.customProgramCacheKey.bind(base),quality={value:1};
- material.name=`${base.name||'grass'} observer ${spec.id}`;material.userData.awObserverQuality=quality;
+ const material=base.clone(),previous=base.onBeforeCompile,baseKey=base.customProgramCacheKey.bind(base),quality={value:1},center={value:new T.Vector2()};
+ material.name=`${base.name||'grass'} observer ${spec.id}`;material.userData.awObserverQuality=quality;material.userData.awObserverCenter=center;
  material.onBeforeCompile=(shader,renderer)=>{
-  previous.call(base,shader,renderer);shader.uniforms.awObserverQuality=quality;
+  previous.call(base,shader,renderer);shader.uniforms.awObserverQuality=quality;shader.uniforms.awObserverCenter=center;
   shader.vertexShader='varying vec2 awObserverAnchor;\n'+shader.vertexShader;
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
    awObserverAnchor=vec2(0.0);
@@ -61,17 +63,19 @@ function observerRingMaterial(base:T.Material,spec:GrassRingSpec){
     awObserverAnchor=instanceMatrix[3].xz;
    #endif
   `);
-  shader.fragmentShader='uniform float awObserverQuality;varying vec2 awObserverAnchor;\n'+shader.fragmentShader;
+  shader.fragmentShader='uniform float awObserverQuality;uniform vec2 awObserverCenter;varying vec2 awObserverAnchor;\n'+shader.fragmentShader;
   const fadeIn=spec.fadeFull<=spec.fadeIn?'1.0':`smoothstep(${spec.fadeIn.toFixed(2)},${spec.fadeFull.toFixed(2)},awObserverDistance)`;
+  const phase=((spec.seed%997)/997).toFixed(7),power=spec.metricPower.toFixed(2),invPower=(1/spec.metricPower).toFixed(7);
   shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
-   float awObserverDistance=length(vViewPosition);
+   vec2 awObserverDelta=abs(awObserverAnchor-awObserverCenter);
+   float awObserverDistance=pow(pow(awObserverDelta.x,${power})+pow(awObserverDelta.y,${power}),${invPower});
    float awObserverVisibility=${fadeIn}*(1.0-smoothstep(${spec.fadeStart.toFixed(2)},${spec.fadeOut.toFixed(2)},awObserverDistance))*awObserverQuality;
    vec2 awObserverCell=floor(awObserverAnchor*2.713+vec2(${(spec.seed%997).toFixed(1)},${(spec.seed%619).toFixed(1)}));
-   float awObserverRank=fract(sin(dot(awObserverCell,vec2(12.9898,78.233)))*43758.5453123);
+   float awObserverRank=fract(dot(awObserverCell,vec2(.754877666,.569840296))+${phase});
    if(awObserverRank>awObserverVisibility)discard;
   `);
  };
- material.customProgramCacheKey=()=>`${baseKey()}-observer-ring-${spec.id}-v4-quality`;
+ material.customProgramCacheKey=()=>`${baseKey()}-observer-ring-${spec.id}-v4-quality-horizon-v1`;
  material.needsUpdate=true;return material;
 }
 
@@ -103,7 +107,7 @@ class ToroidalGrassRing{
   const capacity=spec.size*spec.size,material=observerRingMaterial(baseMaterial,spec);
   this.mesh=new T.InstancedMesh(createObserverGrassGeometry(spec),material,capacity);this.mesh.count=0;this.mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
   this.mesh.name=`Observer grass ${spec.id} torus`;this.mesh.castShadow=false;this.mesh.receiveShadow=true;this.mesh.frustumCulled=false;
-  this.mesh.userData.observerDetail={ring:spec.id,capacity,blades:spec.blades,cell:spec.cell,fade:[spec.fadeIn,spec.fadeFull,spec.fadeStart,spec.fadeOut]};landscape.scene.add(this.mesh);
+  this.mesh.userData.observerDetail={ring:spec.id,capacity,blades:spec.blades,cell:spec.cell,fade:[spec.fadeIn,spec.fadeFull,spec.fadeStart,spec.fadeOut],metricPower:spec.metricPower,crossed:!!spec.crossed};landscape.scene.add(this.mesh);
  }
  private write(gx:number,gz:number,slot:number){
   const {spec,landscape}=this,jx=(observerHash(gx,gz,spec.seed+11)-.5)*spec.cell*.78,jz=(observerHash(gx,gz,spec.seed+23)-.5)*spec.cell*.78;
@@ -118,6 +122,7 @@ class ToroidalGrassRing{
   this.dummy.scale.set(horizontal,vertical,horizontal);this.dummy.updateMatrix();this.mesh.setMatrixAt(slot,this.dummy.matrix);
  }
  update(x:number,z:number,force=false){
+  const center=(this.mesh.material as T.Material).userData.awObserverCenter as {value:T.Vector2}|undefined;center?.value.set(x,z);
   const next=clipmapOrigin(x,z,this.spec),cells=force?enteringClipmapCells(undefined,next,this.spec.size):enteringClipmapCells(this.origin,next,this.spec.size);
   if(!cells.length)return 0;
   for(const c of cells)this.write(c.gx,c.gz,c.slot);

@@ -2,25 +2,31 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import {groundMaterial} from '../src/ground-material';
-import {OBSERVER_GRASS_RINGS,clipmapBudget,clipmapOrigin,combinedObserverCoverage,enteringClipmapCells,observerHash,observerRingVisibility,slotForCell} from '../src/observer-grass-clipmap';
+import {OBSERVER_GRASS_RINGS,clipmapBudget,clipmapOrigin,combinedObserverCoverage,enteringClipmapCells,grassTrianglesPerCell,observerHash,observerMetric,observerRingVisibility,slotForCell} from '../src/observer-grass-clipmap';
 
-test('observer grass cost stays fixed while visual coverage reaches the long horizon',()=>{
+test('observer grass cost stays fixed while explicit grass reaches the long horizon',()=>{
  const budget=clipmapBudget();
  assert.deepEqual(budget,{slots:40128,maxTriangles:676096,drawCalls:6});
  assert.ok(budget.maxTriangles<700000);
- const vista=OBSERVER_GRASS_RINGS.at(-1)!;
- assert.ok(vista.cell*vista.size/2>400,'vista clipmap must cover more than 400m per axis');
- assert.ok(vista.fadeOut>=380,'explicit grass must remain eligible to roughly 380m');
+ const vista=OBSERVER_GRASS_RINGS.find(r=>r.id==='vista')!;
+ assert.ok(vista.cell*vista.size/2>400,'vista torus must physically cover more than 400m per axis');
+ assert.ok(vista.fadeOut>=380,'explicit grass should remain eligible to roughly 380m');
+ assert.equal(grassTrianglesPerCell(vista),8,'vista uses one crossed two-ribbon tuft, not dense hero geometry');
 });
 
-test('six stochastic rings overlap without another hard savannah seam',()=>{
+test('six stochastic bands overlap without another hard savannah seam',()=>{
  for(const spec of OBSERVER_GRASS_RINGS){
-  assert.ok(spec.fadeOut<=spec.cell*spec.size/2,`${spec.id} fade must finish before square clip edge`);
+  assert.ok(spec.fadeOut<=spec.cell*spec.size/2,`${spec.id} fade must finish before torus edge`);
   assert.ok(observerRingVisibility(spec.fadeStart,spec)>.99,`${spec.id} should be fully visible before its outer fade`);
  }
- for(let distance=0;distance<=350;distance+=.5){
-  assert.ok(combinedObserverCoverage(distance)>=.68,`coverage dip at ${distance}m`);
- }
+ for(let distance=0;distance<=350;distance+=.5)assert.ok(combinedObserverCoverage(distance)>=.68,`coverage dip at ${distance}m`);
+});
+
+test('Lp horizon metric spends torus corners instead of throwing them away behind a circle',()=>{
+ const euclidean=observerMetric(100,100,2),superellipse=observerMetric(100,100,4);
+ assert.ok(superellipse<euclidean*.85,'p=4 metric should materially reclaim square-corner capacity');
+ const hero=OBSERVER_GRASS_RINGS.find(r=>r.id==='hero')!,vista=OBSERVER_GRASS_RINGS.find(r=>r.id==='vista')!;
+ assert.equal(hero.metricPower,2);assert.equal(vista.metricPower,4);
 });
 
 test('toroidal clipmap updates only newly exposed rows and columns at every scale',()=>{
