@@ -4,20 +4,21 @@ import * as T from 'three';
 import {groundMaterial} from '../src/ground-material';
 import {OBSERVER_GRASS_RINGS,clipmapBudget,clipmapOrigin,combinedObserverCoverage,enteringClipmapCells,observerHash,observerRingVisibility,slotForCell} from '../src/observer-grass-clipmap';
 
-test('observer grass cost stays fixed while visual coverage reaches the horizon field',()=>{
+test('observer grass cost stays fixed while visual coverage reaches the long horizon',()=>{
  const budget=clipmapBudget();
- assert.deepEqual(budget,{slots:18368,maxTriangles:502016,drawCalls:4});
- assert.ok(budget.maxTriangles<525000);
- const far=OBSERVER_GRASS_RINGS[3];
- assert.ok(far.cell*far.size/2>140,'far clipmap must cover more than 140m per axis');
+ assert.deepEqual(budget,{slots:40128,maxTriangles:676096,drawCalls:6});
+ assert.ok(budget.maxTriangles<700000);
+ const vista=OBSERVER_GRASS_RINGS.at(-1)!;
+ assert.ok(vista.cell*vista.size/2>400,'vista clipmap must cover more than 400m per axis');
+ assert.ok(vista.fadeOut>=380,'explicit grass must remain eligible to roughly 380m');
 });
 
-test('four stochastic rings overlap without another hard circular savannah seam',()=>{
+test('six stochastic rings overlap without another hard savannah seam',()=>{
  for(const spec of OBSERVER_GRASS_RINGS){
   assert.ok(spec.fadeOut<=spec.cell*spec.size/2,`${spec.id} fade must finish before square clip edge`);
   assert.ok(observerRingVisibility(spec.fadeStart,spec)>.99,`${spec.id} should be fully visible before its outer fade`);
  }
- for(let distance=0;distance<=125;distance+=.5){
+ for(let distance=0;distance<=350;distance+=.5){
   assert.ok(combinedObserverCoverage(distance)>=.68,`coverage dip at ${distance}m`);
  }
 });
