@@ -1,4 +1,5 @@
 import {forestDensity,forestEdge} from './ecology';
+import {perceptualChannelQuality} from './perceptual-resource-market';
 
 const clamp=(value:number,min:number,max:number)=>Math.max(min,Math.min(max,value));
 const TAU=Math.PI*2;
@@ -69,6 +70,7 @@ export type ObserverRingId='hero'|'near'|'mid'|'far'|'horizon'|'vista';
 /**
  * Stable frame-budget controller. Over-budget detail sheds quickly; recovery is
  * intentionally much slower so the image does not pump between quality tiers.
+ * Its scalar is now the wallet size for the global perceptual resource market.
  */
 export class PerceptualGovernor{
  private emaMs:number;
@@ -90,13 +92,5 @@ export class PerceptualGovernor{
  get smoothedFrameMs(){return this.emaMs;}
 }
 
-/** Hero detail is sacred; new horizon bands are the first grass population shed under pressure. */
-export function observerRingQuality(quality:number,ring:ObserverRingId){
- const q=clamp(quality,.56,1);
- if(ring==='hero')return 1;
- if(ring==='near')return .88+.12*q;
- if(ring==='mid')return .52+.48*q;
- if(ring==='far')return .12+.88*q*q;
- if(ring==='horizon')return .06+.94*Math.pow(q,2.35);
- return .02+.98*q*q*q;
-}
+/** Grass competes with every other graphics channel for one shared frame wallet. */
+export function observerRingQuality(quality:number,ring:ObserverRingId){return perceptualChannelQuality(quality,`grass.${ring}`);}

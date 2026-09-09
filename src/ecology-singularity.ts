@@ -1,5 +1,6 @@
 import {forestDensity,forestEdge,groundMacro,meadowDensity,noise2} from './ecology';
 import {height} from './terrain';
+import {perceptualChannelQuality} from './perceptual-resource-market';
 
 const clamp01=(v:number)=>Math.max(0,Math.min(1,v));
 const smoothstep=(a:number,b:number,x:number)=>{const t=clamp01((x-a)/(b-a||1));return t*t*(3-2*t);};
@@ -118,14 +119,7 @@ export function ecologyFieldBudget(fields:readonly EcologyFieldSpec[]=ECOLOGY_FI
  return fields.reduce((a,f)=>({slots:a.slots+f.size*f.size,maxTriangles:a.maxTriangles+f.size*f.size*f.triangles,drawCalls:a.drawCalls+1}),{slots:0,maxTriangles:0,drawCalls:0});
 }
 
-/** Under pressure, tiny/far decorative species disappear before close high-value plants. */
-export function ecologyFieldQuality(quality:number,id:EcologyPlantId){
- const q=Math.max(.56,Math.min(1,quality));
- if(id==='fernlet')return .84+.16*q;
- if(id==='broadleaf')return .78+.22*q;
- if(id==='sedge')return .58+.42*q;
- if(id==='shrub')return .46+.54*q;
- return .28+.72*q*q;
-}
+/** Ecological draws now bid against every other graphics representation. */
+export function ecologyFieldQuality(quality:number,id:EcologyPlantId){return perceptualChannelQuality(quality,`ecology.${id}`);}
 
 export const ECOLOGY_SURFACE_SAMPLE_CELL=4;
