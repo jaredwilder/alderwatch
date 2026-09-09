@@ -79,6 +79,8 @@ if(area===IRONWARD_CROSSING){
   catch(error){console.error('Alderwatch HD tree bark failed to install',error);}
   try{await import('./forest-singularity-runtime');}
   catch(error){console.error('Alderwatch forest singularity failed to install',error);}
+  try{await import('./ecology-singularity-runtime');}
+  catch(error){console.error('Alderwatch ecology singularity failed to install',error);}
   await import('./main');
   await installFarMarchPlayerUI();
   try{await import('./runtime-extensions');}
