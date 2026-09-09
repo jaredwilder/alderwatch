@@ -12,8 +12,6 @@ function prepareSavedArea(){
   let world:any;
   try{world=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');}catch{world=null;}
   if(!world?.players||!world?.resources)return 'far-march';
-  // Continue must be able to load every additive v1 save shape we have shipped.
-  // Normalize collection fields before newer realm systems or gathering migrations inspect them.
   normalizeLegacyWorldShape(world);
   migrateRealmSave(world);
   ensureRealmPopulation(world);
@@ -26,14 +24,11 @@ function prepareSavedArea(){
   applyRealmConsequences(world);
   const pending=consumePendingArea();
   if(pending)enterSavedArea(world,pending);
-  // Population, society, causal history and its compiled consequences are authoritative before an area materializes.
   localStorage.setItem(SAVE_KEY,JSON.stringify(world));
   return currentPlayer(world)?playerArea(currentPlayer(world)!):'far-march';
 }
 
 async function installFarMarchPlayerUI(){
-  // These are player-critical surfaces. They must not disappear because an unrelated
-  // chat/social/realm presentation module later in runtime-extensions throws during startup.
   const essential=[
     ['UI stack',()=>import('./ui-stack')],
     ['Backpack',()=>import('./backpack-ui')],
@@ -48,6 +43,9 @@ async function installFarMarchPlayerUI(){
 }
 
 const area=prepareSavedArea();
+// Explicitly opt-in on a deployed build with ?dev=1. The module is inert otherwise.
+try{await import('./dev-tools');}catch(error){console.error('Alderwatch dev tools failed to install',error);}
+
 if(area===IRONWARD_CROSSING){
   await import('./ironward-crossing');
 }else if(area===IRONWARD_BASIN){
