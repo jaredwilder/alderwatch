@@ -39,6 +39,7 @@ async function installFarMarchPlayerUI(){
     ['Backpack',()=>import('./backpack-ui')],
     ['Item icons',()=>import('./item-icons-module')],
     ['Recipe Book',()=>import('./recipe-book-ui')],
+    ['Ironward road gate',()=>import('./realm-travel-ui')],
   ] as const;
   for(const [name,load] of essential){
     try{await load();}

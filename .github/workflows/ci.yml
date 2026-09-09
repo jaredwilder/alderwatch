@@ -16,3 +16,16 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Validate painted item atlas
+        run: |
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image
+          p='public/assets/ui/painted-kling-icons.webp'
+          im=Image.open(p)
+          im.load()
+          assert im.width % 3 == 0, im.size
+          assert im.height % 15 == 0, im.size
+          assert im.width >= 144 and im.height >= 720, im.size
+          print('painted atlas', im.size, im.mode, 'OK')
+          PY
