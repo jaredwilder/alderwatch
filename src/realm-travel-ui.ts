@@ -1,5 +1,5 @@
 import {IRONWARD_CROSSING,requestAreaTravel} from './realm-save';
-import {isNearIronwardCrossing,parseFarMarchHudPosition} from './far-march-realm-gates';
+import {ironwardRouteArrival,isNearIronwardCrossing,parseFarMarchHudPosition} from './far-march-realm-gates';
 import './realm-travel.css';
 
 let travelling=false;
@@ -7,12 +7,12 @@ let travelling=false;
 function gateState(){
   const hud=document.querySelector<HTMLElement>('#ui');
   const place=hud?.querySelector('.location span')?.textContent??'';
+  const routeText=hud?.querySelector('.minimap-route')?.textContent??'';
   const position=parseFarMarchHudPosition(place);
   const playing=!!hud?.querySelector('.hotbar');
-  // The map's Eastern Road pin is a real world-space gate at X350 Z35.
-  // Keep the old region fallback only for legacy HUD layouts that do not expose coordinates.
-  const eligible=playing&&(position?isNearIronwardCrossing(position.x,position.z):place.includes('Ironward Heights'));
-  return {hud,eligible};
+  const arrivedByRoute=ironwardRouteArrival(place,routeText);
+  const arrivedByCoordinates=position?isNearIronwardCrossing(position.x,position.z):false;
+  return {hud,eligible:playing&&(arrivedByRoute||arrivedByCoordinates),place,routeText};
 }
 
 function beginTravel(){
@@ -28,16 +28,16 @@ function beginTravel(){
 
 function update(){
   const {hud,eligible}=gateState();
-  let button=document.querySelector<HTMLButtonElement>('#realm-road-forward');
-  if(!eligible){button?.remove();return;}
-  if(!button&&hud){
-    button=document.createElement('button');
-    button.id='realm-road-forward';
-    button.className='realm-road-button realm-road-forward';
-    button.setAttribute('aria-label','Enter Ironward Crossing');
-    button.innerHTML='<small>EASTERN ROAD · CROSSING GATE</small><strong>E · Enter Ironward Crossing</strong><span>The map route continues beyond this hill</span>';
-    button.onclick=beginTravel;
-    hud.append(button);
+  let prompt=document.querySelector<HTMLButtonElement>('#realm-road-forward');
+  if(!eligible){prompt?.remove();return;}
+  if(!prompt&&hud){
+    prompt=document.createElement('button');
+    prompt.id='realm-road-forward';
+    prompt.className='realm-road-button realm-road-forward';
+    prompt.setAttribute('aria-label','Enter Ironward Crossing');
+    prompt.innerHTML='<small>IRONWARD CROSSING</small><strong>Press E to travel</strong><span>The Eastern Road continues beyond this hill</span>';
+    prompt.onclick=beginTravel;
+    hud.append(prompt);
   }
 }
 
