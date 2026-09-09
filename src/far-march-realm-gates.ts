@@ -10,3 +10,7 @@ export function parseFarMarchHudPosition(text:string):{x:number;z:number}|null{
   const x=Number(match[1]),z=Number(match[2]);
   return Number.isFinite(x)&&Number.isFinite(z)?{x,z}:null;
 }
+
+export function ironwardRouteArrival(place:string,routeText:string){
+  return /Ironward Heights/i.test(place)&&/Map pin reached/i.test(routeText);
+}
