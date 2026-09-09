@@ -11,6 +11,12 @@ test('cross-area shell exposes the survivor controls instead of a travel-only HU
  assert.ok(shell.includes('Recipe planning is available everywhere'));
 });
 
+test('streamed-area shell explicitly owns M because generic Input reserves M for a map surface',()=>{
+ assert.match(shell,/window\.addEventListener\('keydown',this\.onKey,true\)/);
+ assert.match(shell,/e\.code!==\'KeyM\'/);
+ assert.match(shell,/if\(this\.mode===\'map\'\)this\.close\(\);else this\.openMap\(\)/);
+});
+
 test('Ironward Crossing actually mounts the shell with live local bounds and gates',()=>{
  assert.ok(crossing.includes("new AreaGameplayShell"));
  assert.ok(crossing.includes("areaId:IRONWARD_CROSSING"));
