@@ -27,7 +27,7 @@ export const crownroadCellInBounds=(coord:CellCoord)=>Math.abs(coord.x)<=CROWNRO
 export const crownroadIsGreyhavenCell=(coord:CellCoord)=>Math.abs(coord.x)<=1&&Math.abs(coord.z)<=1;
 export function crownroadCellIndex(coord:CellCoord):number{if(!crownroadCellInBounds(coord))throw new Error('Crownroad cell outside major-region address space');return (coord.z+CROWNROAD_RADIUS)*CROWNROAD_GRID_WIDTH+(coord.x+CROWNROAD_RADIUS);}
 export function crownroadWardForCell(coord:CellCoord):number{const i=crownroadCellIndex(coord);return CROWNROAD_WARD_START+(i%CROWNROAD_WARD_COUNT);}
-export function crownroadWardForPosition(x:number,z:number):number{const coord={x:Math.max(-CROWNROAD_RADIUS,Math.min(CROWNROAD_RADIUS,Math.round(x/CROWNROAD_CELL))),z:Math.max(-CROWNROAD_RADIUS,Math.min(CROWNROAD_RADIUS,Math.round(z/CROWNROAD_CELL)))};return crownroadWardForCell(coord);}
+export function crownroadWardForPosition(x:number,z:number):number{const coord={x:Math.max(-CROWNROAD_RADIUS,Math.min(CROWNROAD_RADIUS,Math.floor(x/CROWNROAD_CELL))),z:Math.max(-CROWNROAD_RADIUS,Math.min(CROWNROAD_RADIUS,Math.floor(z/CROWNROAD_CELL)))};return crownroadWardForCell(coord);}
 export function crownroadLocationName(x:number,z:number):string{
  const coord={x:Math.round(x/CROWNROAD_CELL),z:Math.round(z/CROWNROAD_CELL)},poi=CROWNROAD_POIS.find(p=>p.cell.x===coord.x&&p.cell.z===coord.z);if(poi)return poi.name;
  if(crownroadIsGreyhavenCell(coord)){
