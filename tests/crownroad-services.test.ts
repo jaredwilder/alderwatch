@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {addItem,makePlayer,quantity,seedState} from '../src/state';
 import {greyhavenProvisionerHousehold,greyhavenProvisionQuote,nearGreyhavenProvisioner,useGreyhavenProvisioner} from '../src/crownroad-services';
 import {applyRealmConsequences,householdTrustForActor} from '../src/realm-consequences';
 import {promoteCanonicalEvent} from '../src/provenance-frontier';
 
+const liveVale=readFileSync(new URL('../src/crownroad-vale.ts',import.meta.url),'utf8');
 function worldWithPlayer(){const world=seedState(),player=makePlayer('Artisan');world.players[player.id]=player;return {world,player};}
 
 test('Greyhaven provisioner is a real bounded world-space service',()=>{
@@ -33,4 +35,11 @@ test('market strain can raise the barter ask without erasing household memory',(
  for(let i=0;i<4;i++)promoteCanonicalEvent(world,{source:'world',actorId:'greyhaven-market',actorName:'Greyhaven market',ward:base.ward,channel:'market',externalKey:`market-strain-${i}`,summary:'Greyhaven market shortages tightened local provisioning and raised demand.'});
  applyRealmConsequences(world);const strained=greyhavenProvisionQuote(world,player);
  assert.ok(strained.marketPressure>base.marketPressure);assert.ok(strained.timberCost>=base.timberCost);
+});
+
+test('live Crownroad E interaction exposes and executes the causal provisioner service',()=>{
+ assert.ok(liveVale.includes('nearGreyhavenProvisioner(p.x,p.z)'));
+ assert.ok(liveVale.includes('greyhavenProvisionQuote(authority.state,player)'));
+ assert.ok(liveVale.includes('useGreyhavenProvisioner(authority.state,player)'));
+ assert.ok(liveVale.includes('Greyhaven provisioner'));
 });
