@@ -14,6 +14,7 @@ export const IRONWARD_CROSSING:AreaId='ironward-crossing';
 export const IRONWARD_BASIN:AreaId='ironward-basin';
 export const DEEP_IRON_MINE:AreaId='deep-iron-mine';
 export const CROWNROAD_VALE:AreaId='crownroad-vale';
+export const WOLFPINE:AreaId='wolfpine';
 
 export const AREA_ENTRY:Record<string,SavedAreaLocation>={
   [FAR_MARCH]:{position:[0,0.03,18],yaw:Math.PI},
@@ -21,6 +22,7 @@ export const AREA_ENTRY:Record<string,SavedAreaLocation>={
   [IRONWARD_BASIN]:{position:[0,0.03,-130],yaw:0},
   [DEEP_IRON_MINE]:{position:[0,0.03,4],yaw:0},
   [CROWNROAD_VALE]:{position:[-278,0.03,0],yaw:-Math.PI/2},
+  [WOLFPINE]:{position:[-230,0.03,0],yaw:-Math.PI/2},
 };
 
 export function currentPlayer(world:WorldState):PlayerState|undefined{return Object.values(world.players)[0];}
