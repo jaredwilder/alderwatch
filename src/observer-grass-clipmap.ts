@@ -12,20 +12,25 @@ export interface GrassRingSpec {
  fadeFull:number;
  fadeStart:number;
  fadeOut:number;
+ metricPower:number;
+ crossed?:boolean;
 }
 
 export interface GridOrigin {x:number;z:number}
 export interface ClipCell {gx:number;gz:number;slot:number}
 
 /**
- * Fixed-capacity observer rings. The new mid/far bands remove the visible
- * savannah boundary without reintroducing world-sized vegetation allocation.
+ * Fixed-capacity observer rings. Cell spacing grows geometrically with distance:
+ * projected vegetation density therefore falls roughly with perspective instead
+ * of staying world-uniform. The final two bands are crossed ultra-cheap proxies.
  */
 export const OBSERVER_GRASS_RINGS=[
- {id:'hero',cell:.72,size:48,blades:20,tuftRadius:.48,minHeight:.34,maxHeight:.72,density:1,seed:0x51f15e,fadeIn:0,fadeFull:0,fadeStart:11,fadeOut:16.5},
- {id:'near',cell:1.35,size:56,blades:8,tuftRadius:.82,minHeight:.30,maxHeight:.64,density:.88,seed:0x7a2d91,fadeIn:10,fadeFull:16,fadeStart:28,fadeOut:36.5},
- {id:'mid',cell:2.10,size:72,blades:6,tuftRadius:1.12,minHeight:.28,maxHeight:.60,density:.94,seed:0x3b7a11,fadeIn:27,fadeFull:36,fadeStart:61,fadeOut:74},
- {id:'far',cell:3.20,size:88,blades:3,tuftRadius:1.62,minHeight:.24,maxHeight:.54,density:.98,seed:0x19c4d3,fadeIn:59,fadeFull:72,fadeStart:118,fadeOut:138},
+ {id:'hero',cell:.72,size:48,blades:20,tuftRadius:.48,minHeight:.34,maxHeight:.72,density:1,seed:0x51f15e,fadeIn:0,fadeFull:0,fadeStart:11,fadeOut:16.5,metricPower:2},
+ {id:'near',cell:1.35,size:56,blades:8,tuftRadius:.82,minHeight:.30,maxHeight:.64,density:.88,seed:0x7a2d91,fadeIn:10,fadeFull:16,fadeStart:28,fadeOut:36.5,metricPower:2.4},
+ {id:'mid',cell:2.10,size:72,blades:6,tuftRadius:1.12,minHeight:.28,maxHeight:.60,density:.94,seed:0x3b7a11,fadeIn:27,fadeFull:36,fadeStart:61,fadeOut:74,metricPower:3},
+ {id:'far',cell:3.20,size:88,blades:3,tuftRadius:1.62,minHeight:.24,maxHeight:.54,density:.98,seed:0x19c4d3,fadeIn:59,fadeFull:72,fadeStart:118,fadeOut:138,metricPower:4},
+ {id:'horizon',cell:4.75,size:96,blades:1,tuftRadius:2.55,minHeight:.21,maxHeight:.48,density:.96,seed:0x6e4a2d,fadeIn:116,fadeFull:132,fadeStart:194,fadeOut:222,metricPower:4,crossed:true},
+ {id:'vista',cell:7.20,size:112,blades:1,tuftRadius:3.95,minHeight:.18,maxHeight:.42,density:.92,seed:0x2b8f71,fadeIn:188,fadeFull:216,fadeStart:344,fadeOut:382,metricPower:4,crossed:true},
 ] as const satisfies readonly GrassRingSpec[];
 
 export function observerHash(x:number,z:number,salt=0){
@@ -36,6 +41,11 @@ export function observerHash(x:number,z:number,salt=0){
 
 function mod(n:number,m:number){return((n%m)+m)%m;}
 function smoothstep(a:number,b:number,x:number){if(b<=a)return x>=b?1:0;const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);}
+
+/** Lp observer metric. p>2 spends the square torus corners instead of discarding them behind a circular cutoff. */
+export function observerMetric(dx:number,dz:number,power=2){
+ const p=Math.max(2,power);return Math.pow(Math.pow(Math.abs(dx),p)+Math.pow(Math.abs(dz),p),1/p);
+}
 
 /** Stable toroidal slot: a world cell returns to the same slot modulo ring extent. */
 export function slotForCell(gx:number,gz:number,size:number){return mod(gx,size)+mod(gz,size)*size;}
@@ -69,21 +79,24 @@ export function enteringClipmapCells(previous:GridOrigin|undefined,next:GridOrig
  return out;
 }
 
-/** Stable radial visibility used by the shader and Court to overlap bands without a hard ring. */
+/** Stable band visibility used by the shader and Court to overlap scales without a hard ring. */
 export function observerRingVisibility(distance:number,spec:GrassRingSpec){
  const d=Math.max(0,distance),inside=spec.fadeFull<=spec.fadeIn?1:smoothstep(spec.fadeIn,spec.fadeFull,d),outside=1-smoothstep(spec.fadeStart,spec.fadeOut,d);
  return Math.max(0,Math.min(1,inside*outside));
 }
+export function observerRingVisibilityAt(dx:number,dz:number,spec:GrassRingSpec){return observerRingVisibility(observerMetric(dx,dz,spec.metricPower),spec);}
 
 export function combinedObserverCoverage(distance:number,rings:readonly GrassRingSpec[]=OBSERVER_GRASS_RINGS){
  return Math.min(1,rings.reduce((sum,spec)=>sum+observerRingVisibility(distance,spec)*spec.density,0));
 }
 
-/** Four ribbon triangles per blade; still no world-area term exists in this budget. */
+export function grassTrianglesPerCell(spec:GrassRingSpec){return spec.blades*4*(spec.crossed?2:1);}
+
+/** Fixed ceiling: no term depends on physical world area. */
 export function clipmapBudget(rings:readonly GrassRingSpec[]=OBSERVER_GRASS_RINGS){
  return rings.reduce((a,r)=>({
   slots:a.slots+r.size*r.size,
-  maxTriangles:a.maxTriangles+r.size*r.size*r.blades*4,
+  maxTriangles:a.maxTriangles+r.size*r.size*grassTrianglesPerCell(r),
   drawCalls:a.drawCalls+1,
  }),{slots:0,maxTriangles:0,drawCalls:0});
 }

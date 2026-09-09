@@ -64,7 +64,7 @@ export const FOREST_CONTACT_CAPACITY=96;
 export const FOREST_CONTACT_SEGMENTS=20;
 export function forestContactBudget(){return{capacity:FOREST_CONTACT_CAPACITY,segments:FOREST_CONTACT_SEGMENTS,maxTriangles:FOREST_CONTACT_CAPACITY*FOREST_CONTACT_SEGMENTS,drawCalls:1};}
 
-export type ObserverRingId='hero'|'near'|'mid'|'far';
+export type ObserverRingId='hero'|'near'|'mid'|'far'|'horizon'|'vista';
 
 /**
  * Stable frame-budget controller. Over-budget detail sheds quickly; recovery is
@@ -90,11 +90,13 @@ export class PerceptualGovernor{
  get smoothedFrameMs(){return this.emaMs;}
 }
 
-/** Hero detail is sacred; pressure is shed from the cheapest/farthest bands first. */
+/** Hero detail is sacred; new horizon bands are the first grass population shed under pressure. */
 export function observerRingQuality(quality:number,ring:ObserverRingId){
  const q=clamp(quality,.56,1);
  if(ring==='hero')return 1;
  if(ring==='near')return .88+.12*q;
  if(ring==='mid')return .52+.48*q;
- return .12+.88*q*q;
+ if(ring==='far')return .12+.88*q*q;
+ if(ring==='horizon')return .06+.94*Math.pow(q,2.35);
+ return .02+.98*q*q*q;
 }
