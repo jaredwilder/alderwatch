@@ -45,7 +45,7 @@ function interactionEntity(action:TavernInteraction,tavern:AlderbrookTavern):Tav
  if(action.kind==='pipe')return entity('tavern:pipe','House Pipe','Pipe nook',pos);
  return entity(`tavern:patron:${action.id}`,action.id==='pell'?'Pell “Three Mugs” Dorr':action.id==='sella'?'Sella Reed':'Jorren Pike','Regular',pos);
 }
-function clearOutdoorNoise(){document.querySelector('#toast')?.remove();}
+function clearOutdoorNoise(){document.querySelector('#toast')?.remove();document.querySelector('.world-boss-entry')?.remove();}
 
 export class TavernBridge{
  private tavern?:AlderbrookTavern;private target?:TavernEntity;private hudQueued=false;private atmosphere?:HTMLDivElement;private atmosphereOpacity=-1;
