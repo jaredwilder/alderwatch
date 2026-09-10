@@ -1,7 +1,8 @@
 import {BUILDS,FOOD,RECIPES,stats,type BuildKind} from './definitions';
 import {addItem,quantity,spend,type LocalAuthority,type PlayerState,type ItemId,type StructureState,type Vec3} from './state';
-import {height} from './terrain';
 import {guardedCache} from './combat-rules';
+import {activeAreaObjects} from './area-object-store';
+import {buildTerrainForArea} from './build-terrain';
 export type EconomyCommand=
  |{type:'craft';playerId:string;recipeId:string;stationId:string}
  |{type:'eat';playerId:string;item:ItemId}
@@ -17,19 +18,20 @@ export const distance=(a:Vec3,b:Vec3)=>Math.hypot(a[0]-b[0],a[2]-b[2]);
 const result=(ok:boolean,message:string)=>({ok,message});
 export function placementError(a:LocalAuthority,p:PlayerState,c:Extract<EconomyCommand,{type:'place'}>):string|null{
  const def=BUILDS[c.kind];if(!def)return 'Unknown building piece';
+ const areaId=activeAreaObjects(a.state),terrain=buildTerrainForArea(areaId);if(!terrain)return `Building is not enabled in ${areaId}`;
  if(c.position.length!==3||c.position.some(n=>!Number.isFinite(n))||!Number.isFinite(c.yaw))return 'Invalid placement';
  if(distance(p.position,c.position)>8)return 'Build closer to your survivor';
- if(Math.abs(c.position[0])>70||c.position[2]<-92||c.position[2]>70)return 'Build within the settled March';
- if(height(c.position[0],c.position[2])<-1.1)return 'The ground is under water';
+ if(!terrain.contains(c.position[0],c.position[2]))return terrain.outsideMessage;
+ if(!terrain.solid(c.position[0],c.position[2]))return terrain.surfaceMessage;
  if(Math.abs(c.yaw/(Math.PI/2)-Math.round(c.yaw/(Math.PI/2)))>.001)return 'Align the frame to a quarter turn';
  const all=Object.values(a.state.structures);const floor=c.supportId?a.state.structures[c.supportId]:undefined;
  if(c.kind==='foundation'){
   if(Math.abs(p.position[0]-c.position[0])<1.7&&Math.abs(p.position[2]-c.position[2])<1.7)return 'Step clear of the foundation before placing it';
   if(Object.values(a.state.stations).some(s=>Math.abs(s.position[0]-c.position[0])<2.2&&Math.abs(s.position[2]-c.position[2])<2.2))return 'Leave the existing station clear';
   if(Math.abs(c.position[0]/3-Math.round(c.position[0]/3))>.001||Math.abs(c.position[2]/3-Math.round(c.position[2]/3))>.001)return 'Snap floors to the foundation grid';
-  if(Math.abs(c.position[1]-height(c.position[0],c.position[2]))>.65)return 'The foundation needs solid ground';
+  if(Math.abs(c.position[1]-terrain.height(c.position[0],c.position[2]))>.65)return 'The foundation needs solid ground';
   if(all.some(s=>s.kind==='foundation'&&distance(s.position,c.position)<2.9))return 'A floor already occupies that space';
-  const heights=[[-1.5,-1.5],[1.5,-1.5],[-1.5,1.5],[1.5,1.5]].map(([x,z])=>height(c.position[0]+x,c.position[2]+z));if(Math.max(...heights)-Math.min(...heights)>.85)return 'Find gentler ground for this foundation';
+  const heights=[[-1.5,-1.5],[1.5,-1.5],[-1.5,1.5],[1.5,1.5]].map(([x,z])=>terrain.height(c.position[0]+x,c.position[2]+z));if(Math.max(...heights)-Math.min(...heights)>.85)return 'Find gentler ground for this foundation';
  }else if(['wall','window','doorway','roof'].includes(c.kind)){
   if(!floor||floor.kind!=='foundation')return 'Snap this piece to a foundation';
   if(floor.ownerId!==p.id)return 'This foundation belongs to another survivor';
@@ -41,7 +43,7 @@ export function placementError(a:LocalAuthority,p:PlayerState,c:Extract<EconomyC
   }
   if(all.some(s=>distance(s.position,c.position)<.1&&Math.abs(s.position[1]-c.position[1])<.1))return 'A building piece already occupies that socket';
  }else if(floor){if(floor.ownerId!==p.id)return 'This foundation belongs to another survivor';if(floor.kind!=='foundation'||distance(c.position,floor.position)>2||Math.abs(c.position[1]-floor.position[1]-.47)>.1)return 'Place the station on the floor';}
- else if(Math.abs(c.position[1]-height(c.position[0],c.position[2]))>.1)return 'Place this piece on solid ground';
+ else if(Math.abs(c.position[1]-terrain.height(c.position[0],c.position[2]))>.1)return 'Place this piece on solid ground';
  if(!['wall','window','doorway','roof'].includes(c.kind)&&Object.values(a.state.resources).some(r=>r.phase==='standing'&&distance(r.position,c.position)<(r.kind==='tree'?2:1.2)))return 'Clear the tree or rock first';
  if(all.some(s=>!['foundation','wall','window','doorway','roof'].includes(s.kind)&&distance(s.position,c.position)<1.1))return 'Leave room around the existing station';
  if(!Object.entries(def.cost).every(([k,v])=>quantity(p,k)>=v))return 'Gather the missing materials';
@@ -70,10 +72,10 @@ export function applyEconomyCommand(a:LocalAuthority,p:PlayerState,c:EconomyComm
   p.health=Math.min(stats(p).health,p.health+food.heal);if(food.duration&&!a.state.progress.includes('food-buff'))a.state.progress.push('food-buff');return result(true,food.duration?'Well fed — stronger for the road':'Recovered 10 health');
  }
  if(c.type==='place'){
-  const error=placementError(a,p,c);if(error)return result(false,error);spend(p,BUILDS[c.kind].cost);const id='structure-'+a.state.nextId++;const s:StructureState={id,kind:c.kind,position:[...c.position],yaw:c.yaw,ownerId:p.id,supportId:c.supportId,doorOpen:false};a.state.structures[id]=s;
-  if(c.kind==='foundation'&&!p.home)p.home=[...c.position];
-  if(c.kind==='workbench'||c.kind==='campfire')a.state.stations[id]={id,kind:c.kind,name:BUILDS[c.kind].name,position:[...c.position]};
-  if(c.kind==='chest')a.state.containers[id]={id,name:'Home supplies',position:[...c.position],ownerId:p.id,inventory:[],looted:true};
+  const error=placementError(a,p,c);if(error)return result(false,error);const areaId=activeAreaObjects(a.state);spend(p,BUILDS[c.kind].cost);const id='structure-'+a.state.nextId++;const s:StructureState={id,areaId,kind:c.kind,position:[...c.position],yaw:c.yaw,ownerId:p.id,supportId:c.supportId,doorOpen:false};a.state.structures[id]=s;
+  if(c.kind==='foundation'&&!p.home&&areaId==='far-march')p.home=[...c.position];
+  if(c.kind==='workbench'||c.kind==='campfire')a.state.stations[id]={id,areaId,kind:c.kind,name:BUILDS[c.kind].name,position:[...c.position]};
+  if(c.kind==='chest')a.state.containers[id]={id,areaId,name:'Home supplies',position:[...c.position],ownerId:p.id,inventory:[],looted:true};
   if(!a.state.progress.includes('built-'+c.kind))a.state.progress.push('built-'+c.kind);return result(true,'Built '+BUILDS[c.kind].name);
  }
  if(c.type==='dismantle'){
@@ -91,7 +93,7 @@ export function applyEconomyCommand(a:LocalAuthority,p:PlayerState,c:EconomyComm
   if(box.ownerId&&box.ownerId!==p.id)return result(false,'This chest belongs to another survivor');if(!['deposit','withdraw'].includes(c.direction))return result(false,'Unknown transfer direction');const source=c.direction==='deposit'?p:box;const target=c.direction==='deposit'?box:p;if(!spend(source as PlayerState,{[c.item]:c.count}))return result(false,'That stack is no longer available');addItem(a.state,target as PlayerState,c.item,c.count);if(p.equipped&&!quantity(p,p.equipped))p.equipped=null;return result(true,c.direction==='deposit'?'Stored in chest':'Taken from chest');
  }
  if(c.type==='drop'){
-  if(!Number.isInteger(c.count)||c.count<1||c.count>99||!spend(p,{[c.item]:c.count}))return result(false,'Cannot drop that stack');const id='drop-'+a.state.nextId++;a.state.drops[id]={id,item:c.item,count:c.count,position:[p.position[0]+Math.sin(p.yaw),p.position[1]+.8,p.position[2]+Math.cos(p.yaw)],rotation:[0,p.yaw,Math.PI/2]};if(p.equipped&&!quantity(p,p.equipped))p.equipped=null;return result(true,'Dropped in the world');
+  if(!Number.isInteger(c.count)||c.count<1||c.count>99||!spend(p,{[c.item]:c.count}))return result(false,'Cannot drop that stack');const id='drop-'+a.state.nextId++,areaId=activeAreaObjects(a.state);a.state.drops[id]={id,areaId,item:c.item,count:c.count,position:[p.position[0]+Math.sin(p.yaw),p.position[1]+.8,p.position[2]+Math.cos(p.yaw)],rotation:[0,p.yaw,Math.PI/2]};if(p.equipped&&!quantity(p,p.equipped))p.equipped=null;return result(true,'Dropped in the world');
  }
  const index=p.inventory.findIndex(s=>s.id===c.itemId);if(index<0||!Number.isInteger(c.destination)||c.destination<0||c.destination>=p.inventory.length)return result(false,'Invalid pack slot');const [item]=p.inventory.splice(index,1);p.inventory.splice(c.destination,0,item);return result(true,'Pack arranged');
 }
