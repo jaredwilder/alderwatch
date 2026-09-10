@@ -37,6 +37,14 @@ export const WILDLIFE_SPAWNS:readonly WildlifeSpawn[]=[
  moved('wildlife-hare-8','hare',276,90,2.9,19,78),
  moved('wildlife-hare-9','hare',-278,258,.2,-11,92),
 
+ // True rabbits occupy lower hedges and heath pockets rather than duplicating the hare anchors.
+ fresh('wildlife-rabbit-0','rabbit',58,112,.4),
+ fresh('wildlife-rabbit-1','rabbit',-96,146,2.1),
+ fresh('wildlife-rabbit-2','rabbit',132,202,4.8),
+ fresh('wildlife-rabbit-3','rabbit',-186,132,1.3),
+ fresh('wildlife-rabbit-4','rabbit',220,74,3.7),
+ fresh('wildlife-rabbit-5','rabbit',-256,218,5.5),
+
  moved('wildlife-2','crow',-32,44,2,3,3),
  moved('wildlife-3','crow',35,96,3,-4,-38),
  moved('wildlife-crow-4','crow',-70,178,.8,24,82),
@@ -95,6 +103,26 @@ export const WILDLIFE_SPAWNS:readonly WildlifeSpawn[]=[
  moved('southwood-deer-17','deer',-218,157,2.4,-72,131),
  moved('southwood-deer-18','deer',-203,177,4.9,18,149),
  moved('southwood-deer-19','deer',-224,174,1.5,29,163),
+
+ // Mature stags are sparse landmark encounters, separated from the larger doe/deer herds.
+ fresh('wildlife-stag-0','stag',96,266,2.8),
+ fresh('wildlife-stag-1','stag',-118,278,5.4),
+ fresh('wildlife-stag-2','stag',236,208,.9),
+ fresh('wildlife-stag-3','stag',-264,150,3.6),
+
+ // Two compact boar sounders in wooded country; enough to discover without carpeting the map.
+ fresh('wildlife-boar-0','boar',-24,238,1.2,'southwood-boar'),
+ fresh('wildlife-boar-1','boar',-31,246,3.9,'southwood-boar'),
+ fresh('wildlife-boar-2','boar',-17,250,5.1,'southwood-boar'),
+ fresh('wildlife-boar-3','boar',-208,118,.6,'briar-boar'),
+ fresh('wildlife-boar-4','boar',-216,126,2.7,'briar-boar'),
+ fresh('wildlife-boar-5','boar',-202,132,4.5,'briar-boar'),
+
+ // Solitary foxes bridge the empty scale between tiny prey and the large predators.
+ fresh('wildlife-fox-0','fox',84,158,5.7),
+ fresh('wildlife-fox-1','fox',-112,226,1.8),
+ fresh('wildlife-fox-2','fox',206,154,3.1),
+ fresh('wildlife-fox-3','fox',-242,104,.4),
 
  // Bison are now two remote meadow herds instead of one cluster beside the centre.
  moved('high-meadow-bison-0','bison',118,225,.5,88,58),
