@@ -70,8 +70,8 @@ export function robustSunAzimuth(data:Uint8ClampedArray,width:number,height:numb
  let cx=0,cz=0,total=0;
  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
   const i=(y*width+x)*4;if(data[i+3]<16)continue;
-  const l=.2126*data[i]+.7152*data[i+1]+.0722*data[i+2];if(l<threshold)continue;
-  const weight=(l-threshold+1)*(l-threshold+1),angle=((x+.5)/width-.5)*Math.PI*2;
+  const l=.2126*data[i]+.7152*data[i+1]+.0722*data[i+2];if(l<=threshold)continue;
+  const weight=(l-threshold)*(l-threshold),angle=((x+.5)/width-.5)*Math.PI*2;
   cx+=Math.cos(angle)*weight;cz+=Math.sin(angle)*weight;total+=weight;
  }
  if(total<=0)return null;
