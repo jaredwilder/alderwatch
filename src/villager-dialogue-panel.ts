@@ -1,5 +1,6 @@
 import {askVillager,type DialogueTurn} from './dialogue';
 import type {Villager} from './npc';
+import {handleTavernEntity} from './tavern-bridge';
 
 const conversations=new Map<string,DialogueTurn[]>();
 function ensureStyle(){
@@ -23,6 +24,7 @@ function ensureStyle(){
 }
 
 export function openVillagerDialogue(ui:HTMLElement,villager:Villager,resume:()=>void){
+ if(handleTavernEntity(ui,villager.id,resume))return;
  ensureStyle();let history=conversations.get(villager.id);if(!history){history=[{role:'assistant',content:villager.greeting}];conversations.set(villager.id,history);}const turns=history;
  ui.innerHTML='<section class="menu-card game-panel villager-dialogue"><button class="back">← Return to the March</button><div class="eyebrow"></div><h2></h2><div class="panel-content dialogue-content"></div></section>';
  ui.querySelector<HTMLButtonElement>('.back')!.onclick=resume;ui.querySelector('.eyebrow')!.textContent=villager.role.toUpperCase()+' · ALDERBROOK';ui.querySelector('h2')!.textContent=villager.name;
