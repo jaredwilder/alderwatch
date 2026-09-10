@@ -27,25 +27,27 @@ test('tavern source is a real enterable 3D gameplay room, not a dialogue-only fa
  const source=readFileSync(new URL('../src/alderbrook-tavern.ts',import.meta.url),'utf8');
  for(const contract of ['The Tipsy Alder','Brinna Keggs','isolated interior capsule','RAPIER.ColliderDesc','InstancedMesh','campfire_burning_q','Alderbones','house pipe','safeSavePosition'])assert.ok(source.includes(contract),`missing tavern contract: ${contract}`);
  const bridge=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
- for(const contract of ['Character.prototype.postStep','Character.prototype.preStep','setTranslation','tavern:enter','tavern:exit','openBar','openBones'])assert.ok(bridge.includes(contract),`missing live integration: ${contract}`);
+ for(const contract of ['Character.prototype.postStep','Character.prototype.preStep','setTranslation','tavern:enter','tavern:exit','openBar','openBones','forceEnterTipsyAlderForDev'])assert.ok(bridge.includes(contract),`missing live integration: ${contract}`);
 });
 
-test('live Alderbrook porch is the enter target instead of one buried magic point',()=>{
+test('visible Tipsy Alder frontage is the enter target instead of a narrow inferred porch rectangle',()=>{
  const bridge=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
- assert.match(bridge,/const PORCH=\{minX:-13\.25,maxX:-6\.35,minZ:-31\.15,maxZ:-25\.55\}/);
- assert.match(bridge,/atTavernPorch\(live\)\?\{kind:'enter'\}/,'outside interaction must use the visible porch footprint');
+ assert.match(bridge,/const ENTRY=\{x:-10\.4,z:-27\.8,radius:6\.5\}/);
+ assert.match(bridge,/atTavernEntry\(live\)\?\{kind:'enter'\}/,'outside interaction must use the visible tavern frontage');
  assert.match(bridge,/tavern\.inside\?physicalPosition\(position\):position/,'outside must trust PlayerState; physical-body fallback is only needed inside');
  assert.match(bridge,/currentCharacter=this;/,'preStep must refresh the current character before any later interaction frame');
- // Landscape longhouse door positions from x=-9,z=-34,yaw=.1 must sit inside the porch box.
- const doors=[[-10.5905414639,-29.4183215028],[-9.0980352160,-29.5680716278]];
- for(const [x,z] of doors)assert.ok(x>=-13.25&&x<=-6.35&&z>=-31.15&&z<=-25.55,`door ${x},${z} escaped tavern porch`);
+ const entry=[-10.4,-27.8] as const,radius=6.5;
+ // Both authored doorway variants, the permanent sign, and the dev landing point all
+ // belong to one forgiving interaction footprint. This is the live player contract.
+ const acceptancePoints=[[-10.5905414639,-29.4183215028],[-9.0980352160,-29.5680716278],[-12.15,-26.35],[-9.8,-25.8]];
+ for(const [x,z] of acceptancePoints)assert.ok(Math.hypot(x-entry[0],z-entry[1])<=radius,`frontage point ${x},${z} escaped tavern entry radius`);
 });
 
 test('tavern frontage exists before the visible Alderbrook road approach reaches it',()=>{
  const bridge=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
  assert.match(bridge,/const DISCOVERY_RADIUS=180;/,'frontage discovery radius must cover the visible downtown approach');
  assert.match(bridge,/const PREWARM_RADIUS=220;/,'prewarm should begin before the tavern enters discovery range');
- assert.match(bridge,/atTavernPorch\(position\)\|\|nearTavern\(position,DISCOVERY_RADIUS\)/,'visible-range construction must be synchronous, not idle-only');
+ assert.match(bridge,/atTavernEntry\(position\)\|\|nearTavern\(position,DISCOVERY_RADIUS\)/,'visible-range construction must be synchronous, not idle-only');
  const approach:[number,number]=[-76.8,89.0],centre:[number,number]=[-9.3,-29.4];
  const distance=Math.hypot(approach[0]-centre[0],approach[1]-centre[1]);
  assert.ok(distance>48,'fixture must prove the old 48m gate would hide the tavern');
