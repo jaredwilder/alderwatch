@@ -9,7 +9,7 @@ export interface AuthoredWildlifeSpawn extends WildlifeSpawn {
 }
 
 function finite(value:unknown){return typeof value==='number'&&Number.isFinite(value);}
-function round(value:number,digits:number){const scale=10**digits;return Math.round(value*scale)/scale;}
+function round(value:number,digits:number){const scale=10**digits;return Math.sign(value)*Math.round((Math.abs(value)+Number.EPSILON)*scale)/scale;}
 function quote(value:string){return `'${value.replaceAll('\\','\\\\').replaceAll("'","\\'")}'`;}
 function compact(value:number){const rounded=round(value,3);if(Object.is(rounded,-0))return '0';const text=String(rounded);return text.startsWith('0.')?text.slice(1):text.startsWith('-0.')?'-'+text.slice(2):text;}
 
