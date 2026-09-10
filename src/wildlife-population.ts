@@ -73,7 +73,7 @@ export function wildlifeRespawnDelayTicks(world:WorldState,animal:AnimalState){
  const spawn=spawnById.get(animal.id);
  const playerDistance=spawn?nearestPlayerDistance(world,spawn.x,spawn.z):Infinity;
  const inEncounterRing=playerDistance>=WILDLIFE_ENCOUNTER_RING_MIN&&playerDistance<=WILDLIFE_ENCOUNTER_RING_MAX;
- const encounterBias=inEncounterRing?.72:1;
+ const encounterBias=inEncounterRing ? 0.72 : 1;
  return Math.max(20*TICKS_PER_SECOND,Math.round(base*encounterBias*scarcityBias*TICKS_PER_SECOND));
 }
 
