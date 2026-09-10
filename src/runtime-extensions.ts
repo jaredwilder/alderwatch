@@ -9,6 +9,7 @@ import './simulated-player-society';
 import './realm-chat-network';
 import './realm-conversation-director';
 import './canon-social-bridge';
+import './realm-chat-folklore';
 import './loading-experience';
 import './ui-stack';
 import './backpack-ui';
