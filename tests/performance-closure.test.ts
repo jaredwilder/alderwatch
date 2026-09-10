@@ -41,9 +41,16 @@ test('zero-scale instance slots are removed without touching visible transforms'
  assert.equal(matrixSlotHasArea(payload,0),true);assert.equal(matrixSlotHasArea(payload,16),false);assert.equal(countActiveMatrixSlots(payload),2);
 });
 
-test('runtime closes the exact forensic failure modes instead of lowering asset quality',()=>{
+test('performance closure remains available for safe rework without lowering asset quality',()=>{
  const runtime=readFileSync(new URL('../src/performance-closure-runtime.ts',import.meta.url),'utf8'),tavern=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
  assert.match(runtime,/mesh\.frustumCulled=true/);assert.match(runtime,/shouldSubmitObserverGrass/);assert.match(runtime,/matrixSlotHasArea/);
  assert.match(runtime,/suspendMethod\(Nature\.prototype,'update'\)/);assert.match(runtime,/setInstancedInteriorActive/);
  assert.doesNotMatch(tavern,/canvas\.style\.filter=tavern\.inside/);assert.match(tavern,/tavern-atmosphere/);assert.match(tavern,/hudQueued/);
+});
+
+test('performance closure cannot re-enter the startup-critical graph',()=>{
+ const bootstrap=readFileSync(new URL('../src/bootstrap.ts',import.meta.url),'utf8'),tavern=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
+ assert.doesNotMatch(bootstrap,/import\(['"]\.\/performance-closure-runtime['"]\)/,'bootstrap must not eagerly import the experimental performance runtime');
+ assert.doesNotMatch(tavern,/from ['"]\.\/performance-closure-runtime['"]/,'tavern bridge must not statically pull the performance runtime back into main');
+ assert.match(tavern,/dataset\.awInterior='tavern'/,'tavern presentation scoping must survive the hotfix');
 });
