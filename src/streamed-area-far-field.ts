@@ -50,7 +50,7 @@ export function createStreamedAreaFarField(options:StreamedAreaFarFieldOptions){
   ground.name='far-field-ground';ground.rotation.x=-Math.PI/2;ground.position.y=-.035;ground.receiveShadow=false;ground.castShadow=false;ground.renderOrder=-20;root.add(ground);
 
   for(const [index,spec] of (options.roads??[]).entries()){
-    const roadMap=tiled(options.roadTexture,spec.width/3.5,1),name=spec.name??`far-field-road-${index}`;
+    const roadMap=tiled(options.roadTexture,spec.width/3.5,spec.length/7),name=spec.name??`far-field-road-${index}`;
     const geometry=makeOrganicTrackGeometry([{x:0,z:-spec.length/2},{x:0,z:spec.length/2}],spec.width,`far:${name}`,12);
     const road=new T.Mesh(geometry,new T.MeshStandardMaterial({map:roadMap,color:spec.color??'#a79a7d',roughness:1}));
     road.name=name;road.rotation.y=spec.yaw??0;road.position.set(spec.x??0,-.018,spec.z??0);road.receiveShadow=false;road.castShadow=false;road.renderOrder=-10;root.add(road);
