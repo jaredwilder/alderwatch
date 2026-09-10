@@ -6,6 +6,12 @@ export interface RadianceClosureTuning{
  fogDensity:number;
 }
 
+export interface SunAzimuthEstimate{
+ azimuth:number;
+ confidence:number;
+ peakContrast:number;
+}
+
 const clamp=(x:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,x));
 
 /**
@@ -45,4 +51,33 @@ export function robustHorizonSRGB(data:Uint8ClampedArray,width:number,height:num
  for(const s of samples){if(s.l<lo||s.l>hi)continue;r+=s.r;g+=s.g;b+=s.b;n++;}
  if(!n){for(const s of samples){r+=s.r;g+=s.g;b+=s.b;n++;}}
  return [r/(255*n),g/(255*n),b/(255*n)];
+}
+
+/**
+ * Locate a genuinely directional bright lobe in an equirectangular sky. The
+ * circular mean handles the panorama seam. Confidence prevents broad bright cloud
+ * decks from being mistaken for the sun.
+ */
+export function robustSunAzimuth(data:Uint8ClampedArray,width:number,height:number):SunAzimuthEstimate|null{
+ if(width<8||height<4||data.length<width*height*4)return null;
+ const lum:number[]=[];let max=0;
+ for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+  const i=(y*width+x)*4;if(data[i+3]<16)continue;
+  const l=.2126*data[i]+.7152*data[i+1]+.0722*data[i+2];lum.push(l);if(l>max)max=l;
+ }
+ if(lum.length<16)return null;lum.sort((a,b)=>a-b);
+ const median=lum[Math.floor(lum.length*.5)],threshold=lum[Math.floor(lum.length*.965)];
+ let cx=0,cz=0,total=0;
+ for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+  const i=(y*width+x)*4;if(data[i+3]<16)continue;
+  const l=.2126*data[i]+.7152*data[i+1]+.0722*data[i+2];if(l<threshold)continue;
+  const weight=(l-threshold+1)*(l-threshold+1),angle=((x+.5)/width-.5)*Math.PI*2;
+  cx+=Math.cos(angle)*weight;cz+=Math.sin(angle)*weight;total+=weight;
+ }
+ if(total<=0)return null;
+ return {azimuth:Math.atan2(cz,cx),confidence:Math.hypot(cx,cz)/total,peakContrast:max/Math.max(1,median)};
+}
+
+export function wrapAngle(angle:number){
+ const tau=Math.PI*2;return ((angle+Math.PI)%tau+tau)%tau-Math.PI;
 }
