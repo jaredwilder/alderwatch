@@ -9,6 +9,7 @@ export interface AreaObjectSlice {
  stations:WorldState['stations'];
  containers:WorldState['containers'];
  enemies:WorldState['enemies'];
+ animals:NonNullable<WorldState['animals']>;
 }
 
 declare module './state' {
@@ -20,15 +21,15 @@ declare module './state' {
 }
 
 const FAR_MARCH:AreaId='far-march';
-const emptySlice=():AreaObjectSlice=>({resources:{},forage:{},drops:{},structures:{},stations:{},containers:{},enemies:{}});
-const take=(world:WorldState):AreaObjectSlice=>({resources:world.resources,forage:world.forage,drops:world.drops,structures:world.structures,stations:world.stations,containers:world.containers,enemies:world.enemies});
-const install=(world:WorldState,slice:AreaObjectSlice)=>{world.resources=slice.resources;world.forage=slice.forage;world.drops=slice.drops;world.structures=slice.structures;world.stations=slice.stations;world.containers=slice.containers;world.enemies=slice.enemies;};
+const emptySlice=():AreaObjectSlice=>({resources:{},forage:{},drops:{},structures:{},stations:{},containers:{},enemies:{},animals:{}});
+const take=(world:WorldState):AreaObjectSlice=>({resources:world.resources,forage:world.forage,drops:world.drops,structures:world.structures,stations:world.stations,containers:world.containers,enemies:world.enemies,animals:world.animals??{}});
+const install=(world:WorldState,slice:AreaObjectSlice)=>{world.resources=slice.resources;world.forage=slice.forage;world.drops=slice.drops;world.structures=slice.structures;world.stations=slice.stations;world.containers=slice.containers;world.enemies=slice.enemies;world.animals=slice.animals??{};};
 
 /**
  * Pre-projection v1 saves used these top-level physical collections only for Far March,
  * even if the survivor happened to be standing in a newer streamed area. Therefore the
  * first migration MUST label the existing view Far March; using player.areaId here would
- * steal March houses/resources/stations into Wolfpine or Crownroad.
+ * steal March houses/resources/stations/wildlife into Wolfpine or Crownroad.
  */
 export function ensureAreaObjectStore(world:WorldState,_currentArea:AreaId=FAR_MARCH){
  if(!world.areaObjectStore){world.areaObjectStore={};world.activeObjectAreaId=FAR_MARCH;}
@@ -45,7 +46,7 @@ export function ensureAreaObjectStore(world:WorldState,_currentArea:AreaId=FAR_M
 export function activateAreaObjects(world:WorldState,targetArea:AreaId,currentArea?:AreaId){
  ensureAreaObjectStore(world,currentArea??targetArea);
  const active=world.activeObjectAreaId??FAR_MARCH;
- if(active===targetArea){world.activeObjectAreaId=targetArea;return world;}
+ if(active===targetArea){world.activeObjectAreaId=targetArea;world.animals??={};return world;}
  world.areaObjectStore![active]=take(world);
  const target=world.areaObjectStore![targetArea]??emptySlice();
  delete world.areaObjectStore![targetArea];
