@@ -19,13 +19,14 @@ class Intent {
 interface Raider {state:EnemyState;actor:Character;input:Intent}
 type BowAim={id:'bow-aim';position:Vec3;synthetic:true};
 type CombatTarget=EnemyState|AnimalState|BowAim;
+export interface CombatOptions {seedFarMarchEnemy?:boolean;seedFarMarchExpedition?:boolean}
 const animalLift=(animal:AnimalState)=>species(animal.kind).aimHeight;
 export class Combat {
  raiders=new Map<string,Raider>();shake=0;onNotice=(text:string)=>{};events:({tick:number;attackerId:string}&StrikeResult)[]=[];
  private sparks:{mesh:T.Points;velocity:T.Vector3[];life:number}[]=[];private arrows:ArrowFlight[]=[];
  private freezes=new Map<Character,{left:number;action?:T.AnimationAction}>();private shakePeak=0;private shakeTime=0;private shakeDuration=0;private playerTargetLock?:{id:string;started:number};private pendingPlayerTarget?:{id:string;tick:number};
- constructor(private root:T.Group,private assets:Assets,private physics:RAPIER.World,private authority:LocalAuthority,private player:Character,private sound:Soundscape){
-  seedEnemies(authority.state);seedExpedition(authority.state);
+ constructor(private root:T.Group,private assets:Assets,private physics:RAPIER.World,private authority:LocalAuthority,private player:Character,private sound:Soundscape,options:CombatOptions={}){
+  if(options.seedFarMarchEnemy!==false)seedEnemies(authority.state);if(options.seedFarMarchExpedition!==false)seedExpedition(authority.state);
   authority.lineOfSight=(a,b)=>{const actor=a.id===player.state.id?player:this.raiders.get(a.id)?.actor,target=b.id===player.state.id?player:this.raiders.get(b.id)?.actor;if(!actor||!target)return false;const from=new T.Vector3(...a.position).add(new T.Vector3(0,1.1,0)),to=new T.Vector3(...b.position).add(new T.Vector3(0,1.1,0)),delta=to.sub(from),length=delta.length();const hit=physics.castRay(new RAPIER.Ray(from,delta.normalize()),length,true,undefined,undefined,actor.collider,actor.body);return !hit||hit.collider.handle===target.collider.handle;};
   for(const enemy of Object.values(authority.state.enemies)){
    const state:PlayerState={...makePlayer('Warden'),...enemy,hood:true,hair:'#27201c',skin:'#bb947b'};
