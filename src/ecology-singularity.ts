@@ -78,14 +78,15 @@ export interface EcologyFieldSpec{
 
 /**
  * Five fixed-capacity observer fields. The farther the representation, the
- * cheaper and coarser its plant archetype becomes.
+ * cheaper and coarser its plant archetype becomes. Shrubs no longer fade *in*
+ * with distance: visible plants must not be born under camera motion.
  */
 export const ECOLOGY_FIELDS=[
  {id:'fernlet',cell:1.55,size:42,triangles:10,density:2.30,scale:.76,seed:0x62a13f,fadeIn:0,fadeFull:0,fadeStart:22,fadeOut:30},
  {id:'broadleaf',cell:1.85,size:44,triangles:12,density:2.05,scale:.86,seed:0x284bc1,fadeIn:0,fadeFull:0,fadeStart:29,fadeOut:38},
  {id:'sedge',cell:2.25,size:52,triangles:12,density:2.15,scale:1.04,seed:0x7d34a5,fadeIn:4,fadeFull:8,fadeStart:44,fadeOut:55},
  {id:'dryStalk',cell:2.80,size:56,triangles:8,density:1.70,scale:1.18,seed:0x43ea91,fadeIn:10,fadeFull:18,fadeStart:60,fadeOut:74},
- {id:'shrub',cell:3.40,size:60,triangles:12,density:1.38,scale:1.42,seed:0x1a7f6d,fadeIn:24,fadeFull:34,fadeStart:82,fadeOut:96},
+ {id:'shrub',cell:3.40,size:60,triangles:12,density:1.38,scale:1.34,seed:0x1a7f6d,fadeIn:0,fadeFull:0,fadeStart:82,fadeOut:100},
 ] as const satisfies readonly EcologyFieldSpec[];
 
 export interface EcologyGridOrigin{x:number;z:number}
