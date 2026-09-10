@@ -25,7 +25,7 @@ test('Alderbones rewards pairs and the house really does take ties',()=>{
 
 test('tavern source is a real enterable 3D gameplay room, not a dialogue-only facade',()=>{
  const source=readFileSync(new URL('../src/alderbrook-tavern.ts',import.meta.url),'utf8');
- for(const contract of ['The Tipsy Alder','Brinna Keggs','interior capsule','RAPIER.ColliderDesc','InstancedMesh','campfire_burning_q','Alderbones','House Pipe','safeSavePosition'])assert.ok(source.includes(contract),`missing tavern contract: ${contract}`);
+ for(const contract of ['The Tipsy Alder','Brinna Keggs','interior capsule','RAPIER.ColliderDesc','InstancedMesh','campfire_burning_q','Alderbones','house pipe','safeSavePosition'])assert.ok(source.includes(contract),`missing tavern contract: ${contract}`);
  const bridge=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
  for(const contract of ['Character.prototype.postStep','Character.prototype.preStep','setTranslation','tavern:enter','tavern:exit','openBar','openBones'])assert.ok(bridge.includes(contract),`missing live integration: ${contract}`);
 });
