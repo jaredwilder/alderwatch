@@ -1,5 +1,6 @@
 import {observerMetric} from './observer-grass-clipmap';
 import {perceptualChannelQuality} from './perceptual-resource-market';
+import {WORLD_SIZE} from './worldgen';
 
 export type CanopyBandId='crown'|'mass';
 export interface CanopyBandSpec{
@@ -23,6 +24,8 @@ export const REFERENCE_CANOPY_HEIGHT=7.2;
 export const CANOPY_FULL_TO_PROXY_ANGLE=.052;
 export const CANOPY_PROXY_TO_MASS_ANGLE=.022;
 export const CANOPY_MASS_CUTOFF_ANGLE=.0125;
+export const HORIZON_TERRAIN_SAFE_MARGIN=9;
+export const HORIZON_TERRAIN_EDGE_FADE=38;
 
 /** Exact angular diameter, used as the LOD error variable instead of raw distance. */
 export function angularDiameter(size:number,distance:number){return 2*Math.atan(Math.max(0,size)/(2*Math.max(.001,distance)));}
@@ -40,6 +43,50 @@ export const HORIZON_CANOPY_FIELDS=[
  {id:'crown',cell:10.2,size:72,triangles:32,density:.82,scale:.96,seed:0x4d72ab,fadeIn:118,fadeFull:145,fadeStart:295,fadeOut:345,metricPower:4},
  {id:'mass',cell:18.2,size:64,triangles:12,density:.88,scale:1.18,seed:0x1bf953,fadeIn:285,fadeFull:330,fadeStart:520,fadeOut:565,metricPower:4},
 ] as const satisfies readonly CanopyBandSpec[];
+
+const clamp01=(x:number)=>Math.max(0,Math.min(1,x));
+const smooth01=(x:number)=>{const t=clamp01(x);return t*t*(3-2*t);};
+
+/**
+ * A horizon proxy is legal only where the shipping March terrain mesh can
+ * physically support its root. The old infinite height() function was not a
+ * render-surface certificate: near realm edges it let observer clipmaps place
+ * trees hundreds of metres beyond the actual 768 m terrain sheet.
+ */
+export function horizonTerrainSupport(x:number,z:number,worldSize=WORLD_SIZE){
+ const edge=worldSize*.5-Math.max(Math.abs(x),Math.abs(z));
+ if(edge<=HORIZON_TERRAIN_SAFE_MARGIN)return 0;
+ return smooth01((edge-HORIZON_TERRAIN_SAFE_MARGIN)/(HORIZON_TERRAIN_EDGE_FADE-HORIZON_TERRAIN_SAFE_MARGIN));
+}
+
+/** Distance from an observer to the finite square terrain boundary along a view ray. */
+export function terrainBoundaryDistance(x:number,z:number,dx:number,dz:number,worldSize=WORLD_SIZE){
+ const half=worldSize*.5,eps=1e-9,candidates:number[]=[];
+ if(dx>eps)candidates.push((half-x)/dx);else if(dx<-eps)candidates.push((-half-x)/dx);
+ if(dz>eps)candidates.push((half-z)/dz);else if(dz<-eps)candidates.push((-half-z)/dz);
+ const hit=candidates.filter(v=>Number.isFinite(v)&&v>=0).sort((a,b)=>a-b)[0];
+ return hit??Infinity;
+}
+
+/**
+ * View-dependent support certificate. If the centre view ray leaves physical
+ * terrain before a representation even begins, that whole draw has zero useful
+ * forward contribution and can be switched off instead of transforming hidden
+ * instances. The ramp prevents popping while approaching a boundary.
+ */
+export function directionalCanopySupport(boundaryDistance:number,spec:CanopyBandSpec){
+ return smooth01((boundaryDistance-spec.fadeIn)/(spec.fadeFull-spec.fadeIn));
+}
+
+/**
+ * Distant forest is a horizon representation, not sky content. As the camera
+ * pitches upward its marginal utility goes to zero. Mass dies first; crown
+ * follows. This converts the exact screenshot failure into reclaimed GPU work.
+ */
+export function skywardCanopyVisibility(cameraForwardY:number,id:CanopyBandId){
+ const start=id==='mass'?0:.08,end=id==='mass'?.20:.34;
+ return 1-smooth01((cameraForwardY-start)/(end-start));
+}
 
 export function horizonHash(x:number,z:number,salt=0){
  let h=(Math.imul((x|0)^(salt|0),0x45d9f3b)^Math.imul((z|0)+Math.imul(salt|0,0x9e3779b1),0x27d4eb2d))|0;
