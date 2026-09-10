@@ -6,6 +6,7 @@ import {ensureRenown,recordRenownEvent} from './renown';
 import {stats} from './definitions';
 import {attackProfile,combatState,faces,horizontalDistance,killFighter,type StrikeResult} from './combat-rules';
 import {combatSkillFor,gainSkill} from './skills';
+import {areaOf} from './area-ownership';
 
 export function ensureAnimalVitals(animal:AnimalState){
  animal.maxHealth??=species(animal.kind).maxHealth;
@@ -29,7 +30,6 @@ function completeTrackedBeastBounty(world:WorldState,animal:AnimalState){
   progress.completedAnimals.push(animal.id);
   const r=ensureRenown(player),before=r.gold,reward=animalBountyCrowns(animal);
   recordRenownEvent(player,'complete_bounty',1,world.tick);
-  // `complete_bounty` already grants 15 crowns; top it up so the total equals the beast's posted reward.
   r.gold+=Math.max(0,reward-(r.gold-before));
  }
  progress.active=undefined;progress.activeAnimal=undefined;animal.bountyClaimed=true;
@@ -44,7 +44,7 @@ export function killAnimal(world:WorldState,animal:AnimalState,killer:WildlifeKi
  if(!world.containers[id]){
   const profile=species(animal.kind),inventory=Object.entries(profile.loot).flatMap(([item,count])=>count?[{id:'item-'+world.nextId++,item:item as ItemId,count,quality:1}]:[]),rare=profile.rareLoot;
   if(rare&&rareLootHit(world,animal,rare.oneIn))inventory.push({id:'item-'+world.nextId++,item:rare.item,count:rare.count,quality:2});
-  world.containers[id]={id,name:`${animal.kind[0].toUpperCase()+animal.kind.slice(1)} carcass`,position:[...animal.position],inventory,looted:false};
+  world.containers[id]={id,areaId:areaOf(animal),name:`${animal.kind[0].toUpperCase()+animal.kind.slice(1)} carcass`,position:[...animal.position],inventory,looted:false};
  }
  if(killer==='player')completeTrackedBeastBounty(world,animal);
  return true;
@@ -76,13 +76,12 @@ export function predatorBite(world:WorldState,predator:AnimalState,prey:AnimalSt
  return hit;
 }
 
-// Preserve the established bear damage curve while sharing all ownership/death machinery.
 export function bearBite(world:WorldState,bear:AnimalState,prey:AnimalState){return predatorBite(world,bear,prey,prey.kind==='hare'?18:prey.kind==='deer'?28:24);}
 export function wolfBite(world:WorldState,wolf:AnimalState,prey:AnimalState){return predatorBite(world,wolf,prey);}
 
 export function predatorMaul(world:WorldState,predator:AnimalState,target:PlayerState):StrikeResult{
  ensureAnimalVitals(predator);const config=species(predator.kind).predator;
- if(!config||!PREDATOR_SPECIES.has(predator.kind)||!animalAlive(predator)||target.health<=0)return {ok:false,message:'No living target'};
+ if(!config||!PREDATOR_SPECIES.has(predator.kind)||!animalAlive(predator)||!animalAlive(prey)||!reachable)return {ok:false,message:'No living target'};
  const c=combatState(target),age=(world.tick-c.started)/60,kind=predator.kind;
  if(c.kind==='dodge'&&age>=.1&&age<=.46)return {ok:true,outcome:'dodged',damage:0,targetId:target.id,message:`You evade the ${kind}`};
  let damage=config.playerDamage,blocked=false;
