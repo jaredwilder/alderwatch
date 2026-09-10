@@ -21,6 +21,7 @@ export function materialBandWeights(footprint:number,quality=1):MaterialBandWeig
 
 export function classifyMaterialSurface(label:string):MaterialSurface{
  const s=label.toLowerCase();
+ if(/leaf|foliage|grass|fern|flower|crop/.test(s))return 'other';
  if(/bark|trunk|oak/.test(s))return 'bark';
  if(/stone|rock|masonry|rubble/.test(s))return 'stone';
  if(/plaster|lime|stucco|wall_plaster/.test(s))return 'plaster';
