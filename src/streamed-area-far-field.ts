@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {makeOrganicTrackGeometry} from './organic-track';
 
 export interface FarFieldRoad {
   x?:number;
@@ -33,9 +34,9 @@ function tiled(source:T.Texture,repeatX:number,repeatY:number){
  *
  * Detailed cells remain the authoritative/interactive presentation. This group
  * sits a few centimetres underneath them and provides one cheap continuous land
- * sheet plus a handful of road ribbons where detailed cells are not resident.
- * That turns the edge of the 3x3 cell bubble into a fidelity transition instead
- * of a literal hole / square pop, without adding physics, actors or detail cells.
+ * sheet plus a handful of one-draw organic road strips where detailed cells are
+ * not resident. Roads retain bounded width but no longer read as ruler-straight
+ * rectangular debug planes across the horizon.
  */
 export function createStreamedAreaFarField(options:StreamedAreaFarFieldOptions){
   if(!(options.width>0&&options.depth>0))throw new Error('far-field dimensions must be positive');
@@ -49,13 +50,10 @@ export function createStreamedAreaFarField(options:StreamedAreaFarFieldOptions){
   ground.name='far-field-ground';ground.rotation.x=-Math.PI/2;ground.position.y=-.035;ground.receiveShadow=false;ground.castShadow=false;ground.renderOrder=-20;root.add(ground);
 
   for(const [index,spec] of (options.roads??[]).entries()){
-    const roadMap=tiled(options.roadTexture,spec.width/3.5,spec.length/7);
-    const road=new T.Mesh(
-      new T.PlaneGeometry(spec.width,spec.length),
-      new T.MeshStandardMaterial({map:roadMap,color:spec.color??'#a79a7d',roughness:1})
-    );
-    road.name=spec.name??`far-field-road-${index}`;road.rotation.x=-Math.PI/2;road.rotation.z=spec.yaw??0;
-    road.position.set(spec.x??0,-.018,spec.z??0);road.receiveShadow=false;road.castShadow=false;road.renderOrder=-10;root.add(road);
+    const roadMap=tiled(options.roadTexture,spec.width/3.5,1),name=spec.name??`far-field-road-${index}`;
+    const geometry=makeOrganicTrackGeometry([{x:0,z:-spec.length/2},{x:0,z:spec.length/2}],spec.width,`far:${name}`,12);
+    const road=new T.Mesh(geometry,new T.MeshStandardMaterial({map:roadMap,color:spec.color??'#a79a7d',roughness:1}));
+    road.name=name;road.rotation.y=spec.yaw??0;road.position.set(spec.x??0,-.018,spec.z??0);road.receiveShadow=false;road.castShadow=false;road.renderOrder=-10;root.add(road);
   }
   return root;
 }
