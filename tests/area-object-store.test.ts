@@ -33,6 +33,19 @@ test('area projection round-trips local coordinates without aliasing and keeps o
  assert.strictEqual(player.inventory,inventory);
 });
 
+test('wildlife is physical area state and identical local coordinates do not alias between realms',()=>{
+ const world=seedState(),player=makePlayer('Warden');world.players[player.id]=player;
+ world.animals={marchDeer:{id:'marchDeer',kind:'deer',position:[12,0,12],home:[12,0,12],yaw:0,phase:0}};
+ ensureAreaObjectStore(world);activateAreaObjects(world,'wolfpine','far-march');
+ assert.deepEqual(world.animals,{});
+ world.animals={pineWolf:{id:'pineWolf',areaId:'wolfpine',kind:'wolf',position:[12,0,12],home:[12,0,12],yaw:1,phase:1,packId:'wolfpine-court'}};
+ activateAreaObjects(world,'far-march','wolfpine');
+ assert.equal(world.animals?.marchDeer.id,'marchDeer');assert.equal(world.animals?.pineWolf,undefined);
+ assert.equal(world.areaObjectStore?.wolfpine.animals.pineWolf.position[0],12);
+ activateAreaObjects(world,'wolfpine','far-march');
+ assert.equal(world.animals?.pineWolf.id,'pineWolf');assert.equal(world.animals?.marchDeer,undefined);
+});
+
 test('the same LocalAuthority harvests the active streamed-area resource',()=>{
  const world=seedState(),player=makePlayer('Warden');world.players[player.id]=player;
  ensureAreaObjectStore(world);activateAreaObjects(world,'wolfpine','far-march');player.areaId='wolfpine';player.position=[4,0,5];
