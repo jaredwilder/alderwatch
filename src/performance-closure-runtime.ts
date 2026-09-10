@@ -17,7 +17,9 @@ let latestRuntime:LandscapePerformanceRuntime|undefined;
 type GlobalState=typeof globalThis&{[key:symbol]:unknown};
 const globalState=globalThis as GlobalState;
 
-export function instancedInteriorActive(){return globalState[INTERIOR]===true;}
+export function instancedInteriorActive(){
+ return globalState[INTERIOR]===true||(typeof document!=='undefined'&&document.documentElement.dataset.awInterior==='tavern');
+}
 
 function registerOutdoorObject(object:T.Object3D){
  outdoorObjects.add(object);
@@ -32,12 +34,11 @@ function registerOutdoorObject(object:T.Object3D){
  * camera is in one, so suspend them instead of paying for an invisible March.
  */
 export function setInstancedInteriorActive(active:boolean){
- if(instancedInteriorActive()===active)return;
- globalState[INTERIOR]=active;
  if(typeof document!=='undefined'){
   if(active)document.documentElement.dataset.awInterior='tavern';
   else delete document.documentElement.dataset.awInterior;
  }
+ globalState[INTERIOR]=active;
  for(const object of [...outdoorObjects]){
   if(!object.parent){outdoorObjects.delete(object);continue;}
   if(active){if(!priorInteriorVisibility.has(object))priorInteriorVisibility.set(object,object.visible);object.visible=false;}
@@ -146,7 +147,8 @@ export function readPerformanceClosure(){return latestRuntime?.read()??{logicalI
 
 function suspendMethod(proto:any,key:string,empty?:unknown){const original=proto[key];if(typeof original!=='function')return;proto[key]=function(...args:any[]){if(instancedInteriorActive())return empty;return original.apply(this,args);};}
 
-function install(){
+/** Install only after the ordinary game loader has completed. No module-evaluation side effect. */
+export function installPerformanceClosure(){
  if(globalState[INSTALL])return;globalState[INSTALL]=true;
  const proto=Landscape.prototype as any,update=proto.update;
  proto.update=function(this:Landscape,...args:any[]){
@@ -162,5 +164,3 @@ function install(){
  suspendMethod(Combat.prototype,'nearest',undefined);suspendMethod(Combat.prototype,'animalTarget',undefined);suspendMethod(Combat.prototype,'target',undefined);
  suspendMethod(Gathering.prototype,'update');suspendMethod(Gathering.prototype,'nearest',undefined);
 }
-
-if(typeof window!=='undefined'&&typeof document!=='undefined')install();

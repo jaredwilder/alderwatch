@@ -30,14 +30,24 @@ test('tavern source is a real enterable 3D gameplay room, not a dialogue-only fa
  for(const contract of ['Character.prototype.postStep','Character.prototype.preStep','setTranslation','tavern:enter','tavern:exit','openBar','openBones'])assert.ok(bridge.includes(contract),`missing live integration: ${contract}`);
 });
 
-test('second-pass isolation kills the live prompt and world-overlap regressions',()=>{
+test('live Alderbrook porch is the enter target instead of one buried magic point',()=>{
+ const bridge=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
+ assert.match(bridge,/const PORCH=\{minX:-13\.25,maxX:-6\.35,minZ:-31\.15,maxZ:-25\.55\}/);
+ assert.match(bridge,/atTavernPorch\(live\)\?\{kind:'enter'\}/,'outside interaction must use the visible porch footprint');
+ assert.match(bridge,/tavern\.inside\?physicalPosition\(position\):position/,'outside must trust PlayerState; physical-body fallback is only needed inside');
+ assert.match(bridge,/currentCharacter=this;/,'preStep must refresh the current character before any later interaction frame');
+ // Landscape longhouse door positions from x=-9,z=-34,yaw=.1 must sit inside the porch box.
+ const doors=[[-10.5905414639,-29.4183215028],[-9.0980352160,-29.5680716278]];
+ for(const [x,z] of doors)assert.ok(x>=-13.25&&x<=-6.35&&z>=-31.15&&z<=-25.55,`door ${x},${z} escaped tavern porch`);
+});
+
+test('second-pass isolation kills the old global prompt and world-overlap regressions',()=>{
  const source=readFileSync(new URL('../src/alderbrook-tavern.ts',import.meta.url),'utf8');
  assert.ok(!source.includes('new T.Vector3(620,20,620)'),'old pseudo-off-map coordinate collided with the expanded realm');
  assert.ok(source.includes('new T.Vector3(EXTERIOR_X,3000,EXTERIOR_Z)'),'interior must live on its dedicated high-altitude layer');
  assert.ok(source.includes('root.visible=false')&&source.includes('this.interiorRoot.visible=true')&&source.includes('this.interiorRoot.visible=false'),'interior render tree must only exist visually while occupied');
  assert.ok(source.includes('Structural shell is intentionally primitive and watertight'),'authored modular wall orientation must not be load-bearing');
  const bridge=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
- assert.ok(bridge.includes('return currentCharacter?currentCharacter.root.position.toArray() as Vec3:fallback'),'interaction distance must use the physical player outside as well as inside');
  assert.ok(!bridge.includes("actualPosition(tavern.exteriorDoor));\n if(action)"),'old global-enter prompt rewrite must stay dead');
  assert.ok(bridge.includes('prompt.hidden=!text'),'inside must explicitly suppress leaked outdoor prompts when no tavern affordance is nearby');
  assert.ok(bridge.includes("document.querySelector('.world-boss-entry')?.remove()"),'entering a social interior must clear stale boss spectacle');

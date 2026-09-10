@@ -41,16 +41,21 @@ test('zero-scale instance slots are removed without touching visible transforms'
  assert.equal(matrixSlotHasArea(payload,0),true);assert.equal(matrixSlotHasArea(payload,16),false);assert.equal(countActiveMatrixSlots(payload),2);
 });
 
-test('performance closure remains available for safe rework without lowering asset quality',()=>{
+test('performance closure remains no-quality-loss work',()=>{
  const runtime=readFileSync(new URL('../src/performance-closure-runtime.ts',import.meta.url),'utf8'),tavern=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
  assert.match(runtime,/mesh\.frustumCulled=true/);assert.match(runtime,/shouldSubmitObserverGrass/);assert.match(runtime,/matrixSlotHasArea/);
  assert.match(runtime,/suspendMethod\(Nature\.prototype,'update'\)/);assert.match(runtime,/setInstancedInteriorActive/);
  assert.doesNotMatch(tavern,/canvas\.style\.filter=tavern\.inside/);assert.match(tavern,/tavern-atmosphere/);assert.match(tavern,/hudQueued/);
 });
 
-test('performance closure cannot re-enter the startup-critical graph',()=>{
- const bootstrap=readFileSync(new URL('../src/bootstrap.ts',import.meta.url),'utf8'),tavern=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
- assert.doesNotMatch(bootstrap,/import\(['"]\.\/performance-closure-runtime['"]\)/,'bootstrap must not eagerly import the experimental performance runtime');
+test('performance closure is explicit and cannot re-enter the startup-critical graph',()=>{
+ const bootstrap=readFileSync(new URL('../src/bootstrap.ts',import.meta.url),'utf8'),tavern=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8'),runtime=readFileSync(new URL('../src/performance-closure-runtime.ts',import.meta.url),'utf8'),extensions=readFileSync(new URL('../src/runtime-extensions.ts',import.meta.url),'utf8');
+ assert.doesNotMatch(bootstrap,/import\(['"]\.\/performance-closure-runtime['"]\)/,'bootstrap must not eagerly import the performance runtime');
  assert.doesNotMatch(tavern,/from ['"]\.\/performance-closure-runtime['"]/,'tavern bridge must not statically pull the performance runtime back into main');
- assert.match(tavern,/dataset\.awInterior='tavern'/,'tavern presentation scoping must survive the hotfix');
+ assert.match(runtime,/export function installPerformanceClosure\(\)/,'runtime installation must be an explicit API');
+ assert.doesNotMatch(runtime,/typeof window[^\n]*installPerformanceClosure\(\)/,'module evaluation must not self-install');
+ assert.match(extensions,/document\.querySelector\('#loading'\)/,'post-boot installer must wait for the real loader to disappear');
+ assert.match(extensions,/import\('\.\/performance-closure-runtime'\)/,'optional extensions may dynamically import performance closure only after boot');
+ assert.match(extensions,/module=>module\.installPerformanceClosure\(\)/);
+ assert.match(runtime,/dataset\.awInterior==='tavern'/,'interior suspension must work without a tavern-to-performance static import');
 });
