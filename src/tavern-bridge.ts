@@ -17,8 +17,15 @@ let patchInstalled=false;
 // target instead of one magic point buried inside the facade.
 const PORCH={minX:-13.25,maxX:-6.35,minZ:-31.15,maxZ:-25.55};
 const DISTRICT_CENTER:[number,number]=[-9.3,-29.4];
+// Live acceptance proved Alderbrook's main-road approach can see this building
+// from ~136m away. The old 48m lazy gate literally hid the tavern/sign until the
+// player was nearly on top of an invisible frontage. Discovery must beat draw
+// distance: construct synchronously inside 180m, while retaining a cheap 220m
+// idle prewarm ring for approach from farther out.
+const DISCOVERY_RADIUS=180;
+const PREWARM_RADIUS=220;
 const atTavernPorch=(position:Vec3)=>position[0]>=PORCH.minX&&position[0]<=PORCH.maxX&&position[2]>=PORCH.minZ&&position[2]<=PORCH.maxZ;
-const nearTavern=(position:Vec3,radius=48)=>Math.hypot(position[0]-DISTRICT_CENTER[0],position[2]-DISTRICT_CENTER[1])<=radius;
+const nearTavern=(position:Vec3,radius=DISCOVERY_RADIUS)=>Math.hypot(position[0]-DISTRICT_CENTER[0],position[2]-DISTRICT_CENTER[1])<=radius;
 
 const entity=(id:string,name:string,role:string,position:Vec3,greeting=''):TavernEntity=>({id,name,role,position:[...position],yaw:0,greeting,hair:'#4b3527',cloth:'#66503e'});
 function relocate(character:Character,position:Vec3,yaw:number){
@@ -71,15 +78,15 @@ export class TavernBridge{
  }
  private ensure(position:Vec3){
   if(this.tavern)return this.tavern;
-  if(!nearTavern(position))return undefined;
-  // On the porch, interaction correctness outranks prewarm latency: build now.
-  if(atTavernPorch(position))return this.construct(position);
-  // Otherwise let the browser prepare the tavern scene while the player is still
-  // approaching. This keeps the full interior/patron clone cost off the critical
-  // first gameplay frame without reducing any authored content.
+  if(!nearTavern(position,PREWARM_RADIUS))return undefined;
+  // The authored tavern frontage is visible well before porch range. Build the
+  // complete hidden-interior capsule now so the sign/lantern cannot pop in late.
+  if(atTavernPorch(position)||nearTavern(position,DISCOVERY_RADIUS))return this.construct(position);
+  // Outside discovery range, use an idle prewarm so the tavern is ready before
+  // the player reaches the point where the frontage can enter the camera view.
   if(!this.warmupQueued&&currentCharacter){
    this.warmupQueued=true;
-   const run=()=>{this.warmupQueued=false;if(!this.tavern&&nearTavern(this.lastPosition,58))this.construct(this.lastPosition);};
+   const run=()=>{this.warmupQueued=false;if(!this.tavern&&nearTavern(this.lastPosition,PREWARM_RADIUS))this.construct(this.lastPosition);};
    const idle=(globalThis as typeof globalThis&{requestIdleCallback?:(cb:()=>void,options?:{timeout:number})=>number}).requestIdleCallback;
    if(idle)idle(run,{timeout:1200});else setTimeout(run,0);
   }
@@ -118,7 +125,7 @@ export class TavernBridge{
    const map=document.querySelector<HTMLElement>('.minimap,.mini-map,#minimap');if(map)map.style.visibility='';
   }
  }
- read(){return{...this.tavern?.read(),porch:{...PORCH},lastPosition:[...this.lastPosition],porchActive:atTavernPorch(this.lastPosition),warmupQueued:this.warmupQueued};}
+ read(){return{...this.tavern?.read(),porch:{...PORCH},lastPosition:[...this.lastPosition],porchActive:atTavernPorch(this.lastPosition),warmupQueued:this.warmupQueued,discoveryRadius:DISCOVERY_RADIUS,prewarmRadius:PREWARM_RADIUS};}
 }
 
 export function handleTavernEntity(ui:HTMLElement,id:string,resume:()=>void){

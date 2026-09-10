@@ -41,6 +41,17 @@ test('live Alderbrook porch is the enter target instead of one buried magic poin
  for(const [x,z] of doors)assert.ok(x>=-13.25&&x<=-6.35&&z>=-31.15&&z<=-25.55,`door ${x},${z} escaped tavern porch`);
 });
 
+test('tavern frontage exists before the visible Alderbrook road approach reaches it',()=>{
+ const bridge=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
+ assert.match(bridge,/const DISCOVERY_RADIUS=180;/,'frontage discovery radius must cover the visible downtown approach');
+ assert.match(bridge,/const PREWARM_RADIUS=220;/,'prewarm should begin before the tavern enters discovery range');
+ assert.match(bridge,/atTavernPorch\(position\)\|\|nearTavern\(position,DISCOVERY_RADIUS\)/,'visible-range construction must be synchronous, not idle-only');
+ const approach:[number,number]=[-76.8,89.0],centre:[number,number]=[-9.3,-29.4];
+ const distance=Math.hypot(approach[0]-centre[0],approach[1]-centre[1]);
+ assert.ok(distance>48,'fixture must prove the old 48m gate would hide the tavern');
+ assert.ok(distance<180,'the live downtown approach must construct the tavern before it is visually discoverable');
+});
+
 test('second-pass isolation kills the old global prompt and world-overlap regressions',()=>{
  const source=readFileSync(new URL('../src/alderbrook-tavern.ts',import.meta.url),'utf8');
  assert.ok(!source.includes('new T.Vector3(620,20,620)'),'old pseudo-off-map coordinate collided with the expanded realm');
