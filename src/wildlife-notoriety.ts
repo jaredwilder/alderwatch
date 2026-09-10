@@ -8,8 +8,9 @@ const EFFECTS:Record<AnimalAct,{karma:number;notoriety:number}>={
  wild_kill:{karma:-1,notoriety:4},livestock_kill:{karma:-8,notoriety:14},attack_person:{karma:-4,notoriety:6},kill_person:{karma:-15,notoriety:20},airlift:{karma:-5,notoriety:10},
 };
 const EPITHETS:Record<AnimalKind,readonly string[]>={
- hare:['the Garden Defendant','the Suspiciously Fast'],crow:['the Crop Inspector','the Blackmail Department'],
- goat:['the Fence Appellant','the Headbutt Solicitor'],sheep:['the Wool Dissident','the Pasture Radical'],deer:['the Hedgerow Fugitive','the Orchard Trespasser'],
+ hare:['the Garden Defendant','the Suspiciously Fast'],rabbit:['the Cabbage Litigant','the Burrow Fugitive'],crow:['the Crop Inspector','the Blackmail Department'],
+ goat:['the Fence Appellant','the Headbutt Solicitor'],sheep:['the Wool Dissident','the Pasture Radical'],deer:['the Hedgerow Fugitive','the Orchard Trespasser'],stag:['the Orchard Duke','the Hedge-Crown Offender'],
+ boar:['the Turnip Demolition Office','the Fence Restructuring Committee'],fox:['the Henhouse Consultant','the Red-Clad Auditor'],
  bear:['the Picnic Magistrate','the Forester’s Problem','the Honey Taxman'],bison:['the Fence Inspector','the Cart Abolisher','the Several-Hundred-Kilo Complaint'],
  wolf:['the Mutton Auditor','the Wool Collector','the Dinner Committee'],eagle:['the Bunny Helicopter','the Airborne Larcenist','the Mutton Aviation Authority'],
 };
