@@ -7,6 +7,7 @@ import {animalClips,instantiateAnimal,loadExtendedAnimalLibrary} from './animal-
 import {animalAlive,bearBite,bearMaul,corpseId,ensureAnimalVitals,predatorBite,wolfBite,wolfMaul} from './wildlife-rules';
 import {AUTHORED_ANIMAL_SET,LEGACY_ANIMAL_FALLBACK_SET,PREDATOR_SPECIES,predatorCanHunt,species,type AnimalKind,type AnimalState,type AuthoredAnimalKind} from './wildlife-species';
 import {WILDLIFE_SPAWNS,type WildlifeSpawn} from './wildlife-spawns';
+import {stepWildlifePopulation,WILDLIFE_DIRECTOR_PULSE_TICKS} from './wildlife-population';
 import {aggroWolfPack,ambientWanderHeading,angleTo,cohesiveFleeHeading,headingVector,herdCenter,predatorTarget,predatorThreat,wildlifeDistance,wolfFlankPoint,wolfInterferer} from './wildlife-ai';
 import {aerialPreyAction,beginCarry,ensureAerialState,releaseCarry,stepAerialEnergy} from './wildlife-aerial';
 import {createBeehiveVisual} from './beehive-visual';
@@ -17,7 +18,7 @@ export {ambientWanderHeading,cohesiveFleeHeading,headingVector,herdCenter} from 
 // Compatibility export for existing focused behavior tests/callers.
 export const bearTarget=(bear:AnimalState,animals:Record<string,AnimalState>,radius=24)=>predatorTarget(bear,animals,radius);
 
-interface AnimalVisual {group:T.Group;authored:boolean;mixer?:T.AnimationMixer;idle?:T.AnimationAction;walk?:T.AnimationAction;run?:T.AnimationAction;attack?:T.AnimationAction;fly?:T.AnimationAction;active?:T.AnimationAction}
+interface AnimalVisual {group:T.Group;authored:boolean;generation?:number;mixer?:T.AnimationMixer;idle?:T.AnimationAction;walk?:T.AnimationAction;run?:T.AnimationAction;attack?:T.AnimationAction;fly?:T.AnimationAction;active?:T.AnimationAction}
 const MODELS={berries:'berry_bush',mushroom:'mushrooms',herb:'herbs',wood:'fallen_branch',fiber:'flax'} as const;
 const HIVE_SPAWNS:readonly [string,number,number][]=[['nature-hive-0',-27,11],['nature-hive-1',31,52],['nature-hive-2',-42,92],['nature-hive-3',48,128]];
 const dist=wildlifeDistance;
@@ -49,7 +50,7 @@ export function forageAvailable(f:ForageState,tick:number){return !f.harvested||
 
 export class Nature {
  plants=new Map<string,T.Object3D>();animals=new Map<string,AnimalVisual>();onNotice=(text:string)=>{};
- private forageIndex:ForageSpatialIndex=new Map();private resourceIndex:ResourceSpatialIndex=new Map();private nextForageRefresh=0;
+ private forageIndex:ForageSpatialIndex=new Map();private resourceIndex:ResourceSpatialIndex=new Map();private nextForageRefresh=0;private nextPopulationPulse=0;
  constructor(private root:T.Group,private assets:Assets,private w:WorldState,private land:Landscape){seedNature(w);this.forageIndex=buildForageSpatialIndex(w.forage);this.resourceIndex=buildResourceSpatialIndex(w.resources);for(const a of Object.values(w.animals!))if(!AUTHORED_ANIMAL_SET.has(a.kind)||LEGACY_ANIMAL_FALLBACK_SET.has(a.kind))this.spawnLegacy(a);void this.loadAuthoredAnimals();this.update(0);}
  private refreshForage(){
   if(this.w.tick<this.nextForageRefresh)return;this.nextForageRefresh=this.w.tick+12;
@@ -63,7 +64,7 @@ export class Nature {
   }
   for(const [id,model] of this.plants)if(!wanted.has(id)){model.removeFromParent();this.plants.delete(id);}
  }
- private spawnLegacy(a:AnimalState){const model=this.assets.prop(a.kind);model.rotation.y=Math.PI;const group=new T.Group();group.name=a.id;group.add(model);group.position.fromArray(a.position);this.root.add(group);this.animals.set(a.id,{group,authored:false});}
+ private spawnLegacy(a:AnimalState){const model=this.assets.prop(a.kind);model.rotation.y=Math.PI;const group=new T.Group();group.name=a.id;group.add(model);group.position.fromArray(a.position);this.root.add(group);this.animals.set(a.id,{group,authored:false,generation:a.spawnGeneration??0});}
  private async loadAuthoredAnimals(){
   try{
    const library=await loadExtendedAnimalLibrary();
@@ -72,12 +73,19 @@ export class Nature {
     const fallback=this.animals.get(a.id);if(fallback){fallback.active?.stop();fallback.mixer?.stopAllAction();fallback.group.removeFromParent();this.animals.delete(a.id);}
     const {root,animations}=instantiateAnimal(kind,gltf);const group=new T.Group();group.name=a.id;group.add(root);group.position.fromArray(a.position);this.root.add(group);
     const mixer=animations.length?new T.AnimationMixer(root):undefined,clips=animalClips(animations);const idle=mixer&&clips.idle?mixer.clipAction(clips.idle):undefined,walk=mixer&&clips.walk?mixer.clipAction(clips.walk):undefined,run=mixer&&clips.run?mixer.clipAction(clips.run):undefined,attack=mixer&&clips.attack?mixer.clipAction(clips.attack):undefined,fly=mixer&&clips.fly?mixer.clipAction(clips.fly):undefined;
-    const visual:AnimalVisual={group,authored:true,mixer,idle,walk,run,attack,fly};this.animals.set(a.id,visual);this.useAction(visual,a.kind==='eagle'?fly??idle??walk??run:idle??walk??run);if(a.dead)this.poseDead(a,visual);
+    const visual:AnimalVisual={group,authored:true,generation:a.spawnGeneration??0,mixer,idle,walk,run,attack,fly};this.animals.set(a.id,visual);this.useAction(visual,a.kind==='eagle'?fly??idle??walk??run:idle??walk??run);if(a.dead){if(a.corpseClearedAt!==undefined)visual.group.visible=false;else this.poseDead(a,visual);}
    }
   }catch(error){console.warn('Alderwatch authored wildlife library failed unexpectedly; synchronous fallbacks remain active.',error);}
  }
  private useAction(v:AnimalVisual,next?:T.AnimationAction){if(!next||v.active===next)return;next.reset().fadeIn(.18).play();if(v.active&&v.active!==next)v.active.fadeOut(.18);v.active=next;}
- private poseDead(a:AnimalState,v:AnimalVisual){v.active?.stop();v.mixer?.stopAllAction();v.group.position.fromArray(a.position);v.group.rotation.y=a.yaw;v.group.rotation.z=species(a.kind).deathRoll;}
+ private poseDead(a:AnimalState,v:AnimalVisual){v.group.visible=true;v.active?.stop();v.mixer?.stopAllAction();v.group.position.fromArray(a.position);v.group.rotation.y=a.yaw;v.group.rotation.z=species(a.kind).deathRoll;}
+ private reviveVisual(a:AnimalState,v:AnimalVisual){v.mixer?.stopAllAction();v.active=undefined;v.group.visible=true;v.group.rotation.z=0;v.group.position.fromArray(a.position);v.group.rotation.y=a.yaw;v.generation=a.spawnGeneration??0;this.useAction(v,a.kind==='eagle'?v.fly??v.idle??v.walk??v.run:v.idle??v.walk??v.run);}
+ private pulsePopulation(){
+  if(this.w.tick<this.nextPopulationPulse)return;this.nextPopulationPulse=this.w.tick+WILDLIFE_DIRECTOR_PULSE_TICKS;
+  const changed=stepWildlifePopulation(this.w,{groundY:height,blocked:(x,z)=>height(x,z)<=-1||this.land.ambientOccupied(x,z)||resourceCandidates(this.resourceIndex,[x,0,z],2).some(id=>{const r=this.w.resources[id];return r.phase==='standing'&&Math.hypot(x-r.position[0],z-r.position[2])<1.3;})||Object.values(this.w.structures).some(s=>Math.hypot(x-s.position[0],z-s.position[2])<2.4)});
+  for(const id of changed.clearedCorpses){const visual=this.animals.get(id);if(visual)visual.group.visible=false;}
+  for(const id of changed.respawned){const animal=this.w.animals?.[id],visual=this.animals.get(id);if(animal&&visual)this.reviveVisual(animal,visual);}
+ }
  private settleDeadAerial(a:AnimalState){if(!species(a.kind).aerial)return;const y=height(a.position[0],a.position[2]);a.position[1]=y;const corpse=this.w.containers[corpseId(a.id)];if(corpse)corpse.position=[...a.position];}
  private predatorPrey(a:AnimalState,all:Record<string,AnimalState>){
   const config=species(a.kind).predator;if(!config||a.carriedPreyId)return undefined;
@@ -87,19 +95,20 @@ export class Nature {
    else if(d<(a.huntBestDistance??Infinity)-.75){a.huntBestDistance=d;a.huntUntil=this.w.tick+360;return current;}else return current;
   }
   if((a.huntCooldownUntil??0)>this.w.tick)return undefined;
-  // Player-proximity gates stop the food web resolving every encounter while nobody is there to see it.
-  const wakeRadius=a.kind==='wolf'?85:a.kind==='eagle'?105:Infinity;
-  if(Number.isFinite(wakeRadius)&&!Object.values(this.w.players).some(player=>player.health>0&&dist(player.position,a.position)<wakeRadius))return undefined;
+  // Food-web drama is local theatre: no invisible predator is allowed to depopulate a region offscreen.
+  const wakeRadius=a.kind==='eagle'?105:a.kind==='bear'?95:85;
+  if(!Object.values(this.w.players).some(player=>player.health>0&&dist(player.position,a.position)<wakeRadius))return undefined;
   const next=predatorTarget(a,all,config.acquireRadius);if(next){a.huntTargetId=next.id;a.huntBestDistance=dist(a.position,next.position);a.huntUntil=this.w.tick+(a.kind==='eagle'?360:540);}return next;
  }
  private releaseExhaustedCarry(a:AnimalState,all:Record<string,AnimalState>){const prey=releaseCarry(a,all);if(!prey)return;const y=height(a.position[0],a.position[2]);prey.position=[a.position[0],y,a.position[2]];prey.avoidUntil=this.w.tick+50;this.onNotice(`A tired eagle drops the ${prey.kind}`);}
  private finishEagleCarry(a:AnimalState,all:Record<string,AnimalState>){const prey=releaseCarry(a,all);if(!prey||!animalAlive(prey))return;prey.position=[a.position[0],height(a.position[0],a.position[2]),a.position[2]];predatorBite(this.w,a,prey,prey.health??999);a.huntCooldownUntil=this.w.tick+240;}
  update(dt:number){
-  this.refreshForage();
+  this.refreshForage();this.pulsePopulation();
   const all=this.w.animals!;
   for(const a of Object.values(all)){
    ensureAnimalVitals(a);const visual=this.animals.get(a.id),profile=species(a.kind),aerial=profile.aerial;if(aerial)ensureAerialState(a);
-   if(!animalAlive(a)){this.settleDeadAerial(a);if(visual)this.poseDead(a,visual);continue;}
+   if(!animalAlive(a)){this.settleDeadAerial(a);if(visual){if(a.corpseClearedAt!==undefined)visual.group.visible=false;else this.poseDead(a,visual);}continue;}
+   if(visual&&(visual.generation??0)!==(a.spawnGeneration??0))this.reviveVisual(a,visual);
    if(a.carriedById){const carrier=all[a.carriedById];if(carrier&&animalAlive(carrier)&&carrier.carriedPreyId===a.id&&carrier.airborne){a.position=[carrier.position[0],carrier.position[1]-.72,carrier.position[2]];if(visual){visual.group.position.fromArray(a.position);this.useAction(visual,visual.idle??visual.walk);}continue;}a.carriedById=undefined;}
    if(aerial){const step=stepAerialEnergy(a,dt);if(step.exhaustedDrop)this.releaseExhaustedCarry(a,all);if(a.carriedPreyId&&(a.carryUntil??Infinity)<=this.w.tick)this.finishEagleCarry(a,all);}
    const predatorConfig=profile.predator,isPredator=PREDATOR_SPECIES.has(a.kind),p=Object.values(this.w.players).filter(player=>player.health>0).sort((one,two)=>dist(one.position,a.position)-dist(two.position,a.position))[0];
@@ -112,7 +121,7 @@ export class Nature {
    const center=herdCenter(a,all),flee=!isPredator&&(near<profile.fleeRadius||!!predator||provoked),hunting=!!prey||!!hostilePlayer,carrying=!!a.carriedPreyId;
    a.phase+=dt;const homeDistance=dist(a.home,a.position),centerDistance=center?dist(center,a.position):0,phase=(a.id.length*1.618)%6.283;
    const threat=predator?.position??(provoked&&provoker?provoker.position:p&&near<profile.fleeRadius?p.position:undefined);
-   const carcass=a.kind==='bear'&&!hunting&&Math.sin(a.phase*.12+phase)>.92?Object.values(all).filter(other=>other.dead&&predatorCanHunt(a.kind,other.kind)&&dist(other.position,a.position)<16).sort((x,y)=>dist(x.position,a.position)-dist(y.position,a.position))[0]:undefined;
+   const carcass=a.kind==='bear'&&!hunting&&Math.sin(a.phase*.12+phase)>.92?Object.values(all).filter(other=>other.dead&&other.corpseClearedAt===undefined&&predatorCanHunt(a.kind,other.kind)&&dist(other.position,a.position)<16).sort((x,y)=>dist(x.position,a.position)-dist(y.position,a.position))[0]:undefined;
    const grazing=profile.grazes&&!flee&&!hunting&&homeDistance<profile.homeRadius&&centerDistance<10&&Math.sin(a.phase*.18+phase)<.28;
    const preyPoint=prey?(a.kind==='wolf'?wolfFlankPoint(a,prey,all):prey.position):undefined;
    let desired=threat?cohesiveFleeHeading(a,threat,center):hostilePlayer?angleTo(a.position,hostilePlayer.position):preyPoint?angleTo(a.position,preyPoint):carrying?angleTo(a.position,a.home):carcass?angleTo(a.position,carcass.position):homeDistance>profile.homeRadius?angleTo(a.position,a.home):center&&centerDistance>7?angleTo(a.position,center):ambientWanderHeading(a);
