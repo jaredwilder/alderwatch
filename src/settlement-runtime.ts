@@ -40,7 +40,7 @@ export function renderSettlementCell(context:SettlementCellRenderContext){
  for(const zone of plan.zones){
   const scale=PATCH_SCALE[zone.kind];if(!scale)continue;const {x,z}=zone.center;if(x<minX||x>=maxX||z<minZ||z>=maxZ)continue;
   const geometry=makeIrregularPatchGeometry(zone.radius*scale[0],zone.radius*scale[1],`${plan.charter.id}:${zone.id}`);ownedGeometries.push(geometry);
-  const patch=new T.Mesh(geometry,surfaces.yard);patch.name=`settlement-ground:${plan.charter.id}:${zone.id}`;patch.position.set(x-cx,.019,z-cz);patch.rotation.y=zone.orientation;patch.receiveShadow=true;patch.castShadow=false;patch.renderOrder=-1;group.add(patch);groundPatches++;
+  const patch=new T.Mesh(geometry,surfaces.yard);patch.name=`settlement-ground:${plan.charter.id}:${zone.id}`;patch.position.set(x-cx,.019,z-cz);patch.rotation.y=zone.facing;patch.receiveShadow=true;patch.castShadow=false;patch.renderOrder=-1;group.add(patch);groundPatches++;
  }
  // Paths retain one draw per clipped semantic segment, but their edges and
  // centreline are boundedly irregular rather than scaled PlaneGeometry slabs.
