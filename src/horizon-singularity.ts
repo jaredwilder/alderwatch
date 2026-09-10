@@ -26,7 +26,8 @@ export const CANOPY_PROXY_TO_MASS_ANGLE=.022;
 export const CANOPY_MASS_CUTOFF_ANGLE=.0125;
 export const HORIZON_TERRAIN_SAFE_MARGIN=9;
 export const HORIZON_TERRAIN_EDGE_FADE=38;
-export const SKYWARD_CANOPY_LIMITS={crown:{start:.08,end:.34},mass:{start:0,end:.20}} as const;
+export const HORIZON_RIDGE_WOODLAND_START=270;
+export const HORIZON_RIDGE_WOODLAND_FULL=345;
 
 /** Exact angular diameter, used as the LOD error variable instead of raw distance. */
 export function angularDiameter(size:number,distance:number){return 2*Math.atan(Math.max(0,size)/(2*Math.max(.001,distance)));}
@@ -41,8 +42,8 @@ export function canopyRepresentation(distance:number,size=REFERENCE_CANOPY_HEIGH
  * forest-frequency signal once individual branch geometry is beneath perception.
  */
 export const HORIZON_CANOPY_FIELDS=[
- {id:'crown',cell:10.2,size:72,triangles:32,density:.82,scale:.96,seed:0x4d72ab,fadeIn:118,fadeFull:145,fadeStart:295,fadeOut:345,metricPower:4},
- {id:'mass',cell:18.2,size:64,triangles:12,density:.88,scale:1.18,seed:0x1bf953,fadeIn:285,fadeFull:330,fadeStart:520,fadeOut:565,metricPower:4},
+ {id:'crown',cell:10.2,size:72,triangles:32,density:.88,scale:.96,seed:0x4d72ab,fadeIn:132,fadeFull:158,fadeStart:300,fadeOut:350,metricPower:4},
+ {id:'mass',cell:18.2,size:64,triangles:12,density:.92,scale:1.18,seed:0x1bf953,fadeIn:292,fadeFull:338,fadeStart:525,fadeOut:570,metricPower:4},
 ] as const satisfies readonly CanopyBandSpec[];
 
 const clamp01=(x:number)=>Math.max(0,Math.min(1,x));
@@ -50,14 +51,23 @@ const smooth01=(x:number)=>{const t=clamp01(x);return t*t*(3-2*t);};
 
 /**
  * A horizon proxy is legal only where the shipping March terrain mesh can
- * physically support its root. The old infinite height() function was not a
- * render-surface certificate: near realm edges it let observer clipmaps place
- * trees hundreds of metres beyond the actual 768 m terrain sheet.
+ * physically support its root. The infinite height() function is not a render
+ * surface certificate.
  */
 export function horizonTerrainSupport(x:number,z:number,worldSize=WORLD_SIZE){
  const edge=worldSize*.5-Math.max(Math.abs(x),Math.abs(z));
  if(edge<=HORIZON_TERRAIN_SAFE_MARGIN)return 0;
  return smooth01((edge-HORIZON_TERRAIN_SAFE_MARGIN)/(HORIZON_TERRAIN_EDGE_FADE-HORIZON_TERRAIN_SAFE_MARGIN));
+}
+
+/**
+ * The playable boundary is intentionally a highland rim. Spend existing canopy
+ * capacity on that silhouette instead of exposing a naked texture wall. This is
+ * a density bias only; the physical-support certificate still has final veto.
+ */
+export function horizonRidgeWoodlandBias(x:number,z:number){
+ const r=Math.max(Math.abs(x),Math.abs(z));
+ return .44*smooth01((r-HORIZON_RIDGE_WOODLAND_START)/(HORIZON_RIDGE_WOODLAND_FULL-HORIZON_RIDGE_WOODLAND_START));
 }
 
 /** Distance from an observer to the finite square terrain boundary along a view ray. */
@@ -70,18 +80,11 @@ export function terrainBoundaryDistance(x:number,z:number,dx:number,dz:number,wo
 }
 
 /**
- * View-dependent support certificate. If the centre view ray leaves physical
- * terrain before a representation even begins, that whole draw has zero useful
- * forward contribution and can be switched off instead of transforming hidden
- * instances. The ramp prevents popping while approaching a boundary.
+ * View-dependent support certificate for callers that can cheaply reject a
+ * whole distant band. It depends on physical terrain reach, never camera pitch.
  */
 export function directionalCanopySupport(boundaryDistance:number,spec:CanopyBandSpec){
  return smooth01((boundaryDistance-spec.fadeIn)/(spec.fadeFull-spec.fadeIn));
-}
-
-/** Distant forest is a horizon representation, not sky content. */
-export function skywardCanopyVisibility(cameraForwardY:number,id:CanopyBandId){
- const {start,end}=SKYWARD_CANOPY_LIMITS[id];return 1-smooth01((cameraForwardY-start)/(end-start));
 }
 
 export function horizonHash(x:number,z:number,salt=0){
