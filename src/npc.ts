@@ -50,11 +50,15 @@ export class Village {
   }
  }
  /** The villager or tavern affordance close enough to use, if any. */
- nearest(position:Vec3,range=2.4):Villager|undefined{const tavern=this.tavern.nearest(position) as TavernEntity|undefined;if(tavern)return tavern;return VILLAGERS.map(v=>({v,d:Math.hypot(v.position[0]-position[0],v.position[2]-position[2])}))
-  .filter(e=>e.d<range).sort((a,b)=>a.d-b.d)[0]?.v;}
+ nearest(position:Vec3,range=2.4):Villager|undefined{
+  const tavern=this.tavern.nearest(position) as TavernEntity|undefined;if(tavern)return tavern;
+  // An interior owns its interaction namespace; never fall through to outdoor Alderbrook NPCs.
+  if(this.tavern.inside)return undefined;
+  return VILLAGERS.map(v=>({v,d:Math.hypot(v.position[0]-position[0],v.position[2]-position[2])})).filter(e=>e.d<range).sort((a,b)=>a.d-b.d)[0]?.v;
+ }
  /** Idle animation, slow face-to-player turns, and bounded tavern ambience. */
  update(dt:number,position:Vec3){
-  this.tavern.update(dt,position);
+  this.tavern.update(dt,position);if(this.tavern.inside)return;
   for(const actor of this.actors.values()){
    actor.mixer.update(dt);
    const dx=position[0]-actor.villager.position[0],dz=position[2]-actor.villager.position[2];
