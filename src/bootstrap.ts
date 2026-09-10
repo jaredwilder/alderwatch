@@ -100,8 +100,10 @@ if(area===IRONWARD_CROSSING){
   catch(error){console.error('Alderwatch ecology singularity failed to install',error);}
   try{await import('./horizon-singularity-runtime');}
   catch(error){console.error('Alderwatch horizon singularity failed to install',error);}
-  try{await import('./performance-closure-runtime');}
-  catch(error){console.error('Alderwatch performance closure failed to install',error);}
+  // PERFORMANCE-CLOSURE HOTFIX: keep the experimental frame compactor off the
+  // startup-critical module graph until it has an explicit post-boot installer.
+  // The previous eager import pulled Landscape/Nature/Combat/Gathering back into
+  // bootstrap through tavern code and could strand the live build on the loader.
   await import('./main');
   await installFarMarchPlayerUI();
   try{await import('./runtime-extensions');}

@@ -5,7 +5,6 @@ import {stats} from './definitions';
 import type {Vec3} from './state';
 import {AlderbrookTavern,type TavernInteraction} from './alderbrook-tavern';
 import {MAX_INTOXICATION as INTOXICATION_CAP} from './tavern-rules';
-import {setInstancedInteriorActive} from './performance-closure-runtime';
 
 export interface TavernEntity{id:string;name:string;role:string;position:Vec3;yaw:number;greeting:string;hair:string;cloth:string}
 let currentCharacter:Character|undefined;
@@ -46,6 +45,11 @@ function interactionEntity(action:TavernInteraction,tavern:AlderbrookTavern):Tav
  return entity(`tavern:patron:${action.id}`,action.id==='pell'?'Pell “Three Mugs” Dorr':action.id==='sella'?'Sella Reed':'Jorren Pike','Regular',pos);
 }
 function clearOutdoorNoise(){document.querySelector('#toast')?.remove();document.querySelector('.world-boss-entry')?.remove();}
+function setTavernPresentationActive(active:boolean){
+ if(typeof document==='undefined')return;
+ if(active)document.documentElement.dataset.awInterior='tavern';
+ else delete document.documentElement.dataset.awInterior;
+}
 
 export class TavernBridge{
  private tavern?:AlderbrookTavern;private target?:TavernEntity;private hudQueued=false;private atmosphere?:HTMLDivElement;private atmosphereOpacity=-1;
@@ -79,8 +83,8 @@ export class TavernBridge{
 
 export function handleTavernEntity(ui:HTMLElement,id:string,resume:()=>void){
  const tavern=activeTavern,character=currentCharacter;if(!tavern||!character||!id.startsWith('tavern:'))return false;
- if(id==='tavern:enter'){clearOutdoorNoise();const to=tavern.enter();setInstancedInteriorActive(true);relocate(character,to.position,to.yaw);resume();return true;}
- if(id==='tavern:exit'){const to=tavern.leave();setInstancedInteriorActive(false);relocate(character,to.position,to.yaw);document.querySelector('.tavern-atmosphere')?.remove();resume();return true;}
+ if(id==='tavern:enter'){clearOutdoorNoise();const to=tavern.enter();setTavernPresentationActive(true);relocate(character,to.position,to.yaw);resume();return true;}
+ if(id==='tavern:exit'){const to=tavern.leave();setTavernPresentationActive(false);relocate(character,to.position,to.yaw);document.querySelector('.tavern-atmosphere')?.remove();resume();return true;}
  if(id==='tavern:brinna'){tavern.openBar(ui,character.state,stats(character.state).stamina,resume);return true;}
  if(id==='tavern:bones'){tavern.openBones(ui,resume);return true;}
  const panel=(title:string,eyebrow:string,copy:string)=>{ui.innerHTML='<section class="menu-card game-panel tavern-panel"><button class="back">← Back to the room</button><div class="eyebrow"></div><h2></h2><div class="tavern-content"><p class="tavern-quote"></p></div></section>';ui.querySelector<HTMLButtonElement>('.back')!.onclick=resume;ui.querySelector('.eyebrow')!.textContent=eyebrow;ui.querySelector('h2')!.textContent=title;ui.querySelector<HTMLElement>('.tavern-quote')!.textContent=copy;};
