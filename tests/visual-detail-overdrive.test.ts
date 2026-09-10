@@ -46,8 +46,8 @@ test('terrain shader bridges distant geometry into statistical green biomass wit
  const shader:any={uniforms:{},vertexShader:'#include <begin_vertex>',fragmentShader:'#include <map_fragment>\n#include <roughnessmap_fragment>\n#include <normal_fragment_maps>'};
  material.onBeforeCompile(shader,{} as any);
  assert.match(shader.fragmentShader,/awGroundNear/);assert.match(shader.fragmentShader,/fineUv/);assert.match(shader.fragmentShader,/microDetail\*\.58/);
- assert.match(shader.fragmentShader,/awMeadowBridge/);assert.match(shader.fragmentShader,/awCanopyTint/);
- assert.match(material.customProgramCacheKey(),/observer-detail-ground-v3-horizon-bridge/);
+ assert.match(shader.fragmentShader,/awMeadowBridge/);assert.match(shader.fragmentShader,/awCanopyTint/);assert.match(shader.fragmentShader,/awGroundNoise/);
+ assert.match(material.customProgramCacheKey(),/observer-detail-ground-v4-material-singularity/);
  const awUniforms=Object.keys(shader.uniforms).filter(k=>k.startsWith('aw'));
  assert.equal(awUniforms.length,7,'six texture inputs plus one scalar perceptual-market control');
  assert.equal(awUniforms.filter(k=>shader.uniforms[k]?.value instanceof T.Texture).length,6,'the market must not add another texture object');
