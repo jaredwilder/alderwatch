@@ -1,6 +1,9 @@
-const PORCH_X=-9.3;
-const PORCH_Z=-27.15;
-const PORCH_YAW=Math.PI;
+// Dev jump is a visual acceptance jump, not merely a coordinate shortcut.
+// Spawn just inside the porch affordance and face north-to-south toward the tavern.
+// Character yaw 0 faces -Z; the previous PI yaw literally turned the camera away.
+const PORCH_X=-9.8;
+const PORCH_Z=-25.8;
+const PORCH_YAW=0;
 
 type AlderwatchDevAPI={
  enabled?:boolean;
@@ -20,7 +23,7 @@ export function installTipsyAlderDevTransport(){
  const button=document.createElement('button');
  button.dataset.tipsyAlderJump='1';
  button.textContent='Jump · Tipsy Alder';
- button.title='Jump straight to The Tipsy Alder porch in Alderbrook';
+ button.title='Jump onto The Tipsy Alder porch, facing the sign and entrance';
  button.onclick=jump;
  const heal=grid.querySelector('[data-cmd="heal"]');
  if(heal)grid.insertBefore(button,heal);else grid.append(button);
