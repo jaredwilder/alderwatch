@@ -10,6 +10,9 @@ declare module './state' {
   interface EnemyState {areaId?:AreaId}
   interface ForageState {areaId?:AreaId}
 }
+declare module './wildlife-species' {
+  interface AnimalState {areaId?:AreaId}
+}
 
 export const LEGACY_AREA:AreaId='far-march';
 export type AreaOwned={areaId?:AreaId};
