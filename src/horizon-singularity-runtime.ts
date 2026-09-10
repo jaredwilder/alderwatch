@@ -5,7 +5,7 @@ import {treePhenotype} from './forest-singularity';
 import {ecologyState,roadDisturbance} from './ecology-singularity';
 import {height,roadX} from './terrain';
 import {trailDistance} from './worldgen';
-import {HORIZON_CANOPY_FIELDS,enteringHorizonCells,horizonCanopyQuality,horizonFieldOrigin,horizonHash,type CanopyBandSpec,type HorizonGridOrigin} from './horizon-singularity';
+import {HORIZON_CANOPY_FIELDS,directionalCanopySupport,enteringHorizonCells,horizonCanopyQuality,horizonFieldOrigin,horizonHash,horizonTerrainSupport,skywardCanopyVisibility,terrainBoundaryDistance,type CanopyBandSpec,type HorizonGridOrigin} from './horizon-singularity';
 
 const INSTALL=Symbol.for('alderwatch.horizon-singularity.v1');
 const FIELD=Symbol.for('alderwatch.horizon-canopy-field.v1');
@@ -28,8 +28,12 @@ export function createHorizonCanopyGeometry(spec:CanopyBandSpec){
   const r=.17,y=2.9;for(let i=0;i<4;i++){const a=i*Math.PI/2,b=(i+1)*Math.PI/2;quad(g,[Math.cos(a)*r,0,Math.sin(a)*r],[Math.cos(b)*r,0,Math.sin(b)*r],[Math.cos(b)*r,y,Math.sin(b)*r],[Math.cos(a)*r,y,Math.sin(a)*r],i%2?bark:barkLight);}
   octa(g,0,4.45,0,1.72,2.05,1.55,leaf);octa(g,-1.08,5.15,.28,1.38,1.62,1.28,leafDark);octa(g,1.04,5.28,-.22,1.42,1.72,1.34,leafLight);
  }else{
-  quad(g,[-.14,0,0],[.14,0,0],[.10,2.7,0],[-.10,2.7,0],bark);quad(g,[0,0,-.14],[0,0,.14],[0,2.7,.10],[0,2.7,-.10],barkLight);
-  for(let i=0;i<4;i++){const a=i*Math.PI/4,dx=Math.cos(a),dz=Math.sin(a),px=-dz,pz=dx,w=1.9;quad(g,[px*-w,2.25,pz*-w],[px*w,2.25,pz*w],[px*w*.82,6.65,pz*w*.82],[px*-w*.82,6.65,pz*-w*.82],i%2?leaf:leafDark);}
+  // At mass distance the eye needs a continuous forest-frequency clump, not
+  // thousands of tiny poles. Keep the same 12-triangle Court budget but spend
+  // every triangle on a broad root-connected canopy silhouette.
+  octa(g,0,3.05,0,2.65,2.45,2.18,leafDark);
+  quad(g,[-2.9,.42,-.48],[2.9,.42,.48],[2.25,3.18,.34],[-2.25,3.18,-.34],leaf);
+  quad(g,[.46,.34,-2.55],[-.46,.34,2.55],[-.34,3.08,2.0],[.34,3.08,-2.0],leafLight);
  }
  const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(g.positions,3));geometry.setAttribute('color',new T.Float32BufferAttribute(g.colors,3));geometry.setIndex(g.indices);geometry.computeVertexNormals();geometry.computeBoundingSphere();const triangles=g.indices.length/3;if(triangles!==spec.triangles)throw new Error(`${spec.id} horizon geometry budget drift: ${triangles} != ${spec.triangles}`);return geometry;
 }
@@ -58,20 +62,20 @@ function canopyMaterial(spec:CanopyBandSpec){
    diffuseColor.rgb*=awHVariation;
   `);
  };
- material.customProgramCacheKey=()=>`aw-horizon-canopy-${spec.id}-v1`;material.needsUpdate=true;return material;
+ material.customProgramCacheKey=()=>`aw-horizon-canopy-${spec.id}-v2-supported`;material.needsUpdate=true;return material;
 }
 
 function roadDistance(x:number,z:number){return z>45?trailDistance(x,z):Math.abs(x-roadX(z));}
 function blockedByBuild(landscape:Landscape,x:number,z:number){return Object.values(landscape.state.structures??{}).some((s:any)=>Math.hypot(x-s.position[0],z-s.position[2])<(s.kind==='foundation'?5.0:3.0));}
 
 class ToroidalCanopyBand{
- mesh:T.InstancedMesh;origin?:HorizonGridOrigin;dummy=new T.Object3D();color=new T.Color();writes=0;
+ mesh:T.InstancedMesh;origin?:HorizonGridOrigin;dummy=new T.Object3D();color=new T.Color();writes=0;effectiveQuality=1;
  constructor(public landscape:Landscape,public spec:CanopyBandSpec){
   this.mesh=new T.InstancedMesh(createHorizonCanopyGeometry(spec),canopyMaterial(spec),spec.size*spec.size);this.mesh.name=`Observer horizon forest ${spec.id}`;this.mesh.count=0;this.mesh.castShadow=false;this.mesh.receiveShadow=false;this.mesh.frustumCulled=false;this.mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);landscape.scene.add(this.mesh);
  }
  private write(gx:number,gz:number,slot:number){
-  const {landscape,spec}=this,jx=(horizonHash(gx,gz,spec.seed+11)-.5)*spec.cell*.82,jz=(horizonHash(gx,gz,spec.seed+23)-.5)*spec.cell*.82,x=(gx+.5)*spec.cell+jx,z=(gz+.5)*spec.cell+jz,y=height(x,z),road=roadDistance(x,z),woods=forestDensity(x,z),edge=forestEdge(x,z),eco=ecologyState(x,z,roadDisturbance(road));
-  const chance=Math.min(.965,Math.max(0,(woods*.84+edge*.24+eco.understory*.12-.08)*spec.density)),blocked=!Number.isFinite(y)||y<-2.4||road<8.2||woods<.12||blockedByBuild(landscape,x,z)||horizonHash(gx,gz,spec.seed+71)>chance;
+  const {landscape,spec}=this,jx=(horizonHash(gx,gz,spec.seed+11)-.5)*spec.cell*.82,jz=(horizonHash(gx,gz,spec.seed+23)-.5)*spec.cell*.82,x=(gx+.5)*spec.cell+jx,z=(gz+.5)*spec.cell+jz,y=height(x,z),road=roadDistance(x,z),woods=forestDensity(x,z),edge=forestEdge(x,z),eco=ecologyState(x,z,roadDisturbance(road)),support=horizonTerrainSupport(x,z);
+  const chance=Math.min(.965,Math.max(0,(woods*.84+edge*.24+eco.understory*.12-.08)*spec.density*support)),blocked=support<=.01||!Number.isFinite(y)||y<-2.4||road<8.2||woods<.12||blockedByBuild(landscape,x,z)||horizonHash(gx,gz,spec.seed+71)>chance;
   if(blocked){this.mesh.setMatrixAt(slot,HIDDEN);return;}
   const phenotype=treePhenotype(x,z),random=.78+horizonHash(gx,gz,spec.seed+101)*.48,scale=spec.scale*random;
   this.dummy.position.set(x,y-.15,z);this.dummy.rotation.set(phenotype.leanX*.30,horizonHash(gx,gz,spec.seed+127)*Math.PI*2+phenotype.yawJitter,phenotype.leanZ*.30);this.dummy.scale.set(scale*phenotype.widthX,scale*phenotype.height,scale*phenotype.widthZ);this.dummy.updateMatrix();this.mesh.setMatrixAt(slot,this.dummy.matrix);
@@ -81,14 +85,19 @@ class ToroidalCanopyBand{
   const material=this.mesh.material as T.Material,center=material.userData.awHorizonCenter as {value:T.Vector2};center.value.set(x,z);
   const next=horizonFieldOrigin(x,z,this.spec),cells=force?enteringHorizonCells(undefined,next,this.spec.size):enteringHorizonCells(this.origin,next,this.spec.size);if(cells.length){for(const c of cells)this.write(c.gx,c.gz,c.slot);this.origin=next;this.mesh.count=this.spec.size*this.spec.size;this.mesh.instanceMatrix.needsUpdate=true;if(this.mesh.instanceColor)this.mesh.instanceColor.needsUpdate=true;this.writes+=cells.length;}return cells.length;
  }
- setQuality(q:number){((this.mesh.material as T.Material).userData.awHorizonQuality as {value:number}).value=horizonCanopyQuality(q,this.spec.id);}
+ setQuality(marketQuality:number,viewSupport:number){this.effectiveQuality=marketQuality*viewSupport;((this.mesh.material as T.Material).userData.awHorizonQuality as {value:number}).value=this.effectiveQuality;this.mesh.visible=this.effectiveQuality>.025;}
 }
 
 class HorizonCanopyField{
- bands:ToroidalCanopyBand[];structureSignature='';
+ bands:ToroidalCanopyBand[];structureSignature='';viewDirection=new T.Vector3();
  constructor(public landscape:Landscape){this.bands=HORIZON_CANOPY_FIELDS.map(spec=>new ToroidalCanopyBand(landscape,spec));}
  update(force=false){
-  const player=Object.values(this.landscape.state.players)[0];if(!player)return;const [x,,z]=player.position,signature=Object.keys(this.landscape.state.structures??{}).sort().join('|'),rebuild=force||signature!==this.structureSignature;let writes=0;for(const band of this.bands)writes+=band.update(x,z,rebuild);this.structureSignature=signature;const quality=(this.landscape as any).__perceptualBudget?.quality??1;for(const band of this.bands)band.setQuality(quality);(this.landscape as any).__horizonCanopyStats={writes,quality,bands:this.bands.map(b=>({id:b.spec.id,capacity:b.spec.size*b.spec.size,triangles:b.spec.triangles,totalWrites:b.writes}))};
+  const player=Object.values(this.landscape.state.players)[0];if(!player)return;const [x,,z]=player.position,signature=Object.keys(this.landscape.state.structures??{}).sort().join('|'),rebuild=force||signature!==this.structureSignature;let writes=0;for(const band of this.bands)writes+=band.update(x,z,rebuild);this.structureSignature=signature;
+  const budget=(this.landscape as any).__perceptualBudget,quality=budget?.quality??1,allocations=budget?.market?.allocations as Record<string,number>|undefined,camera=(this.landscape.scene as T.Object3D).userData.awCamera as T.Camera|undefined;
+  let forwardY=-1,boundary=Infinity;
+  if(camera){camera.getWorldDirection(this.viewDirection);forwardY=this.viewDirection.y;const horizontal=Math.hypot(this.viewDirection.x,this.viewDirection.z);if(horizontal>.001)boundary=terrainBoundaryDistance(x,z,this.viewDirection.x/horizontal,this.viewDirection.z/horizontal);}
+  for(const band of this.bands){const marketQuality=allocations?.[`canopy.${band.spec.id}`]??horizonCanopyQuality(quality,band.spec.id),view=skywardCanopyVisibility(forwardY,band.spec.id)*directionalCanopySupport(boundary,band.spec);band.setQuality(marketQuality,view);}
+  (this.landscape as any).__horizonCanopyStats={writes,quality,cameraForwardY:forwardY,boundaryDistance:boundary,bands:this.bands.map(b=>({id:b.spec.id,capacity:b.spec.size*b.spec.size,triangles:b.spec.triangles,totalWrites:b.writes,effectiveQuality:b.effectiveQuality,visible:b.mesh.visible}))};
  }
 }
 
