@@ -19,7 +19,8 @@ function enhance(material:T.MeshStandardMaterial,label:string){
  if((material as any)[MARK])return;
  const surface=classifyMaterialSurface(`${material.name} ${label}`);if(surface==='other')return;
  (material as any)[MARK]=true;material.userData.awMaterialSingularity={surface,version:MATERIAL_SINGULARITY_VERSION};
- const p=params(surface),previous=material.onBeforeCompile,oldKey=material.customProgramCacheKey?.bind(material),roughMin=(surface==='stone'||surface==='plaster')?.94:.90;
+ const p=params(surface),previous=material.onBeforeCompile,oldKey=material.customProgramCacheKey?.bind(material);
+ const roughMin=(surface==='stone'||surface==='plaster') ? 0.94 : 0.90;
  material.roughness=Math.max(roughMin,material.roughness??.8);material.metalness=0;
  material.onBeforeCompile=(shader,renderer)=>{
   previous.call(material,shader,renderer);
