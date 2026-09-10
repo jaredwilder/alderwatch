@@ -19,6 +19,9 @@ export interface AnimalState {
  dead?:boolean;
  killedBy?:WildlifeKiller;
  diedAt?:number;
+ // Stable habitat slots survive saves, while each refill represents a new individual.
+ spawnGeneration?:number;
+ corpseClearedAt?:number;
  attackAt?:number;
  attackingUntil?:number;
  huntTargetId?:string;
