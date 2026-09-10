@@ -15,9 +15,10 @@ import {buildForageSpatialIndex,buildResourceSpatialIndex,forageCandidates,resou
 
 export type {AnimalKind,AnimalState} from './wildlife-species';
 export {ambientWanderHeading,cohesiveFleeHeading,headingVector,herdCenter} from './wildlife-ai';
-// Compatibility export for existing focused behavior tests/callers.
 export const bearTarget=(bear:AnimalState,animals:Record<string,AnimalState>,radius=24)=>predatorTarget(bear,animals,radius);
 
+export interface NatureHabitat {groundY:(x:number,z:number)=>number;occupied:(x:number,z:number)=>boolean}
+export interface NatureOptions {seed?:(world:WorldState)=>void;manageForage?:boolean;populationSpawns?:readonly WildlifeSpawn[]}
 interface AnimalVisual {group:T.Group;authored:boolean;generation?:number;mixer?:T.AnimationMixer;idle?:T.AnimationAction;walk?:T.AnimationAction;run?:T.AnimationAction;attack?:T.AnimationAction;fly?:T.AnimationAction;active?:T.AnimationAction}
 const MODELS={berries:'berry_bush',mushroom:'mushrooms',herb:'herbs',wood:'fallen_branch',fiber:'flax'} as const;
 const HIVE_SPAWNS:readonly [string,number,number][]=[['nature-hive-0',-27,11],['nature-hive-1',31,52],['nature-hive-2',-42,92],['nature-hive-3',48,128]];
@@ -51,14 +52,16 @@ export function forageAvailable(f:ForageState,tick:number){return !f.harvested||
 export class Nature {
  plants=new Map<string,T.Object3D>();animals=new Map<string,AnimalVisual>();onNotice=(text:string)=>{};
  private forageIndex:ForageSpatialIndex=new Map();private resourceIndex:ResourceSpatialIndex=new Map();private nextForageRefresh=0;private nextPopulationPulse=0;
- constructor(private root:T.Group,private assets:Assets,private w:WorldState,private land:Landscape){seedNature(w);this.forageIndex=buildForageSpatialIndex(w.forage);this.resourceIndex=buildResourceSpatialIndex(w.resources);for(const a of Object.values(w.animals!))if(!AUTHORED_ANIMAL_SET.has(a.kind)||LEGACY_ANIMAL_FALLBACK_SET.has(a.kind))this.spawnLegacy(a);void this.loadAuthoredAnimals();this.update(0);}
+ private habitat:NatureHabitat;private manageForage:boolean;private populationSpawns:readonly WildlifeSpawn[];
+ constructor(private root:T.Group,private assets:Assets,private w:WorldState,land:Landscape|NatureHabitat,options:NatureOptions={}){
+  this.habitat='groundY'in land?land:{groundY:height,occupied:(x,z)=>land.ambientOccupied(x,z)};this.manageForage=options.manageForage??true;this.populationSpawns=options.populationSpawns??WILDLIFE_SPAWNS;(options.seed??seedNature)(w);
+  this.forageIndex=buildForageSpatialIndex(w.forage);this.resourceIndex=buildResourceSpatialIndex(w.resources);for(const a of Object.values(w.animals!))if(!AUTHORED_ANIMAL_SET.has(a.kind)||LEGACY_ANIMAL_FALLBACK_SET.has(a.kind))this.spawnLegacy(a);void this.loadAuthoredAnimals();this.update(0);
+ }
  private refreshForage(){
-  if(this.w.tick<this.nextForageRefresh)return;this.nextForageRefresh=this.w.tick+12;
-  // Only the local camera needs authored plant meshes. Simulated/offscreen players still
-  // interact with authoritative forage state without forcing remote visuals to materialize.
+  if(!this.manageForage||this.w.tick<this.nextForageRefresh)return;this.nextForageRefresh=this.w.tick+12;
   const player=this.w.players['player-local']??Object.values(this.w.players)[0],wanted=new Set<string>();
   if(player)for(const id of forageCandidates(this.forageIndex,player.position,65)){
-   const f=this.w.forage[id];if(!f||Math.hypot(player.position[0]-f.position[0],player.position[2]-f.position[2])>=65||!forageAvailable(f,this.w.tick)||this.land.ambientOccupied(f.position[0],f.position[2])||Object.values(this.w.structures).some(s=>Math.hypot(s.position[0]-f.position[0],s.position[2]-f.position[2])<2))continue;
+   const f=this.w.forage[id];if(!f||Math.hypot(player.position[0]-f.position[0],player.position[2]-f.position[2])>=65||!forageAvailable(f,this.w.tick)||this.habitat.occupied(f.position[0],f.position[2])||Object.values(this.w.structures).some(s=>Math.hypot(s.position[0]-f.position[0],s.position[2]-f.position[2])<2))continue;
    wanted.add(id);let model=this.plants.get(id);
    if(!model){if(f.kind==='wild_honey')model=createBeehiveVisual(this.assets);else model=this.assets.prop(MODELS[f.kind??'fiber']);model.position.fromArray(f.position);model.rotation.y=Number(f.id.split('-').at(-1))*.91;model.scale.setScalar(f.kind==='mushroom'?1.45:f.kind==='wild_honey'?1.15:1.15);this.root.add(model);this.plants.set(id,model);}model.visible=true;
   }
@@ -82,11 +85,11 @@ export class Nature {
  private reviveVisual(a:AnimalState,v:AnimalVisual){v.mixer?.stopAllAction();v.active=undefined;v.group.visible=true;v.group.rotation.z=0;v.group.position.fromArray(a.position);v.group.rotation.y=a.yaw;v.generation=a.spawnGeneration??0;this.useAction(v,a.kind==='eagle'?v.fly??v.idle??v.walk??v.run:v.idle??v.walk??v.run);}
  private pulsePopulation(){
   if(this.w.tick<this.nextPopulationPulse)return;this.nextPopulationPulse=this.w.tick+WILDLIFE_DIRECTOR_PULSE_TICKS;
-  const changed=stepWildlifePopulation(this.w,{groundY:height,blocked:(x,z)=>height(x,z)<=-1||this.land.ambientOccupied(x,z)||resourceCandidates(this.resourceIndex,[x,0,z],2).some(id=>{const r=this.w.resources[id];return r.phase==='standing'&&Math.hypot(x-r.position[0],z-r.position[2])<1.3;})||Object.values(this.w.structures).some(s=>Math.hypot(x-s.position[0],z-s.position[2])<2.4)});
+  const changed=stepWildlifePopulation(this.w,{groundY:this.habitat.groundY,blocked:(x,z)=>this.habitat.groundY(x,z)<=-1||this.habitat.occupied(x,z)||resourceCandidates(this.resourceIndex,[x,0,z],2).some(id=>{const r=this.w.resources[id];return r.phase==='standing'&&Math.hypot(x-r.position[0],z-r.position[2])<1.3;})||Object.values(this.w.structures).some(s=>Math.hypot(x-s.position[0],z-s.position[2])<2.4)},this.populationSpawns);
   for(const id of changed.clearedCorpses){const visual=this.animals.get(id);if(visual)visual.group.visible=false;}
   for(const id of changed.respawned){const animal=this.w.animals?.[id],visual=this.animals.get(id);if(animal&&visual)this.reviveVisual(animal,visual);}
  }
- private settleDeadAerial(a:AnimalState){if(!species(a.kind).aerial)return;const y=height(a.position[0],a.position[2]);a.position[1]=y;const corpse=this.w.containers[corpseId(a.id)];if(corpse)corpse.position=[...a.position];}
+ private settleDeadAerial(a:AnimalState){if(!species(a.kind).aerial)return;const y=this.habitat.groundY(a.position[0],a.position[2]);a.position[1]=y;const corpse=this.w.containers[corpseId(a.id)];if(corpse)corpse.position=[...a.position];}
  private predatorPrey(a:AnimalState,all:Record<string,AnimalState>){
   const config=species(a.kind).predator;if(!config||a.carriedPreyId)return undefined;
   if(species(a.kind).aerial&&a.airborne!==true)return undefined;
@@ -95,13 +98,12 @@ export class Nature {
    else if(d<(a.huntBestDistance??Infinity)-.75){a.huntBestDistance=d;a.huntUntil=this.w.tick+360;return current;}else return current;
   }
   if((a.huntCooldownUntil??0)>this.w.tick)return undefined;
-  // Food-web drama is local theatre: no invisible predator is allowed to depopulate a region offscreen.
   const wakeRadius=a.kind==='eagle'?105:a.kind==='bear'?95:85;
   if(!Object.values(this.w.players).some(player=>player.health>0&&dist(player.position,a.position)<wakeRadius))return undefined;
   const next=predatorTarget(a,all,config.acquireRadius);if(next){a.huntTargetId=next.id;a.huntBestDistance=dist(a.position,next.position);a.huntUntil=this.w.tick+(a.kind==='eagle'?360:540);}return next;
  }
- private releaseExhaustedCarry(a:AnimalState,all:Record<string,AnimalState>){const prey=releaseCarry(a,all);if(!prey)return;const y=height(a.position[0],a.position[2]);prey.position=[a.position[0],y,a.position[2]];prey.avoidUntil=this.w.tick+50;this.onNotice(`A tired eagle drops the ${prey.kind}`);}
- private finishEagleCarry(a:AnimalState,all:Record<string,AnimalState>){const prey=releaseCarry(a,all);if(!prey||!animalAlive(prey))return;prey.position=[a.position[0],height(a.position[0],a.position[2]),a.position[2]];predatorBite(this.w,a,prey,prey.health??999);a.huntCooldownUntil=this.w.tick+240;}
+ private releaseExhaustedCarry(a:AnimalState,all:Record<string,AnimalState>){const prey=releaseCarry(a,all);if(!prey)return;const y=this.habitat.groundY(a.position[0],a.position[2]);prey.position=[a.position[0],y,a.position[2]];prey.avoidUntil=this.w.tick+50;this.onNotice(`A tired eagle drops the ${prey.kind}`);}
+ private finishEagleCarry(a:AnimalState,all:Record<string,AnimalState>){const prey=releaseCarry(a,all);if(!prey||!animalAlive(prey))return;prey.position=[a.position[0],this.habitat.groundY(a.position[0],a.position[2]),a.position[2]];predatorBite(this.w,a,prey,prey.health??999);a.huntCooldownUntil=this.w.tick+240;}
  update(dt:number){
   this.refreshForage();this.pulsePopulation();
   const all=this.w.animals!;
@@ -128,7 +130,7 @@ export class Nature {
    const airborne=!!aerial&&a.airborne===true,ambientMove=!grazing&&Math.sin(a.phase*.55+phase)>.12,moving=flee||hunting||carrying||airborne||!!carcass||homeDistance>profile.homeRadius||centerDistance>7||ambientMove,flight=(a.kind==='crow'&&moving)||airborne;
    if((a.avoidUntil??0)>this.w.tick)desired=a.yaw;if(moving)a.yaw+=T.MathUtils.clamp(T.MathUtils.euclideanModulo(desired-a.yaw+Math.PI,Math.PI*2)-Math.PI,-dt*profile.turnRate,dt*profile.turnRate);
    const speed=hostilePlayer?(a.kind==='bear'?4.6:predatorConfig?.chaseSpeed??profile.escapeSpeed):prey?predatorConfig?.chaseSpeed??profile.escapeSpeed:carrying?Math.min(6.2,predatorConfig?.chaseSpeed??6.2):carcass?1.15:moving?(flee?profile.escapeSpeed:airborne?4.4:a.kind==='crow'?2.2:profile.wanderSpeed):0,[hx,hz]=headingVector(a.yaw),x=a.position[0]+hx*speed*dt,z=a.position[2]+hz*speed*dt;
-   const clear=height(x,z)>-1&&!this.land.ambientOccupied(x,z)&&resourceCandidates(this.resourceIndex,[x,0,z],2).every(id=>{const r=this.w.resources[id];return r.phase!=='standing'||Math.hypot(x-r.position[0],z-r.position[2])>(r.kind==='tree'?1.1:1.2);})&&Object.values(this.w.structures).every(s=>Math.hypot(x-s.position[0],z-s.position[2])>2);
+   const clear=this.habitat.groundY(x,z)>-1&&!this.habitat.occupied(x,z)&&resourceCandidates(this.resourceIndex,[x,0,z],2).every(id=>{const r=this.w.resources[id];return r.phase!=='standing'||Math.hypot(x-r.position[0],z-r.position[2])>(r.kind==='tree'?1.1:1.2);})&&Object.values(this.w.structures).every(s=>Math.hypot(x-s.position[0],z-s.position[2])>2);
    if(clear||(flight&&!Object.values(this.w.structures).some(s=>Math.hypot(x-s.position[0],z-s.position[2])<2))){a.position[0]=x;a.position[2]=z;}else{a.yaw+=Math.PI*.6;a.avoidUntil=this.w.tick+50;if(isPredator&&hunting)a.huntUntil=Math.min(a.huntUntil??this.w.tick,this.w.tick+90);}
    if(predatorConfig&&hostilePlayer&&dist(a.position,hostilePlayer.position)<predatorConfig.attackReach+.05&&this.w.tick>=(a.attackAt??0)){a.attackAt=this.w.tick+predatorConfig.attackCooldown+(a.kind==='bear'?12:0);a.attackingUntil=this.w.tick+30;const out=a.kind==='bear'?bearMaul(this.w,a,hostilePlayer):wolfMaul(this.w,a,hostilePlayer);if(out.ok)this.onNotice(out.message);}
    else if(predatorConfig&&prey&&dist(a.position,prey.position)<predatorConfig.attackReach&&this.w.tick>=(a.attackAt??0)){
@@ -138,7 +140,7 @@ export class Nature {
     }
     if(!animalAlive(prey)){a.huntTargetId=undefined;a.huntBestDistance=undefined;a.huntCooldownUntil=this.w.tick+240;}
    }
-   const ground=height(a.position[0],a.position[2]);let targetY=ground;
+   const ground=this.habitat.groundY(a.position[0],a.position[2]);let targetY=ground;
    if(airborne&&aerial)targetY=ground+(hunting?aerial.huntHeight:aerial.cruiseHeight)+(carrying?.7:0)+Math.sin(a.phase*1.7)*.18;else if(a.kind==='crow'&&moving)targetY=ground+1.7+Math.sin(a.phase*3)*.12;
    a.position[1]=T.MathUtils.damp(a.position[1],targetY,flight?4:16,dt);
    if(!visual)continue;const model=visual.group;model.position.fromArray(a.position);model.rotation.y=a.yaw;visual.mixer?.update(dt);
