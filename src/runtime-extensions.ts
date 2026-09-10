@@ -7,6 +7,7 @@ import './chat-bank-expansion';
 import './chat-bank-chaos-addendum';
 import './simulated-player-society';
 import './realm-chat-network';
+import './realm-conversation-director';
 import './canon-social-bridge';
 import './loading-experience';
 import './ui-stack';
