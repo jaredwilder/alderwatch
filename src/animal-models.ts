@@ -21,10 +21,14 @@ const BODY_TERMS=['pelvis','hips','hip','spine','chest','torso','body'];
 interface NamedPoint {node:T.Object3D;priority:number;position:T.Vector3}
 const SKINS:Record<AuthoredAnimalKind,{body:string;dark:string;light:string}>={
  hare:{body:'#8f7967',dark:'#3b3028',light:'#c8b6a0'},
+ rabbit:{body:'#8b806f',dark:'#3a342d',light:'#d4c7ad'},
  crow:{body:'#171b1f',dark:'#080a0c',light:'#3e4850'},
  goat:{body:'#92775c',dark:'#403126',light:'#c2aa89'},
  sheep:{body:'#cfc5aa',dark:'#2e2923',light:'#eee4c9'},
  deer:{body:'#8f5936',dark:'#493020',light:'#d1af84'},
+ stag:{body:'#765038',dark:'#34261d',light:'#bb9876'},
+ boar:{body:'#554236',dark:'#231c18',light:'#806956'},
+ fox:{body:'#a45f32',dark:'#2e241f',light:'#d8b990'},
  bear:{body:'#4a3022',dark:'#241912',light:'#79543b'},
  bison:{body:'#3d2c24',dark:'#1f1714',light:'#6e5442'},
  wolf:{body:'#6a6a64',dark:'#353632',light:'#aaa79d'},

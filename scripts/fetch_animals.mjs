@@ -7,10 +7,14 @@ const OUT=join(ROOT,'public','assets','animals');
 
 const SOURCES=[
  {name:'hare',file:'hare.glb',minBytes:220_000,url:'https://raw.githubusercontent.com/JacksonHe04/iNon/a4b591ccec462e7413b703903f20fecaeee2bce8/public/archive-world/quaternius-animals/Bunny.glb'},
+ {name:'rabbit',file:'rabbit.glb',minBytes:500_000,expectedBytes:538_360,url:'https://raw.githubusercontent.com/StateDev08/War-of-the-Kindom-Mobile/9b5a2827ed8f2b7adf657ddf7e47cb026bab0b39/client/assets/models/quaternius/animals/rabbit.glb'},
  {name:'crow',file:'crow.glb',minBytes:85_000,url:'https://raw.githubusercontent.com/danajerban/erbandanaj.com/da89c1ea30957fe61b8b113a9b045cc6acbfae95/public/models/Pigeon.glb'},
  {name:'goat',file:'goat.glb',minBytes:100_000,url:'https://raw.githubusercontent.com/SeloSlav/medieval-settlement-threejs/adebb282df90627f3ec63c8e89f076cf1cf14fe9/public/assets/models/livestock/quaternius-goat.glb'},
  {name:'sheep',file:'sheep.glb',minBytes:220_000,expectedBytes:223_324,url:'https://raw.githubusercontent.com/AncheJeez/LearningGodot/baf5a889679d6b735ad5316a4d326e2864a5af5f/Model/LowPoly/Sheep%20by%20Quaternius%20-%20rgJXF570ZK.glb'},
  {name:'deer',file:'deer.glb',minBytes:300_000,url:'https://raw.githubusercontent.com/SeloSlav/medieval-settlement-threejs/adebb282df90627f3ec63c8e89f076cf1cf14fe9/public/assets/models/deer/quaternius-deer.glb'},
+ {name:'stag',file:'stag.glb',minBytes:900_000,expectedBytes:958_664,url:'https://raw.githubusercontent.com/StateDev08/War-of-the-Kindom-Mobile/9b5a2827ed8f2b7adf657ddf7e47cb026bab0b39/client/assets/models/quaternius/animals/stag.glb'},
+ {name:'boar',file:'boar.glb',minBytes:280_000,expectedBytes:300_940,url:'https://raw.githubusercontent.com/StateDev08/War-of-the-Kindom-Mobile/9b5a2827ed8f2b7adf657ddf7e47cb026bab0b39/client/assets/models/quaternius/animals/boar.glb'},
+ {name:'fox',file:'fox.glb',minBytes:1_900_000,expectedBytes:1_974_092,url:'https://raw.githubusercontent.com/StateDev08/War-of-the-Kindom-Mobile/9b5a2827ed8f2b7adf657ddf7e47cb026bab0b39/client/assets/models/quaternius/animals/fox.glb'},
  {name:'bear',file:'bear.glb',minBytes:300_000,url:'https://raw.githubusercontent.com/TuanTran0168/myunivokai-personalized-3d-worlds/9112af6c04ea14cd849ca90f82f45c875d3c7f50/apps/myunivokai-personalization/public/assets/nature/models/animal-bear.glb'},
  {name:'bison',file:'bison.glb',minBytes:900_000,url:'https://raw.githubusercontent.com/SeloSlav/medieval-settlement-threejs/adebb282df90627f3ec63c8e89f076cf1cf14fe9/public/assets/models/livestock/quaternius-bull.glb'},
  {name:'wolf',file:'wolf.glb',minBytes:1_500_000,url:'https://raw.githubusercontent.com/StateDev08/War-of-the-Kindom-Mobile/9b5a2827ed8f2b7adf657ddf7e47cb026bab0b39/client/assets/models/quaternius/animals/wolf.glb'},
