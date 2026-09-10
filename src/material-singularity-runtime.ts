@@ -19,8 +19,8 @@ function enhance(material:T.MeshStandardMaterial,label:string){
  if((material as any)[MARK])return;
  const surface=classifyMaterialSurface(`${material.name} ${label}`);if(surface==='other')return;
  (material as any)[MARK]=true;material.userData.awMaterialSingularity={surface,version:MATERIAL_SINGULARITY_VERSION};
- const p=params(surface),previous=material.onBeforeCompile,oldKey=material.customProgramCacheKey?.bind(material);
- material.roughness=Math.max(surface==='stone'||surface==='plaster'?.94:.90,material.roughness??.8);material.metalness=0;
+ const p=params(surface),previous=material.onBeforeCompile,oldKey=material.customProgramCacheKey?.bind(material),roughMin=surface==='stone'||surface==='plaster'?.94:.90;
+ material.roughness=Math.max(roughMin,material.roughness??.8);material.metalness=0;
  material.onBeforeCompile=(shader,renderer)=>{
   previous.call(material,shader,renderer);
   shader.vertexShader='varying vec3 awMatWorld;varying vec3 awMatLocal;varying vec3 awMatWorldNormal;\n'+shader.vertexShader;
@@ -50,7 +50,6 @@ function enhance(material:T.MeshStandardMaterial,label:string){
      if(awMesoBand>.001){
       vec2 awUvA=mat2(.819,-.574,.574,.819)*(vMapUv*1.61)+vec2(7.31,2.17);
       float awA=dot(texture2D(map,awUvA).rgb,vec3(.2126,.7152,.0722));
-      float awBaseL=max(.08,dot(diffuseColor.rgb,vec3(.2126,.7152,.0722)));
       float awGrain=clamp((awA-.50)*${p.detail},-.12,.12)*awMesoBand;
       diffuseColor.rgb*=1.0+awGrain;
       if(awMicroBand>.001&&${surface==='bark'||surface==='stone'?'false':'true'}){
