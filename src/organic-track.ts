@@ -22,13 +22,13 @@ export function makeOrganicTrackGeometry(points:readonly TrackPoint[],width:numb
   }
   along+=length;
  }
- const positions:number[]=[],normals:number[]=[],uvs:number[]=[],indices:number[]=[];
+ const positions:number[]=[],normals:number[]=[],uvs:number[]=[],indices:number[]=[],total=Math.max(along,1e-6);
  for(let i=0;i<samples.length;i++){
   const here=samples[i],prev=samples[Math.max(0,i-1)],next=samples[Math.min(samples.length-1,i+1)],tx=next.x-prev.x,tz=next.z-prev.z,tl=Math.max(1e-6,Math.hypot(tx,tz)),nx=-tz/tl,nz=tx/tl;
   const end=i===0||i===samples.length-1,centreDrift=end?0:noise(seed,i,'centre')*Math.min(.32,width*.075),edgeNoise=end?0:noise(seed,i,'width')*.13;
   const half=width*.5*(1+edgeNoise),cx=here.x+nx*centreDrift,cz=here.z+nz*centreDrift;
   positions.push(cx+nx*half,0,cz+nz*half,cx-nx*half,0,cz-nz*half);
-  normals.push(0,1,0,0,1,0);uvs.push(0,here.along/4,1,here.along/4);
+  normals.push(0,1,0,0,1,0);uvs.push(0,here.along/total,1,here.along/total);
   if(i){const j=(i-1)*2;indices.push(j,j+2,j+1,j+2,j+3,j+1);}
  }
  const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));geometry.setAttribute('normal',new T.Float32BufferAttribute(normals,3));geometry.setAttribute('uv',new T.Float32BufferAttribute(uvs,2));geometry.setIndex(indices);geometry.computeBoundingSphere();geometry.name=`AW Organic Track ${seed}`;return geometry;
