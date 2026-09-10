@@ -21,6 +21,21 @@ function enhance(material:T.MeshStandardMaterial,label:string){
  (material as any)[MARK]=true;material.userData.awMaterialSingularity={surface,version:MATERIAL_SINGULARITY_VERSION};
  const p=params(surface),previous=material.onBeforeCompile,oldKey=material.customProgramCacheKey?.bind(material);
  const roughMin=(surface==='stone'||surface==='plaster') ? 0.94 : 0.90;
+ const ownsPriorTextureBands=surface==='bark'||surface==='stone';
+ const mappedBands=ownsPriorTextureBands?'':`
+    #ifdef USE_MAP
+     if(awMesoBand>.001){
+      vec2 awUvA=mat2(.819,-.574,.574,.819)*(vMapUv*1.61)+vec2(7.31,2.17);
+      float awA=dot(texture2D(map,awUvA).rgb,vec3(.2126,.7152,.0722));
+      float awGrain=clamp((awA-.50)*${p.detail},-.12,.12)*awMesoBand;
+      diffuseColor.rgb*=1.0+awGrain;
+      if(awMicroBand>.001){
+       vec2 awUvB=mat2(.643,.766,-.766,.643)*(vMapUv*2.73)+vec2(3.91,13.37);
+       float awB=dot(texture2D(map,awUvB).rgb,vec3(.2126,.7152,.0722));
+       diffuseColor.rgb*=1.0+clamp((awB-.5)*${(p.detail*.58).toFixed(3)},-.075,.075)*awMicroBand;
+      }
+     }
+    #endif`;
  material.roughness=Math.max(roughMin,material.roughness??.8);material.metalness=0;
  material.onBeforeCompile=(shader,renderer)=>{
   previous.call(material,shader,renderer);
@@ -47,19 +62,7 @@ function enhance(material:T.MeshStandardMaterial,label:string){
     float awWeather=clamp(${p.base}*awBase+${p.up}*awUp+${p.macro}*(awMacro-.42),0.0,.48)*awMacroBand;
     diffuseColor.rgb*=mix(.90,1.10,awLarge)*mix(.93,1.07,awMacro);
     diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*${p.tint},awWeather);
-    #ifdef USE_MAP
-     if(awMesoBand>.001){
-      vec2 awUvA=mat2(.819,-.574,.574,.819)*(vMapUv*1.61)+vec2(7.31,2.17);
-      float awA=dot(texture2D(map,awUvA).rgb,vec3(.2126,.7152,.0722));
-      float awGrain=clamp((awA-.50)*${p.detail},-.12,.12)*awMesoBand;
-      diffuseColor.rgb*=1.0+awGrain;
-      if(awMicroBand>.001&&${surface==='bark'||surface==='stone'?'false':'true'}){
-       vec2 awUvB=mat2(.643,.766,-.766,.643)*(vMapUv*2.73)+vec2(3.91,13.37);
-       float awB=dot(texture2D(map,awUvB).rgb,vec3(.2126,.7152,.0722));
-       diffuseColor.rgb*=1.0+clamp((awB-.5)*${(p.detail*.58).toFixed(3)},-.075,.075)*awMicroBand;
-      }
-     }
-    #endif
+    ${mappedBands}
     ${surface==='plaster'?`float awRain=.5+.5*sin(awMatWorld.x*2.3+awMatWorld.z*.61+awMatNoise(awMatWorld.xz*.21)*3.0);diffuseColor.rgb*=1.0-awRain*awBase*.055*awMacroBand;`:''}
     ${surface==='thatch'?`float awFiber=.5+.5*sin(awMatWorld.y*19.0+awMatWorld.x*2.1-awMatWorld.z*1.7);diffuseColor.rgb*=mix(.965,1.045,awFiber*awMicroBand);`:''}
     ${surface==='stone'?`float awLichen=smoothstep(.62,.88,awMacro)*smoothstep(.18,.72,awUp)*awMacroBand;diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.82,.94,.74),awLichen*.13);`:''}
