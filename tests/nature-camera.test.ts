@@ -7,7 +7,7 @@ import {seedNature,forageAvailable} from '../src/nature';
 import {FollowCamera,ACTION_CAMERA,cameraOrbitPitch} from '../src/follow-camera';
 import {stats} from '../src/definitions';
 import {model} from './load-assets';
-import {Assets} from '../src/assets';
+import {Assets,skywardImpostorVisibility} from '../src/assets';
 import {mapOffset,routeHint} from '../src/minimap';
 
 test('minimap up matches camera-relative W and objective arrows rotate correctly',()=>{
@@ -70,6 +70,13 @@ test('mouse orbit is immediate while follow translation and collision recovery a
  const c=new FollowCamera(),p=new T.Vector3();c.update(p,0,.2,5,1/60,()=>undefined);const turn=c.update(p,Math.PI/2,.2,5,1/60,()=>undefined);assert.ok(turn.position.x<-4.8);assert.ok(Math.abs(turn.position.z)<.01);
  const up=c.update(p,0,.8,5,1/60,()=>undefined);assert.ok(up.position.y>turn.position.y+2,'Accepted vertical look direction changed');
  c.update(p,0,.2,5,1/60,()=>1.3);assert.ok(c.distance<=1.08);c.update(p,0,.2,5,1/60,()=>undefined);assert.ok(c.distance>1.08&&c.distance<2,'Collision release snapped back');
+});
+test('skyward views fade far tree impostors before they can float against open sky',()=>{
+ const directionY=(degrees:number)=>Math.sin(T.MathUtils.degToRad(degrees));
+ assert.equal(skywardImpostorVisibility(directionY(0)),1,'Level/horizon play must preserve the distant forest mass');
+ const transition=skywardImpostorVisibility(directionY(12));assert.ok(transition>0&&transition<1,'Slight skyward look must transition smoothly rather than pop');
+ assert.equal(skywardImpostorVisibility(directionY(15)),0,'At fifteen degrees above the horizon far tree cards must be fully suppressed');
+ assert.equal(skywardImpostorVisibility(directionY(70)),0,'Strong skyward views must never expose distant tree cards');
 });
 test('beautiful sky is a compact baked panorama rather than a full-screen procedural noise pass',()=>{
  const bytes=fs.statSync('public/assets/alderwatch-sky.webp').size;
