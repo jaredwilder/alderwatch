@@ -6,6 +6,7 @@ import {advanceRealmSocietyToTick,ensureRealmSocial} from './realm-society';
 import {advanceRealmHistoryToTick,ensureRealmHistory} from './provenance-frontier';
 import {applyRealmConsequences,ensureRealmConsequences} from './realm-consequences';
 import {normalizeLegacyWorldShape} from './save-compat';
+import {activateAreaObjects,ensureAreaObjectStore} from './area-object-store';
 
 const SAVE_KEY='alderwatch.realm.v1';
 
@@ -23,8 +24,11 @@ function prepareSavedArea(){
   advanceRealmHistoryToTick(world);
   ensureRealmConsequences(world);
   applyRealmConsequences(world);
+  const player=currentPlayer(world),outgoing=player?playerArea(player):'far-march';
+  ensureAreaObjectStore(world,outgoing);
   const pending=consumePendingArea();
-  if(pending)enterSavedArea(world,pending);
+  if(pending){enterSavedArea(world,pending);activateAreaObjects(world,pending,outgoing);}
+  else activateAreaObjects(world,outgoing,outgoing);
   localStorage.setItem(SAVE_KEY,JSON.stringify(world));
   return currentPlayer(world)?playerArea(currentPlayer(world)!):'far-march';
 }
@@ -62,7 +66,6 @@ async function installStreamedFrontierGraphics(){
 }
 
 const area=prepareSavedArea();
-// Explicitly opt-in on a deployed build with ?dev=1. The module is inert otherwise.
 try{await import('./dev-tools');}catch(error){console.error('Alderwatch dev tools failed to install',error);}
 
 if(area===IRONWARD_CROSSING){
@@ -85,7 +88,6 @@ if(area===IRONWARD_CROSSING){
   await import('./wolfpine');
   await installStreamedAreaSurface();
 }else{
-  // Compose the frontier visual research layers before Assets/Landscape are constructed.
   await import('./natural-detail-runtime');
   try{await import('./visual-detail-overdrive');}
   catch(error){console.error('Alderwatch visual detail overdrive failed to install',error);}
