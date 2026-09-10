@@ -59,17 +59,31 @@ function setTavernPresentationActive(active:boolean){
 }
 
 export class TavernBridge{
- private tavern?:AlderbrookTavern;private target?:TavernEntity;private hudQueued=false;private atmosphere?:HTMLDivElement;private atmosphereOpacity=-1;private lastPosition:Vec3=[0,0,0];
+ private tavern?:AlderbrookTavern;private target?:TavernEntity;private hudQueued=false;private atmosphere?:HTMLDivElement;private atmosphereOpacity=-1;private lastPosition:Vec3=[0,0,0];private warmupQueued=false;
  constructor(private root:T.Group,private assets:Assets){}
  get inside(){return !!this.tavern?.inside;}
+ private construct(position:Vec3){
+  if(this.tavern||!currentCharacter)return this.tavern;
+  const live=currentCharacter.root.position.toArray() as Vec3;
+  // Never bind a newly rebuilt Village to a stale Character/physics instance.
+  if(Math.hypot(live[0]-position[0],live[2]-position[2])>6)return undefined;
+  this.tavern=new AlderbrookTavern(this.root,this.assets,currentCharacter.physics);activeTavern=this.tavern;return this.tavern;
+ }
  private ensure(position:Vec3){
   if(this.tavern)return this.tavern;
   if(!nearTavern(position))return undefined;
-  if(!currentCharacter)return undefined;
-  // Never bind a newly rebuilt Village to a stale Character/physics instance.
-  const live=currentCharacter.root.position.toArray() as Vec3;
-  if(Math.hypot(live[0]-position[0],live[2]-position[2])>6)return undefined;
-  this.tavern=new AlderbrookTavern(this.root,this.assets,currentCharacter.physics);activeTavern=this.tavern;return this.tavern;
+  // On the porch, interaction correctness outranks prewarm latency: build now.
+  if(atTavernPorch(position))return this.construct(position);
+  // Otherwise let the browser prepare the tavern scene while the player is still
+  // approaching. This keeps the full interior/patron clone cost off the critical
+  // first gameplay frame without reducing any authored content.
+  if(!this.warmupQueued&&currentCharacter){
+   this.warmupQueued=true;
+   const run=()=>{this.warmupQueued=false;if(!this.tavern&&nearTavern(this.lastPosition,58))this.construct(this.lastPosition);};
+   const idle=(globalThis as typeof globalThis&{requestIdleCallback?:(cb:()=>void,options?:{timeout:number})=>number}).requestIdleCallback;
+   if(idle)idle(run,{timeout:1200});else setTimeout(run,0);
+  }
+  return undefined;
  }
  nearest(position:Vec3){
   this.lastPosition=[...position];const tavern=this.ensure(position);if(!tavern)return;
@@ -104,7 +118,7 @@ export class TavernBridge{
    const map=document.querySelector<HTMLElement>('.minimap,.mini-map,#minimap');if(map)map.style.visibility='';
   }
  }
- read(){return{...this.tavern?.read(),porch:{...PORCH},lastPosition:[...this.lastPosition],porchActive:atTavernPorch(this.lastPosition)};}
+ read(){return{...this.tavern?.read(),porch:{...PORCH},lastPosition:[...this.lastPosition],porchActive:atTavernPorch(this.lastPosition),warmupQueued:this.warmupQueued};}
 }
 
 export function handleTavernEntity(ui:HTMLElement,id:string,resume:()=>void){
