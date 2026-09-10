@@ -13,12 +13,12 @@ const animal=(id:string,kind:AnimalState['kind'],x=0,z=0):AnimalState=>({id,kind
 test('eagle population is explicitly capped and aerial tuning is registry-owned',()=>{
  const authority=new LocalAuthority();seedNature(authority.state);const eagles=Object.values(authority.state.animals!).filter(a=>a.kind==='eagle');
  assert.equal(eagles.length,MAX_EAGLES);assert.equal(WILDLIFE_SPAWNS.filter(a=>a.kind==='eagle').length,MAX_EAGLES);assert.equal(MAX_EAGLES,3);
- assert.deepEqual(WILDLIFE_SPECIES.eagle.aerial?.pickupPrey,['hare','sheep']);assert.deepEqual(WILDLIFE_SPECIES.eagle.aerial?.killPrey,['crow']);
+ assert.deepEqual(WILDLIFE_SPECIES.eagle.aerial?.pickupPrey,['hare','rabbit','sheep']);assert.deepEqual(WILDLIFE_SPECIES.eagle.aerial?.killPrey,['crow']);
 });
 
-test('eagles pick up hare and sheep but kill other birds instead',()=>{
- const eagle=animal('e','eagle'),hare=animal('h','hare'),sheep=animal('s','sheep'),crow=animal('c','crow'),all={e:eagle,h:hare,s:sheep,c:crow};ensureAerialState(eagle);
- assert.equal(aerialPreyAction(eagle,hare),'pickup');assert.equal(aerialPreyAction(eagle,sheep),'pickup');assert.equal(aerialPreyAction(eagle,crow),'kill');
+test('eagles pick up hare, rabbit and sheep but kill other birds instead',()=>{
+ const eagle=animal('e','eagle'),hare=animal('h','hare'),rabbit=animal('r','rabbit'),sheep=animal('s','sheep'),crow=animal('c','crow'),all={e:eagle,h:hare,r:rabbit,s:sheep,c:crow};ensureAerialState(eagle);
+ assert.equal(aerialPreyAction(eagle,hare),'pickup');assert.equal(aerialPreyAction(eagle,rabbit),'pickup');assert.equal(aerialPreyAction(eagle,sheep),'pickup');assert.equal(aerialPreyAction(eagle,crow),'kill');
  assert.equal(beginCarry(eagle,sheep,100),true);assert.equal(eagle.carriedPreyId,sheep.id);assert.equal(sheep.carriedById,eagle.id);assert.ok((eagle.carryUntil??0)>100);
  assert.equal(beginCarry(eagle,hare,100),false,'one eagle cannot stack multiple prey');assert.equal(releaseCarry(eagle,all)?.id,sheep.id);assert.equal(sheep.carriedById,undefined);
 });
