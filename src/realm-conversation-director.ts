@@ -32,7 +32,7 @@ export function classifyRealmChatTopic(text:string):RealmChatTopic{
  if(/\b(wolf|wolves|pack)\b/.test(m))return 'wolves';
  if(/\bbison\b/.test(m))return 'bison';
  if(/\b(build|building|base|camp|house|wall|roof|door|foundation|beam|chest|storage)\b/.test(m))return 'build';
- if(/\b(trade|buy|sell|price|market|crowns|deal|wts|wtb)\b/.test(m))return 'trade';
+ if(/\b(trade|trading|buy|buying|sell|selling|price|prices|market|crowns|deal|deals|wts|wtb)\b/.test(m))return 'trade';
  if(/\b(food|eat|hungry|stew|meat|berries|honey|cook|meal)\b/.test(m))return 'food';
  if(/\biron\b/.test(m))return 'iron';
  if(/\b(road|path|trail|route|ridge|where am i|lost)\b/.test(m))return 'road';
@@ -93,10 +93,10 @@ function render(text:string,vars:Record<string,string>){let out=text;for(const [
 function appendDirected(pop:SimulatedPlayerPopulation,d:DirectorState,r:BotRuntimeLike,text:string){d.emitting=true;try{(pop as any).append({speakerId:r.player.id,name:r.definition.name,text,at:Date.now()});d.lastSpeaker=r.definition.id;}finally{d.emitting=false;}}
 
 function emitScene(pop:SimulatedPlayerPopulation,d:DirectorState,scene:RealmChatScene,time:number,interruptible:boolean){
- d.lastScene.set(scene.id,time);if(scene.once){d.once.add(scene.id);persistOnce(pop.state,d);}d.sequence++;
+ d.lastScene.set(scene.id,time);if(scene.once){d.once.add(scene.id);persistOnce(pop.state,d);}const sequence=++d.sequence;
  let elapsed=0,previous:string|undefined;
- scene.beats.forEach((beat,index)=>{const [lo,hi]=beat.delay??[550,1200];if(index)elapsed+=lo+hash(`${scene.id}:${d.sequence}:${index}`)%Math.max(1,hi-lo+1);const delay=elapsed;
-  window.setTimeout(()=>{if(interruptible&&index>0&&dangerous(pop))return;const r=pickSpeaker(pop,beat.speakers,`${scene.id}:${d.sequence}:speaker:${index}`,previous);if(!r)return;const text=choose(beat.lines,`${scene.id}:${d.sequence}:line:${index}`);appendDirected(pop,d,r,text);previous=r.definition.id;},delay);
+ scene.beats.forEach((beat,index)=>{const [lo,hi]=beat.delay??[550,1200];if(index)elapsed+=lo+hash(`${scene.id}:${sequence}:${index}`)%Math.max(1,hi-lo+1);const delay=elapsed;
+  window.setTimeout(()=>{if(interruptible&&index>0&&dangerous(pop))return;const r=pickSpeaker(pop,beat.speakers,`${scene.id}:${sequence}:speaker:${index}`,previous);if(!r)return;const text=choose(beat.lines,`${scene.id}:${sequence}:line:${index}`);appendDirected(pop,d,r,text);previous=r.definition.id;},delay);
  });
  for(const f of scene.requires??[])if(EVENT_FACTS.has(f))d.pending.delete(f);
 }
