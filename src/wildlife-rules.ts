@@ -81,7 +81,7 @@ export function wolfBite(world:WorldState,wolf:AnimalState,prey:AnimalState){ret
 
 export function predatorMaul(world:WorldState,predator:AnimalState,target:PlayerState):StrikeResult{
  ensureAnimalVitals(predator);const config=species(predator.kind).predator;
- if(!config||!PREDATOR_SPECIES.has(predator.kind)||!animalAlive(predator)||!animalAlive(prey)||!reachable)return {ok:false,message:'No living target'};
+ if(!config||!PREDATOR_SPECIES.has(predator.kind)||!animalAlive(predator)||target.health<=0)return {ok:false,message:'No living target'};
  const c=combatState(target),age=(world.tick-c.started)/60,kind=predator.kind;
  if(c.kind==='dodge'&&age>=.1&&age<=.46)return {ok:true,outcome:'dodged',damage:0,targetId:target.id,message:`You evade the ${kind}`};
  let damage=config.playerDamage,blocked=false;
