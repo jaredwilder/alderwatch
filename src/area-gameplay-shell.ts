@@ -11,7 +11,7 @@ import './recipe-book-ui';
 import './ui-stack';
 import './area-gameplay-shell.css';
 
-export type AreaShellMode='world'|'inventory'|'journal'|'craft'|'map'|'build';
+export type AreaShellMode='world'|'inventory'|'journal'|'craft'|'storage'|'map'|'build';
 export interface AreaMapLandmark {label:string;position:Vec3;kind?:'settlement'|'gate'|'site'|'danger'}
 export interface AreaMapBounds {minX:number;maxX:number;minZ:number;maxZ:number}
 export interface AreaGameplayShellOptions {
@@ -95,6 +95,18 @@ export class AreaGameplayShell {
   return false;
  }
 
+ /** Shared E-interaction for player-built doors, chests and crafting stations. */
+ interactSharedWorld(){
+  if(this.blocked)return false;const p=this.o.player(),door=this.o.building?.nearest(p,'doorway');if(door){this.command({type:'toggle_door',playerId:p.id,structureId:door.id});return true;}
+  const box=Object.values(this.o.authority.state.containers).find(s=>areaOf(s)===this.o.areaId&&distance(s.position,p.position)<2.5);if(box){const out=this.command({type:'open_container',playerId:p.id,containerId:box.id});if(out.ok)this.storage(box.id);return true;}
+  const station=this.nearestStation();if(station){this.crafting();return true;}return false;
+ }
+ sharedWorldPrompt(){
+  const p=this.o.player(),door=this.o.building?.nearest(p,'doorway');if(door)return `E ${(door.doorOpen?'Close':'Open')} oak door`;
+  const box=Object.values(this.o.authority.state.containers).find(s=>areaOf(s)===this.o.areaId&&distance(s.position,p.position)<2.5);if(box)return `E Open ${box.name}`;
+  const station=this.nearestStation();return station?`E Use ${station.name}`:'';
+ }
+
  private command(c:Command){
   const out=this.o.authority.dispatch(c);
   if(out.ok){if(c.type==='equip')this.o.equipVisual(c.item);this.o.save();}
@@ -102,11 +114,12 @@ export class AreaGameplayShell {
  }
  private equip(id:ItemId){let item=id;const p=this.o.player();if(id==='sword'&&p.inventory.some(s=>s.item==='fine_sword'))item='fine_sword';this.command({type:'equip',playerId:p.id,item});this.refreshHotbar();}
  private quickFood(){const p=this.o.player(),item=QUICK_FOOD_ITEMS.find(id=>p.inventory.some(s=>s.item===id&&s.count>0)&&!p.buffs.some(b=>b.id===id&&b.remaining>60))??QUICK_FOOD_ITEMS.find(id=>p.inventory.some(s=>s.item===id&&s.count>0));if(item)this.command({type:'eat',playerId:p.id,item});else this.o.notify('No prepared food in your pack. Open C beside a campfire to cook.');}
- private beginPanel(mode:'inventory'|'journal'|'craft',render:()=>void){this.o.building?.setActive(false);this.mode=mode;this.o.input.clear();this.o.input.active=false;render();const back=this.o.ui.querySelector<HTMLButtonElement>('.game-panel .back');if(back)back.textContent=`← Return to ${this.o.areaName}`;}
+ private beginPanel(mode:'inventory'|'journal'|'craft'|'storage',render:()=>void){this.o.building?.setActive(false);this.mode=mode;this.o.input.clear();this.o.input.active=false;render();const back=this.o.ui.querySelector<HTMLButtonElement>('.game-panel .back');if(back)back.textContent=`← Return to ${this.o.areaName}`;}
  private inventory(){this.beginPanel('inventory',()=>this.panels.inventory());}
  private journal(){this.beginPanel('journal',()=>{this.panels.journal();const eyebrow=this.o.ui.querySelector<HTMLElement>('.game-panel .eyebrow');if(eyebrow)eyebrow.textContent=`FIELD JOURNAL · ${this.o.areaName.toUpperCase()}`;});}
  private nearestStation(){const p=this.o.player();return Object.values(this.o.authority.state.stations).filter(s=>areaOf(s)===this.o.areaId&&distance(s.position,p.position)<=3.2).sort((a,b)=>distance(a.position,p.position)-distance(b.position,p.position))[0];}
  private crafting(){const station=this.nearestStation();this.beginPanel('craft',()=>{this.panels.crafting(station?.id);const eyebrow=this.o.ui.querySelector<HTMLElement>('.game-panel .eyebrow');if(eyebrow)eyebrow.textContent=station?`CRAFTING · ${this.o.areaName.toUpperCase()}`:`RECIPE BOOK · ${this.o.areaName.toUpperCase()}`;});}
+ private storage(id:string){this.beginPanel('storage',()=>this.panels.storage(id));}
  private startBuilding(){if(!this.o.building||!this.o.camera){this.o.notify(`Building has no terrain adapter in ${this.o.areaName} yet.`);return;}this.mode='build';this.o.input.clear();this.o.input.active=true;this.o.building.setActive(true);this.panels.build();}
 
  private openMap(){
