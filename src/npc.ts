@@ -3,10 +3,12 @@ import {Assets} from './assets';
 import {height} from './terrain';
 import {weatheredCloth} from './character-material';
 import type {Vec3} from './state';
+import {TavernBridge,type TavernEntity} from './tavern-bridge';
 
 // The villagers of Alderbrook. Their ids are the contract with the dialogue
 // service — server/personas.mjs holds the matching voice for each one, and
-// tests/npc.test.ts fails if the two lists drift apart.
+// tests/npc.test.ts fails if the two lists drift apart. Tavern interaction
+// entities are kept out of VILLAGERS so that persona contract remains exact.
 export interface Villager {id:string;name:string;role:string;position:Vec3;yaw:number;greeting:string;hair:string;cloth:string}
 export const VILLAGERS:Villager[]=[
  {id:'smith',name:'Rowan Ash',role:'Blacksmith',position:[10.5,0,-34],yaw:-2.2,hair:'#2b2018',cloth:'#6d5a4a',
@@ -19,10 +21,11 @@ export const VILLAGERS:Villager[]=[
 
 interface Actor {villager:Villager;root:T.Group;mixer:T.AnimationMixer;baseYaw:number}
 
-/** Standing villagers: authored bodies, idle loop, no physics and no combat. */
+/** Standing villagers plus Alderbrook's enterable tavern interaction seam. */
 export class Village {
- actors=new Map<string,Actor>();
+ actors=new Map<string,Actor>();tavern:TavernBridge;
  constructor(root:T.Group,assets:Assets){
+  this.tavern=new TavernBridge(root,assets);
   const idle=assets.survivor.animations.find(a=>a.name==='idle');
   if(!idle)throw new Error('Animation release blocker: idle');
   for(const villager of VILLAGERS){
@@ -46,11 +49,12 @@ export class Village {
    this.actors.set(villager.id,{villager,root:group,mixer,baseYaw:villager.yaw});
   }
  }
- /** The villager close enough to speak to, if any. */
- nearest(position:Vec3,range=2.4){return VILLAGERS.map(v=>({v,d:Math.hypot(v.position[0]-position[0],v.position[2]-position[2])}))
+ /** The villager or tavern affordance close enough to use, if any. */
+ nearest(position:Vec3,range=2.4):Villager|undefined{const tavern=this.tavern.nearest(position) as TavernEntity|undefined;if(tavern)return tavern;return VILLAGERS.map(v=>({v,d:Math.hypot(v.position[0]-position[0],v.position[2]-position[2])}))
   .filter(e=>e.d<range).sort((a,b)=>a.d-b.d)[0]?.v;}
- /** Idle animation, and a slow turn toward a traveller who comes near. */
+ /** Idle animation, slow face-to-player turns, and bounded tavern ambience. */
  update(dt:number,position:Vec3){
+  this.tavern.update(dt,position);
   for(const actor of this.actors.values()){
    actor.mixer.update(dt);
    const dx=position[0]-actor.villager.position[0],dz=position[2]-actor.villager.position[2];
