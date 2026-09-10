@@ -68,6 +68,7 @@ async function installStreamedFrontierGraphics(){
 
 const area=prepareSavedArea();
 try{await import('./dev-tools');}catch(error){console.error('Alderwatch dev tools failed to install',error);}
+try{await import('./dev-tavern-transport');}catch(error){console.error('Alderwatch tavern dev transport failed to install',error);}
 
 if(area===IRONWARD_CROSSING){
   await import('./ironward-crossing');
