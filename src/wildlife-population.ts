@@ -2,6 +2,8 @@ import type {WorldState} from './state';
 import {corpseId} from './wildlife-rules';
 import {species,type AnimalKind,type AnimalState} from './wildlife-species';
 import {WILDLIFE_SPAWNS,type WildlifeSpawn} from './wildlife-spawns';
+import {activeAreaObjects} from './area-object-store';
+import {playerAreaOf} from './area-ownership';
 
 export const WILDLIFE_DIRECTOR_PULSE_TICKS=120;
 export const WILDLIFE_PLAYER_EXCLUSION_RADIUS=42;
@@ -15,8 +17,6 @@ const PLAYER_CORPSE_TICKS=60*TICKS_PER_SECOND;
 const PREDATOR_CORPSE_TICKS=22*TICKS_PER_SECOND;
 const EMPTY_CORPSE_TICKS=10*TICKS_PER_SECOND;
 
-// Gameplay population cadence, not literal animal reproduction time. Stable spawn IDs are habitat
-// opportunities; each refill is a new individual. Common prey returns quickly, apex wildlife slowly.
 const RESPAWN_SECONDS:Record<AnimalKind,readonly [number,number]>={
  hare:[34,52],rabbit:[30,48],crow:[30,48],
  goat:[52,78],sheep:[50,76],deer:[48,74],fox:[58,86],boar:[58,88],
@@ -27,11 +27,16 @@ const DESIRED_OCCUPANCY:Record<AnimalKind,number>={
  stag:.82,bison:.82,wolf:.78,eagle:.72,bear:.68,
 };
 
-const spawnById=new Map(WILDLIFE_SPAWNS.map(s=>[s.id,s] as const));
-const slotsByKind=new Map<AnimalKind,WildlifeSpawn[]>();
-for(const spawn of WILDLIFE_SPAWNS){const list=slotsByKind.get(spawn.kind)??[];list.push(spawn);slotsByKind.set(spawn.kind,list);}
-const localSlots=new Map<string,WildlifeSpawn[]>();
-for(const spawn of WILDLIFE_SPAWNS)localSlots.set(spawn.id,WILDLIFE_SPAWNS.filter(other=>Math.hypot(other.x-spawn.x,other.z-spawn.z)<=LOCAL_PRESSURE_RADIUS));
+type SpawnList=readonly WildlifeSpawn[];
+interface PopulationIndex {spawnById:Map<string,WildlifeSpawn>;slotsByKind:Map<AnimalKind,WildlifeSpawn[]>;localSlots:Map<string,WildlifeSpawn[]>}
+const indexCache=new WeakMap<object,PopulationIndex>();
+function indexFor(spawns:SpawnList){
+ const key=spawns as object,cached=indexCache.get(key);if(cached)return cached;
+ const spawnById=new Map(spawns.map(s=>[s.id,s] as const)),slotsByKind=new Map<AnimalKind,WildlifeSpawn[]>(),localSlots=new Map<string,WildlifeSpawn[]>();
+ for(const spawn of spawns){const list=slotsByKind.get(spawn.kind)??[];list.push(spawn);slotsByKind.set(spawn.kind,list);}
+ for(const spawn of spawns)localSlots.set(spawn.id,spawns.filter(other=>Math.hypot(other.x-spawn.x,other.z-spawn.z)<=LOCAL_PRESSURE_RADIUS));
+ const index={spawnById,slotsByKind,localSlots};indexCache.set(key,index);return index;
+}
 
 export interface WildlifePopulationEnvironment {
  groundY?:(x:number,z:number)=>number;
@@ -47,7 +52,7 @@ function hash32(text:string){let h=2166136261>>>0;for(let i=0;i<text.length;i++)
 function unitHash(world:WorldState,animal:AnimalState,salt:string,generation=(animal.spawnGeneration??0)+1){return hash32(`${world.worldSeed??0}:${animal.id}:${generation}:${salt}`)/0xffffffff;}
 function alive(animal:AnimalState|undefined){return !!animal&&!animal.dead&&(animal.health??species(animal.kind).maxHealth)>0;}
 function distance2d(position:readonly number[],x:number,z:number){return Math.hypot(position[0]-x,position[2]-z);}
-function nearestPlayerDistance(world:WorldState,x:number,z:number){let best=Infinity;for(const player of Object.values(world.players))if(player.health>0)best=Math.min(best,distance2d(player.position,x,z));return best;}
+function nearestPlayerDistance(world:WorldState,x:number,z:number){let best=Infinity;const active=activeAreaObjects(world);for(const player of Object.values(world.players))if(player.health>0&&playerAreaOf(player)===active)best=Math.min(best,distance2d(player.position,x,z));return best;}
 
 export function wildlifeCorpseLifetimeTicks(animal:AnimalState,world:WorldState){
  const container=world.containers[corpseId(animal.id)];
@@ -55,8 +60,8 @@ export function wildlifeCorpseLifetimeTicks(animal:AnimalState,world:WorldState)
  return animal.killedBy==='player'?PLAYER_CORPSE_TICKS:PREDATOR_CORPSE_TICKS;
 }
 
-export function wildlifeScarcity(world:WorldState,animal:AnimalState){
- const spawn=spawnById.get(animal.id);if(!spawn)return 0;
+export function wildlifeScarcity(world:WorldState,animal:AnimalState,spawns:SpawnList=WILDLIFE_SPAWNS){
+ const {spawnById,slotsByKind,localSlots}=indexFor(spawns),spawn=spawnById.get(animal.id);if(!spawn)return 0;
  const kindSlots=slotsByKind.get(animal.kind)??[];
  const speciesAlive=kindSlots.reduce((n,slot)=>n+(alive(world.animals?.[slot.id])?1:0),0);
  const speciesRatio=kindSlots.length?speciesAlive/kindSlots.length:1;
@@ -66,10 +71,10 @@ export function wildlifeScarcity(world:WorldState,animal:AnimalState){
  return Math.max(0,1-Math.min(1,speciesRatio/DESIRED_OCCUPANCY[animal.kind],localRatio/.9));
 }
 
-export function wildlifeRespawnDelayTicks(world:WorldState,animal:AnimalState){
- const [lo,hi]=RESPAWN_SECONDS[animal.kind];
+export function wildlifeRespawnDelayTicks(world:WorldState,animal:AnimalState,spawns:SpawnList=WILDLIFE_SPAWNS){
+ const {spawnById}=indexFor(spawns),[lo,hi]=RESPAWN_SECONDS[animal.kind];
  const base=lo+(hi-lo)*unitHash(world,animal,'respawn');
- const scarcityBias=1-.56*wildlifeScarcity(world,animal);
+ const scarcityBias=1-.56*wildlifeScarcity(world,animal,spawns);
  const spawn=spawnById.get(animal.id);
  const playerDistance=spawn?nearestPlayerDistance(world,spawn.x,spawn.z):Infinity;
  const inEncounterRing=playerDistance>=WILDLIFE_ENCOUNTER_RING_MIN&&playerDistance<=WILDLIFE_ENCOUNTER_RING_MAX;
@@ -83,7 +88,6 @@ function clearIndividualState(animal:AnimalState){
  animal.health=profile.maxHealth;animal.maxHealth=profile.maxHealth;
  animal.avoidUntil=undefined;animal.attackAt=undefined;animal.attackingUntil=undefined;animal.huntTargetId=undefined;animal.huntUntil=undefined;animal.huntBestDistance=undefined;animal.huntCooldownUntil=undefined;animal.hitAt=undefined;animal.alarmedUntil=undefined;animal.lastAttackerId=undefined;animal.aggroPlayerId=undefined;animal.aggroUntil=undefined;
  animal.energy=profile.aerial?.maxEnergy;animal.airborne=false;animal.carriedPreyId=undefined;animal.carriedById=undefined;animal.carryUntil=undefined;
- // Notoriety/bounty history belongs to the dead individual, not to its reusable habitat slot.
  animal.wildKarma=undefined;animal.notoriety=undefined;animal.misdeeds=undefined;animal.wantedSince=undefined;animal.epithet=undefined;animal.bountyClaimed=undefined;
 }
 
@@ -110,10 +114,10 @@ function revive(world:WorldState,animal:AnimalState,spawn:WildlifeSpawn,env:Wild
  return true;
 }
 
-export function stepWildlifePopulation(world:WorldState,env:WildlifePopulationEnvironment={}):WildlifePopulationStep{
+export function stepWildlifePopulation(world:WorldState,env:WildlifePopulationEnvironment={},spawns:SpawnList=WILDLIFE_SPAWNS):WildlifePopulationStep{
  const result:WildlifePopulationStep={clearedCorpses:[],respawned:[],deferredNearPlayer:[]};
  if(!world.animals)return result;
- const candidates:{animal:AnimalState;spawn:WildlifeSpawn;score:number}[]=[];
+ const {spawnById}=indexFor(spawns),candidates:{animal:AnimalState;spawn:WildlifeSpawn;score:number}[]=[];
  for(const animal of Object.values(world.animals)){
   if(alive(animal))continue;
   const spawn=spawnById.get(animal.id);if(!spawn||animal.diedAt===undefined)continue;
@@ -121,12 +125,12 @@ export function stepWildlifePopulation(world:WorldState,env:WildlifePopulationEn
   if(animal.corpseClearedAt===undefined&&corpseAge>=wildlifeCorpseLifetimeTicks(animal,world)){
    delete world.containers[corpseId(animal.id)];animal.corpseClearedAt=world.tick;result.clearedCorpses.push(animal.id);
   }
-  const delay=wildlifeRespawnDelayTicks(world,animal);
+  const delay=wildlifeRespawnDelayTicks(world,animal,spawns);
   if(animal.corpseClearedAt===undefined||corpseAge<delay)continue;
   if(nearestPlayerDistance(world,spawn.x,spawn.z)<WILDLIFE_PLAYER_EXCLUSION_RADIUS){result.deferredNearPlayer.push(animal.id);continue;}
   const playerDistance=nearestPlayerDistance(world,spawn.x,spawn.z);
   const encounter=playerDistance>=WILDLIFE_ENCOUNTER_RING_MIN&&playerDistance<=WILDLIFE_ENCOUNTER_RING_MAX?1:0;
-  const score=corpseAge/Math.max(1,delay)+wildlifeScarcity(world,animal)*2.4+encounter*.8+unitHash(world,animal,'queue')*.05;
+  const score=corpseAge/Math.max(1,delay)+wildlifeScarcity(world,animal,spawns)*2.4+encounter*.8+unitHash(world,animal,'queue')*.05;
   candidates.push({animal,spawn,score});
  }
  candidates.sort((a,b)=>b.score-a.score);
