@@ -6,10 +6,6 @@ import type {Vec3} from './state';
 import {AlderbrookTavern,type TavernInteraction} from './alderbrook-tavern';
 import {MAX_INTOXICATION as INTOXICATION_CAP} from './tavern-rules';
 
-// alderbrook-tavern.ts keeps the cap as a compact plain identifier. Publish the
-// same value into the browser global environment before a tavern panel executes.
-(globalThis as typeof globalThis & {MAX_INTOXICATION?:number}).MAX_INTOXICATION=INTOXICATION_CAP;
-
 export interface TavernEntity{id:string;name:string;role:string;position:Vec3;yaw:number;greeting:string;hair:string;cloth:string}
 let currentCharacter:Character|undefined;
 let activeTavern:AlderbrookTavern|undefined;
@@ -26,13 +22,19 @@ function installCharacterPatch(){
  const post=Character.prototype.postStep,pre=Character.prototype.preStep;
  Character.prototype.postStep=function(dt:number){post.call(this,dt);currentCharacter=this;if(activeTavern?.inside){const safe=activeTavern.safeSavePosition();if(safe){this.state.position=[...safe.position];this.state.yaw=safe.yaw;}}};
  Character.prototype.preStep=function(...args:Parameters<Character['preStep']>){
-  if(activeTavern?.inside){this.moveSpeed=activeTavern.movementScale();const input=args[1] as Parameters<Character['preStep']>[1]&{pressed?:Set<string>;secondary?:boolean};input.pressed?.delete('Attack');input.pressed?.delete('KeyF');input.secondary=false;}else this.moveSpeed=1;
+  if(activeTavern?.inside){
+   this.moveSpeed=activeTavern.movementScale();
+   const input=args[1] as Parameters<Character['preStep']>[1]&{pressed?:Set<string>;primary?:boolean;secondary?:boolean;keys?:Set<string>};
+   input.pressed?.delete('Attack');input.pressed?.delete('KeyF');input.primary=false;input.secondary=false;input.keys?.delete('Space');
+  }else this.moveSpeed=1;
   return pre.apply(this,args);
  };
 }
 installCharacterPatch();
 
-function actualPosition(fallback:Vec3){return activeTavern?.inside&&currentCharacter?currentCharacter.root.position.toArray() as Vec3:fallback;}
+// Critical invariant: interaction range is always measured from the physical character.
+// The old fallback used exteriorDoor while outside, which made Enter appear everywhere.
+function actualPosition(fallback:Vec3){return currentCharacter?currentCharacter.root.position.toArray() as Vec3:fallback;}
 function interactionEntity(action:TavernInteraction,tavern:AlderbrookTavern):TavernEntity{
  const pos=actualPosition(tavern.exteriorDoor);
  if(action.kind==='enter')return entity('tavern:enter','The Tipsy Alder','Enter tavern',pos,'Warm light leaks around the old oak door.');
@@ -42,20 +44,39 @@ function interactionEntity(action:TavernInteraction,tavern:AlderbrookTavern):Tav
  if(action.kind==='pipe')return entity('tavern:pipe','House Pipe','Pipe nook',pos);
  return entity(`tavern:patron:${action.id}`,action.id==='pell'?'Pell “Three Mugs” Dorr':action.id==='sella'?'Sella Reed':'Jorren Pike','Regular',pos);
 }
+function clearOutdoorNoise(){
+ document.querySelector('#toast')?.remove();document.querySelector('.world-boss-entry')?.remove();
+ const boss=document.querySelector<HTMLElement>('.world-boss-bar');if(boss)boss.hidden=true;
+ const target=document.querySelector<HTMLElement>('#combat-target,.combat-target');if(target)target.hidden=true;
+}
 
 export class TavernBridge{
  private tavern?:AlderbrookTavern;private target?:TavernEntity;
  constructor(private root:T.Group,private assets:Assets){}
+ get inside(){return !!this.tavern?.inside;}
  private ensure(){if(!this.tavern&&currentCharacter){this.tavern=new AlderbrookTavern(this.root,this.assets,currentCharacter.physics);activeTavern=this.tavern;}return this.tavern;}
  nearest(position:Vec3){const tavern=this.ensure();if(!tavern)return;const action=tavern.interactionAt(actualPosition(position));this.target=action?interactionEntity(action,tavern):undefined;return this.target;}
  update(dt:number,position:Vec3){const tavern=this.ensure();if(!tavern)return;tavern.update(dt,performance.now()/1000,actualPosition(position));queueMicrotask(()=>this.rewriteHud());const canvas=document.querySelector<HTMLElement>('#world');if(canvas){const haze=Math.min(1,tavern.smoke/2.5),tipsy=Math.min(1,tavern.intoxication/INTOXICATION_CAP);canvas.style.filter=tavern.inside?`saturate(${1+tipsy*.12}) contrast(${1-tipsy*.04}) blur(${haze*.32}px)`:'';}}
- private rewriteHud(){const tavern=this.tavern,prompt=document.querySelector<HTMLElement>('#ui .interaction'),location=document.querySelector<HTMLElement>('#ui .location span');if(!tavern||!prompt)return;const action=tavern.interactionAt(actualPosition(tavern.exteriorDoor));if(action){const text=action.kind==='enter'?'E · Enter The Tipsy Alder':action.kind==='exit'?'E · Leave The Tipsy Alder':action.kind==='bartender'?'E · Brinna Keggs · drinks & gossip':action.kind==='bones'?'E · Play Alderbones':action.kind==='pipe'?'E · House pipe · one pull':`E · Speak to ${interactionEntity(action,tavern).name}`;prompt.textContent=text;prompt.hidden=false;}if(tavern.inside&&location){location.textContent='The Tipsy Alder · Alderbrook';const map=document.querySelector<HTMLElement>('.minimap,.mini-map,#minimap');if(map)map.style.visibility='hidden';}else{const map=document.querySelector<HTMLElement>('.minimap,.mini-map,#minimap');if(map)map.style.visibility='';}}
+ private rewriteHud(){
+  const tavern=this.tavern,prompt=document.querySelector<HTMLElement>('#ui .interaction'),location=document.querySelector<HTMLElement>('#ui .location span');if(!tavern||!prompt)return;
+  const action=tavern.interactionAt(actualPosition(tavern.exteriorDoor));
+  if(tavern.inside){
+   clearOutdoorNoise();
+   const text=action?.kind==='exit'?'E · Leave The Tipsy Alder':action?.kind==='bartender'?'E · Brinna Keggs · drinks & gossip':action?.kind==='bones'?'E · Play Alderbones':action?.kind==='pipe'?'E · House pipe · one pull':action?.kind==='patron'?`E · Speak to ${interactionEntity(action,tavern).name}`:'';
+   prompt.textContent=text;prompt.hidden=!text;if(location)location.textContent='The Tipsy Alder · Alderbrook';
+   const map=document.querySelector<HTMLElement>('.minimap,.mini-map,#minimap');if(map)map.style.visibility='hidden';
+  }else{
+   // Outside we only claim the prompt when the player is actually at this door.
+   if(action?.kind==='enter'){prompt.textContent='E · Enter The Tipsy Alder';prompt.hidden=false;}
+   const map=document.querySelector<HTMLElement>('.minimap,.mini-map,#minimap');if(map)map.style.visibility='';
+  }
+ }
  read(){return this.tavern?.read();}
 }
 
 export function handleTavernEntity(ui:HTMLElement,id:string,resume:()=>void){
  const tavern=activeTavern,character=currentCharacter;if(!tavern||!character||!id.startsWith('tavern:'))return false;
- if(id==='tavern:enter'){const to=tavern.enter();relocate(character,to.position,to.yaw);resume();return true;}
+ if(id==='tavern:enter'){clearOutdoorNoise();const to=tavern.enter();relocate(character,to.position,to.yaw);resume();return true;}
  if(id==='tavern:exit'){const to=tavern.leave();relocate(character,to.position,to.yaw);resume();return true;}
  if(id==='tavern:brinna'){tavern.openBar(ui,character.state,stats(character.state).stamina,resume);return true;}
  if(id==='tavern:bones'){tavern.openBones(ui,resume);return true;}
