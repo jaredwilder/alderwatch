@@ -25,12 +25,14 @@ const take=(world:WorldState):AreaObjectSlice=>({resources:world.resources,forag
 const install=(world:WorldState,slice:AreaObjectSlice)=>{world.resources=slice.resources;world.forage=slice.forage;world.drops=slice.drops;world.structures=slice.structures;world.stations=slice.stations;world.containers=slice.containers;world.enemies=slice.enemies;};
 
 /**
- * Preserve old saves exactly: before this feature, every top-level physical object was
- * Far March data. We mark that active view without rewriting the objects themselves.
+ * Pre-projection v1 saves used these top-level physical collections only for Far March,
+ * even if the survivor happened to be standing in a newer streamed area. Therefore the
+ * first migration MUST label the existing view Far March; using player.areaId here would
+ * steal March houses/resources/stations into Wolfpine or Crownroad.
  */
-export function ensureAreaObjectStore(world:WorldState,currentArea:AreaId=FAR_MARCH){
- world.areaObjectStore??={};
- world.activeObjectAreaId??=currentArea;
+export function ensureAreaObjectStore(world:WorldState,_currentArea:AreaId=FAR_MARCH){
+ if(!world.areaObjectStore){world.areaObjectStore={};world.activeObjectAreaId=FAR_MARCH;}
+ else world.activeObjectAreaId??=FAR_MARCH;
  return world;
 }
 
@@ -42,7 +44,7 @@ export function ensureAreaObjectStore(world:WorldState,currentArea:AreaId=FAR_MA
  */
 export function activateAreaObjects(world:WorldState,targetArea:AreaId,currentArea?:AreaId){
  ensureAreaObjectStore(world,currentArea??targetArea);
- const active=world.activeObjectAreaId??currentArea??FAR_MARCH;
+ const active=world.activeObjectAreaId??FAR_MARCH;
  if(active===targetArea){world.activeObjectAreaId=targetArea;return world;}
  world.areaObjectStore![active]=take(world);
  const target=world.areaObjectStore![targetArea]??emptySlice();
