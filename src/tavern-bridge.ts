@@ -27,11 +27,14 @@ const entity=(id:string,name:string,role:string,position:Vec3,greeting=''):Taver
 function relocate(character:Character,position:Vec3,yaw:number){
  character.velocity.set(0,0,0);character.vertical=0;character.locked=0;character.root.position.fromArray(position);character.root.rotation.y=yaw;
  character.body.setTranslation({x:position[0],y:position[1]+.9,z:position[2]},true);character.body.setNextKinematicTranslation({x:position[0],y:position[1]+.9,z:position[2]});
- character.state.yaw=yaw;
+ character.state.position=[...position];character.state.yaw=yaw;
 }
 function installCharacterPatch(){
  if(patchInstalled)return;patchInstalled=true;
- const post=Character.prototype.postStep,pre=Character.prototype.preStep;
+ const post=Character.prototype.postStep,pre=Character.prototype.preStep,customize=Character.prototype.customize;
+ // Character construction calls customize before Village/TavernBridge are created.
+ // Capture there so entry never depends on waiting for a later physics tick.
+ Character.prototype.customize=function(){currentCharacter=this;return customize.call(this);};
  Character.prototype.postStep=function(dt:number){post.call(this,dt);currentCharacter=this;if(activeTavern?.inside){const safe=activeTavern.safeSavePosition();if(safe){this.state.position=[...safe.position];this.state.yaw=safe.yaw;}}};
  Character.prototype.preStep=function(...args:Parameters<Character['preStep']>){
   currentCharacter=this;
@@ -72,11 +75,10 @@ export class TavernBridge{
  constructor(private root:T.Group,private assets:Assets){activeBridge=this;}
  get inside(){return !!this.tavern?.inside;}
  private construct(position:Vec3){
-  if(this.tavern||!currentCharacter)return this.tavern;
-  const live=currentCharacter.root.position.toArray() as Vec3;
-  // Never bind a newly rebuilt Village to a stale Character/physics instance.
-  if(Math.hypot(live[0]-position[0],live[2]-position[2])>6)return undefined;
-  this.tavern=new AlderbrookTavern(this.root,this.assets,currentCharacter.physics);activeTavern=this.tavern;return this.tavern;
+  if(this.tavern)return this.tavern;
+  const character=currentCharacter;if(!character)return undefined;
+  this.lastPosition=[...position];
+  this.tavern=new AlderbrookTavern(this.root,this.assets,character.physics);activeTavern=this.tavern;return this.tavern;
  }
  private ensure(position:Vec3){
   if(this.tavern)return this.tavern;
@@ -98,10 +100,10 @@ export class TavernBridge{
  }
  /** Dev acceptance escape hatch: enter the real interior through the same relocation path as E. */
  devEnter(){
-  if(!currentCharacter)return false;
-  const live=currentCharacter.root.position.toArray() as Vec3;
+  const character=currentCharacter;if(!character)return false;
+  const live=character.root.position.toArray() as Vec3;
   this.lastPosition=[...live];const tavern=this.ensure(live)??this.construct(live);if(!tavern)return false;
-  return enterNow(tavern,currentCharacter);
+  return enterNow(tavern,character);
  }
  private queueHudRewrite(){if(this.hudQueued)return;this.hudQueued=true;queueMicrotask(()=>{this.hudQueued=false;this.rewriteHud();});}
  private updateAtmosphere(tavern:AlderbrookTavern){
@@ -128,7 +130,7 @@ export class TavernBridge{
    const map=document.querySelector<HTMLElement>('.minimap,.mini-map,#minimap');if(map)map.style.visibility='';
   }
  }
- read(){return{...this.tavern?.read(),entry:{...ENTRY},lastPosition:[...this.lastPosition],entryActive:atTavernEntry(this.lastPosition),warmupQueued:this.warmupQueued,discoveryRadius:DISCOVERY_RADIUS,prewarmRadius:PREWARM_RADIUS};}
+ read(){return{...this.tavern?.read(),entry:{...ENTRY},lastPosition:[...this.lastPosition],entryActive:atTavernEntry(this.lastPosition),warmupQueued:this.warmupQueued,characterBound:!!currentCharacter,discoveryRadius:DISCOVERY_RADIUS,prewarmRadius:PREWARM_RADIUS};}
 }
 
 export function forceEnterTipsyAlderForDev(){return activeBridge?.devEnter()??false;}

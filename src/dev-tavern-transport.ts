@@ -37,7 +37,13 @@ export function installTipsyAlderDevTransport(){
   button.dataset.tipsyAlderEnter='1';
   button.textContent='Enter · Tipsy Alder';
   button.title='Enter the real tavern interior immediately for visual acceptance testing';
-  button.onclick=()=>{if(!enter())jump();};
+  button.onclick=()=>{
+   const ok=enter();
+   if(ok){button.textContent='Inside · Tipsy Alder';return;}
+   button.textContent='ENTRY FAILED · click Jump first';
+   button.classList.add('aw-dev-danger');
+   setTimeout(()=>{button.textContent='Enter · Tipsy Alder';button.classList.remove('aw-dev-danger');},1800);
+  };
   const jumpButton=grid.querySelector('[data-tipsy-alder-jump]');
   if(jumpButton?.nextSibling)grid.insertBefore(button,jumpButton.nextSibling);else grid.append(button);
  }

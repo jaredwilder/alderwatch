@@ -27,7 +27,7 @@ test('tavern source is a real enterable 3D gameplay room, not a dialogue-only fa
  const source=readFileSync(new URL('../src/alderbrook-tavern.ts',import.meta.url),'utf8');
  for(const contract of ['The Tipsy Alder','Brinna Keggs','isolated interior capsule','RAPIER.ColliderDesc','InstancedMesh','campfire_burning_q','Alderbones','house pipe','safeSavePosition'])assert.ok(source.includes(contract),`missing tavern contract: ${contract}`);
  const bridge=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
- for(const contract of ['Character.prototype.postStep','Character.prototype.preStep','setTranslation','tavern:enter','tavern:exit','openBar','openBones','forceEnterTipsyAlderForDev'])assert.ok(bridge.includes(contract),`missing live integration: ${contract}`);
+ for(const contract of ['Character.prototype.customize','Character.prototype.postStep','Character.prototype.preStep','setTranslation','tavern:enter','tavern:exit','openBar','openBones','forceEnterTipsyAlderForDev'])assert.ok(bridge.includes(contract),`missing live integration: ${contract}`);
 });
 
 test('visible Tipsy Alder frontage is the enter target instead of a narrow inferred porch rectangle',()=>{
@@ -35,12 +35,16 @@ test('visible Tipsy Alder frontage is the enter target instead of a narrow infer
  assert.match(bridge,/const ENTRY=\{x:-10\.4,z:-27\.8,radius:6\.5\}/);
  assert.match(bridge,/atTavernEntry\(live\)\?\{kind:'enter'\}/,'outside interaction must use the visible tavern frontage');
  assert.match(bridge,/tavern\.inside\?physicalPosition\(position\):position/,'outside must trust PlayerState; physical-body fallback is only needed inside');
- assert.match(bridge,/currentCharacter=this;/,'preStep must refresh the current character before any later interaction frame');
  const entry=[-10.4,-27.8] as const,radius=6.5;
- // Both authored doorway variants, the permanent sign, and the dev landing point all
- // belong to one forgiving interaction footprint. This is the live player contract.
  const acceptancePoints=[[-10.5905414639,-29.4183215028],[-9.0980352160,-29.5680716278],[-12.15,-26.35],[-9.8,-25.8]];
  for(const [x,z] of acceptancePoints)assert.ok(Math.hypot(x-entry[0],z-entry[1])<=radius,`frontage point ${x},${z} escaped tavern entry radius`);
+});
+
+test('tavern binds the live Character during construction instead of waiting for a physics tick',()=>{
+ const bridge=readFileSync(new URL('../src/tavern-bridge.ts',import.meta.url),'utf8');
+ assert.match(bridge,/Character\.prototype\.customize=function\(\)\{currentCharacter=this;return customize\.call\(this\);\}/,'Character construction must bind the live instance before Village creates the tavern bridge');
+ assert.doesNotMatch(bridge,/Math\.hypot\(live\[0\]-position\[0\],live\[2\]-position\[2\]\)>6/,'stale-character distance gate must not silently make the tavern non-enterable');
+ assert.match(bridge,/character\.state\.position=\[\.\.\.position\]/,'relocation must update authoritative player position immediately');
 });
 
 test('tavern frontage exists before the visible Alderbrook road approach reaches it',()=>{

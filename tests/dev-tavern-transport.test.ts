@@ -16,6 +16,8 @@ test('dev tools surface both porch jump and direct interior entry for The Tipsy 
  assert.match(transport,/forceEnterTipsyAlderForDev/);
  assert.match(transport,/data-tipsy-alder-jump/);
  assert.match(transport,/data-tipsy-alder-enter/);
+ assert.doesNotMatch(transport,/if\(!enter\(\)\)jump\(\)/,'direct interior entry must never silently degrade into an exterior teleport');
+ assert.match(transport,/ENTRY FAILED · click Jump first/,'a failed direct entry must be visible to the tester');
 });
 
 test('tavern dev transport installs immediately after the core dev tools',()=>{
