@@ -5,10 +5,16 @@ import {readFileSync} from 'node:fs';
 const shell=readFileSync(new URL('../src/area-gameplay-shell.ts',import.meta.url),'utf8');
 const crossing=readFileSync(new URL('../src/ironward-crossing.ts',import.meta.url),'utf8');
 
-test('cross-area shell exposes the survivor controls instead of a travel-only HUD',()=>{
+test('cross-area shell exposes the same survivor controls instead of a travel-only HUD',()=>{
  for(const token of ['TAB · PACK','M · MAP','J · JOURNAL','C · RECIPES','KeyQ','Digit1','Digit5'])assert.ok(shell.includes(token),`missing ${token}`);
- assert.ok(shell.includes('Building is unavailable in ${this.o.areaName} until structures are area-addressed'));
- assert.ok(shell.includes('Recipe planning is available everywhere'));
+ assert.ok(shell.includes('Inventory, gathering, crafting and progression are shared.'));
+ assert.ok(!shell.includes('__area-planning-only__'),'streamed areas must not be hardwired to recipe-planning-only mode');
+ assert.ok(shell.includes('nearestStation()'),'streamed areas must resolve real local crafting stations');
+});
+
+test('streamed-area map uses the Far March cartography visual contract',()=>{
+ for(const token of ['world-map-overlay','world-map-frame','world-map-layout','world-map-sidebar','world-map-you','world-map-selection'])assert.ok(shell.includes(token),`missing shared map surface ${token}`);
+ assert.ok(shell.includes('Areas are streamed world geography, not separate games.'));
 });
 
 test('streamed-area shell explicitly owns M because generic Input reserves M for a map surface',()=>{

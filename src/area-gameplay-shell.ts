@@ -2,6 +2,8 @@ import {GamePanels} from './game-panels';
 import type {Input} from './input';
 import {HOTBAR_ITEMS,QUICK_FOOD_ITEMS,displayedHotbarItem} from './live-gameplay';
 import {ITEMS,type Command,type ItemId,type LocalAuthority,type PlayerState,type Vec3} from './state';
+import {distance} from './economy';
+import {areaOf} from './area-ownership';
 import './backpack-ui';
 import './recipe-book-ui';
 import './ui-stack';
@@ -38,14 +40,11 @@ export class AreaGameplayShell {
  private panels:GamePanels;
  private onKey=(e:KeyboardEvent)=>{
   const target=e.target as HTMLElement|undefined;if(target?.matches('input,textarea,select'))return;
-  // Generic Input deliberately leaves M to a map owner because Far March MiniMap
-  // captures it. Streamed areas need their own capture owner or M never reaches
-  // AreaGameplayShell at all.
   if(e.code!=='KeyM'||e.repeat||(this.mode!=='world'&&this.mode!=='map'))return;
   e.preventDefault();e.stopImmediatePropagation();if(this.mode==='map')this.close();else this.openMap();
  };
  constructor(private o:AreaGameplayShellOptions){
-  this.panels=new GamePanels(o.ui,o.authority,o.player,()=>{throw new Error(`Building is not area-addressed in ${o.areaId}`);},()=>this.close(),c=>this.command(c));
+  this.panels=new GamePanels(o.ui,o.authority,o.player,()=>{throw new Error(`Building is not yet mounted in ${o.areaId}`);},()=>this.close(),c=>this.command(c));
   window.addEventListener('keydown',this.onKey,true);
  }
  get blocked(){return this.mode!=='world';}
@@ -78,7 +77,10 @@ export class AreaGameplayShell {
   if(this.o.input.take('KeyC')){this.crafting();return true;}
   if(this.o.input.take('KeyQ'))this.quickFood();
   for(const [i,id] of HOTBAR_ITEMS.entries())if(this.o.input.take('Digit'+(i+1)))this.equip(id);
-  if(this.o.input.take('KeyB'))this.o.notify(`Building is unavailable in ${this.o.areaName} until structures are area-addressed. Your Far March structures are safe.`);
+  // Building is the last large Far-March-only authority because placement validation
+  // still depends on March terrain. Keep the refusal explicit until that authority is
+  // area-addressed rather than silently placing a Wolfpine house into Far March state.
+  if(this.o.input.take('KeyB'))this.o.notify(`Building is temporarily unavailable in ${this.o.areaName} while placement terrain becomes area-addressed. Inventory, gathering, crafting and progression are shared.`);
   this.refreshHotbar();
   return false;
  }
@@ -89,19 +91,23 @@ export class AreaGameplayShell {
   this.o.notify(out.message);return out;
  }
  private equip(id:ItemId){let item=id;const p=this.o.player();if(id==='sword'&&p.inventory.some(s=>s.item==='fine_sword'))item='fine_sword';this.command({type:'equip',playerId:p.id,item});this.refreshHotbar();}
- private quickFood(){const p=this.o.player(),item=QUICK_FOOD_ITEMS.find(id=>p.inventory.some(s=>s.item===id&&s.count>0)&&!p.buffs.some(b=>b.id===id&&b.remaining>60))??QUICK_FOOD_ITEMS.find(id=>p.inventory.some(s=>s.item===id&&s.count>0));if(item)this.command({type:'eat',playerId:p.id,item});else this.o.notify('No prepared food in your pack. Open C to plan a campfire recipe.');}
+ private quickFood(){const p=this.o.player(),item=QUICK_FOOD_ITEMS.find(id=>p.inventory.some(s=>s.item===id&&s.count>0)&&!p.buffs.some(b=>b.id===id&&b.remaining>60))??QUICK_FOOD_ITEMS.find(id=>p.inventory.some(s=>s.item===id&&s.count>0));if(item)this.command({type:'eat',playerId:p.id,item});else this.o.notify('No prepared food in your pack. Open C beside a campfire to cook.');}
  private beginPanel(mode:'inventory'|'journal'|'craft',render:()=>void){this.mode=mode;this.o.input.clear();this.o.input.active=false;render();const back=this.o.ui.querySelector<HTMLButtonElement>('.game-panel .back');if(back)back.textContent=`← Return to ${this.o.areaName}`;}
  private inventory(){this.beginPanel('inventory',()=>this.panels.inventory());}
  private journal(){this.beginPanel('journal',()=>{this.panels.journal();const eyebrow=this.o.ui.querySelector<HTMLElement>('.game-panel .eyebrow');if(eyebrow)eyebrow.textContent=`FIELD JOURNAL · ${this.o.areaName.toUpperCase()}`;});}
- private crafting(){this.beginPanel('craft',()=>{this.panels.crafting('__area-planning-only__');const eyebrow=this.o.ui.querySelector<HTMLElement>('.game-panel .eyebrow');if(eyebrow)eyebrow.textContent=`RECIPE BOOK · ${this.o.areaName.toUpperCase()} · PLANNING`;const note=this.o.ui.querySelector<HTMLElement>('.panel-content p');if(note)note.textContent=`Recipe planning is available everywhere. Crafting still requires a real area-addressed campfire or workbench; this prevents ${this.o.areaName} coordinates from mutating Far March stations.`;});}
+ private nearestStation(){const p=this.o.player();return Object.values(this.o.authority.state.stations).filter(s=>areaOf(s)===this.o.areaId&&distance(s.position,p.position)<=3.2).sort((a,b)=>distance(a.position,p.position)-distance(b.position,p.position))[0];}
+ private crafting(){const station=this.nearestStation();this.beginPanel('craft',()=>{this.panels.crafting(station?.id);const eyebrow=this.o.ui.querySelector<HTMLElement>('.game-panel .eyebrow');if(eyebrow)eyebrow.textContent=station?`CRAFTING · ${this.o.areaName.toUpperCase()}`:`RECIPE BOOK · ${this.o.areaName.toUpperCase()}`;});}
 
  private openMap(){
   this.mode='map';this.o.input.clear();this.o.input.active=false;
-  const overlay=document.createElement('section');overlay.className='area-map-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-label',`${this.o.areaName} map`);
-  overlay.innerHTML='<div class="area-map-card"><header><div><small>ALDERWATCH REALM ATLAS</small><h2></h2></div><button type="button">M / ESC · CLOSE</button></header><div class="area-map-field"><div class="area-map-grid"></div></div><footer><span>YOU</span><span>Landmarks are live area coordinates · no fast travel</span></footer></div>';
-  overlay.querySelector('h2')!.textContent=this.o.areaName.toUpperCase();overlay.querySelector<HTMLButtonElement>('header button')!.onclick=()=>this.close();
-  const field=overlay.querySelector<HTMLElement>('.area-map-field')!,p=areaMapPoint(this.o.player().position,this.o.bounds),you=document.createElement('i');you.className='area-map-you';you.style.left=p.x+'%';you.style.top=p.y+'%';you.title='You';field.append(you);
-  for(const landmark of this.o.landmarks()){const q=areaMapPoint(landmark.position,this.o.bounds),pin=document.createElement('span');pin.className='area-map-pin '+(landmark.kind??'site');pin.style.left=q.x+'%';pin.style.top=q.y+'%';pin.innerHTML='<b></b><em></em>';pin.querySelector('b')!.textContent=landmark.kind==='gate'?'◆':landmark.kind==='settlement'?'⌂':landmark.kind==='danger'?'▲':'●';pin.querySelector('em')!.textContent=landmark.label;field.append(pin);}
+  // Use the same full-screen cartography frame/classes as the Far March. Area data
+  // changes; the game/map interaction language does not.
+  const overlay=document.createElement('section');overlay.className='world-map-overlay area-map-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-label',`Interactive full map of ${this.o.areaName}`);
+  overlay.innerHTML='<div class="world-map-frame area-map-card"><header><div><small>ALDERWATCH CARTOGRAPHY · LIVE</small><h2></h2></div><button class="world-map-close" type="button">M / ESC · CLOSE</button></header><div class="world-map-layout"><div class="world-map-canvas-wrap area-map-field"><div class="area-map-grid"></div><span class="world-map-north">N ↑</span><span class="world-map-hover">Live area coordinates · no fast travel</span></div><aside class="world-map-sidebar"><div class="world-map-you"></div><div class="world-map-selection"><small>ACTIVE AREA</small><strong></strong><span>The same survivor, inventory and progression continue across this boundary.</span></div><h3>KNOWN LANDMARKS</h3><div class="area-map-landmark-list"></div><div class="world-map-legend"><span>⌂ Settlement</span><span>◆ Gate</span><span>▲ Danger</span><span>● Site</span></div><p>Areas are streamed world geography, not separate games. Crossing a gate changes the loaded world, not your Alderwatch character or authorities.</p></aside></div></div>';
+  overlay.querySelector('h2')!.textContent=this.o.areaName.toUpperCase();overlay.querySelector<HTMLElement>('.world-map-selection strong')!.textContent=this.o.areaName;overlay.querySelector<HTMLButtonElement>('.world-map-close')!.onclick=()=>this.close();
+  const field=overlay.querySelector<HTMLElement>('.area-map-field')!,player=this.o.player(),p=areaMapPoint(player.position,this.o.bounds),you=document.createElement('i');you.className='area-map-you';you.style.left=p.x+'%';you.style.top=p.y+'%';you.title='You';field.append(you);overlay.querySelector<HTMLElement>('.world-map-you')!.textContent=`YOU · LIVE · ${this.o.areaName} · X ${Math.round(player.position[0])} · Z ${Math.round(player.position[2])}`;
+  const list=overlay.querySelector<HTMLElement>('.area-map-landmark-list')!;
+  for(const landmark of this.o.landmarks()){const q=areaMapPoint(landmark.position,this.o.bounds),pin=document.createElement('span');pin.className='area-map-pin '+(landmark.kind??'site');pin.style.left=q.x+'%';pin.style.top=q.y+'%';pin.innerHTML='<b></b><em></em>';pin.querySelector('b')!.textContent=landmark.kind==='gate'?'◆':landmark.kind==='settlement'?'⌂':landmark.kind==='danger'?'▲':'●';pin.querySelector('em')!.textContent=landmark.label;field.append(pin);const row=document.createElement('div');row.className='world-map-sighting';row.innerHTML='<strong></strong><span></span>';row.querySelector('strong')!.textContent=pin.querySelector('b')!.textContent+' '+landmark.label;row.querySelector('span')!.textContent=`X ${Math.round(landmark.position[0])} · Z ${Math.round(landmark.position[2])}`;list.append(row);}
   document.body.append(overlay);this.map=overlay;
  }
  private close(){const wasMap=this.mode==='map';this.map?.remove();this.map=undefined;this.mode='world';this.o.input.clear();this.o.input.active=true;if(!wasMap){this.o.renderHud();this.mountHud();}}
