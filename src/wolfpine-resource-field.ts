@@ -4,7 +4,7 @@ import type {CellCoord} from './area-cell-stream';
 import {Assets} from './assets';
 import {Gathering,type GatheringLandscape} from './gathering';
 import {Soundscape} from './audio';
-import {LocalAuthority,ITEMS,type ForageState,type PlayerState,type ResourceState} from './state';
+import {LocalAuthority,ITEMS,type ForageState,type PlayerState,type ResourceState,type StationState} from './state';
 import {forageAvailable} from './nature';
 import {WOLFPINE_AREA,WOLFPINE_CELL} from './wolfpine-world';
 
@@ -12,10 +12,13 @@ function hash(x:number,z:number,slot:number,seed:number){let h=(seed^Math.imul(x
 function unit(x:number,z:number,slot:number,seed:number){return hash(x,z,slot,seed)/0xffffffff;}
 function cellKey(c:CellCoord){return `${c.x},${c.z}`;}
 
+export const WOLFPINE_CAMPFIRE='wolfpine-charcoal-campfire';
+export const WOLFPINE_WORKBENCH='wolfpine-charcoal-workbench';
+
 /**
  * Wolfpine is content plugged into Alderwatch's existing harvest authority. This class
  * owns only area-specific deterministic placement/presentation; inventory, harvest,
- * skill gain, drops and pickup remain the same Gathering + LocalAuthority used in Far March.
+ * skill gain, drops, pickup and crafting remain the same authorities used in Far March.
  */
 export class WolfpineResourceField implements GatheringLandscape {
  readonly resources=new Map<string,T.Object3D>();
@@ -27,7 +30,16 @@ export class WolfpineResourceField implements GatheringLandscape {
 
  constructor(readonly root:T.Group,readonly assets:Assets,readonly physics:RAPIER.World,readonly authority:LocalAuthority,readonly sound:Soundscape){
   this.seed=authority.state.worldSeed??197709;
+  this.ensureStations();
   this.gathering=new Gathering(root,assets,physics,authority,this,sound,WOLFPINE_AREA,()=>0);
+ }
+
+ private ensureStations(){
+  const stations:StationState[]=[
+   {id:WOLFPINE_CAMPFIRE,areaId:WOLFPINE_AREA,name:'Wolfpine charcoal fire',kind:'campfire',position:[0,0,-48]},
+   {id:WOLFPINE_WORKBENCH,areaId:WOLFPINE_AREA,name:'Charcoal burners’ workbench',kind:'workbench',position:[-5,0,-44]},
+  ];
+  for(const station of stations)this.authority.state.stations[station.id]??=station;
  }
 
  place(name:string,x:number,z:number,yaw=0,scale=1,y=0){const o=this.assets.prop(name);o.position.set(x,y,z);o.rotation.y=yaw;o.scale.setScalar(scale);this.root.add(o);return o;}
@@ -41,7 +53,6 @@ export class WolfpineResourceField implements GatheringLandscape {
   ];
   for(const c of candidates){
    const id=`wolfpine-resource:${coord.x}:${coord.z}:${c.kind}:${c.slot}`;ids.push(id);if(this.authority.state.resources[id])continue;
-   // Pick one of several deterministic candidates so paths and authored sites remain clear.
    let position:[number,number,number]|undefined;
    for(let attempt=0;attempt<7;attempt++){
     const u=unit(coord.x,coord.z,c.slot*17+attempt*2,this.seed),v=unit(coord.x,coord.z,c.slot*17+attempt*2+1,this.seed),x=gx+(u-.5)*38,z=gz+(v-.5)*38;
@@ -51,8 +62,7 @@ export class WolfpineResourceField implements GatheringLandscape {
    const r:ResourceState={id,areaId:WOLFPINE_AREA,kind:c.kind,position,variant:hash(coord.x,coord.z,c.slot+91,this.seed)%3,health:c.health,phase:'standing',rotation:unit(coord.x,coord.z,c.slot+47,this.seed)*Math.PI*2,scale:c.kind==='tree'?.82+unit(coord.x,coord.z,c.slot+71,this.seed)*.28:1};
    this.authority.state.resources[id]=r;
   }
-  const forageId=`wolfpine-forage:${coord.x}:${coord.z}:flax`;
-  ids.push(forageId);
+  const forageId=`wolfpine-forage:${coord.x}:${coord.z}:flax`;ids.push(forageId);
   if(!this.authority.state.forage[forageId]){
    for(let attempt=0;attempt<7;attempt++){
     const x=gx+(unit(coord.x,coord.z,120+attempt*2,this.seed)-.5)*36,z=gz+(unit(coord.x,coord.z,121+attempt*2,this.seed)-.5)*36;if(clear(x,z))continue;
