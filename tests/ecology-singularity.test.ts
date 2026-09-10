@@ -23,10 +23,11 @@ test('species niches form a partition of unity and react to ecology rather than 
  assert.ok(forestEdge.shrub>forestEdge.dryStalk,'forest edge must favor shrub structure');
 });
 
-test('ecology observer fields stay fixed-cost while reaching nearly 100m',()=>{
+test('ecology observer fields stay fixed-cost while reaching 100m without distance-born shrubs',()=>{
  const budget=ecologyFieldBudget();assert.deepEqual(budget,{slots:13140,maxTriangles:141608,drawCalls:5});assert.ok(budget.maxTriangles<150000);
  for(const field of ECOLOGY_FIELDS)assert.ok(field.fadeOut<=field.cell*field.size/2,`${field.id} fade exceeds inscribed torus edge`);
- assert.ok(ECOLOGY_FIELDS.at(-1)!.fadeOut>=96);assert.equal(ECOLOGY_SURFACE_SAMPLE_CELL,4);
+ const shrub=ECOLOGY_FIELDS.find(f=>f.id==='shrub')!;assert.equal(shrub.fadeIn,0);assert.equal(shrub.fadeFull,0);assert.ok(shrub.fadeOut>=100);
+ assert.equal(ECOLOGY_SURFACE_SAMPLE_CELL,4);
 });
 
 test('every ecology field uses O(N) toroidal row/column recycling',()=>{
@@ -41,8 +42,10 @@ test('perceptual governor preserves close ecological structure before far decora
  const q=.56,fern=ecologyFieldQuality(q,'fernlet'),broad=ecologyFieldQuality(q,'broadleaf'),sedge=ecologyFieldQuality(q,'sedge'),shrub=ecologyFieldQuality(q,'shrub'),dry=ecologyFieldQuality(q,'dryStalk');assert.ok(fern>broad&&broad>sedge&&sedge>shrub&&shrub>dry);for(const id of ECOLOGY_FIELDS.map(f=>f.id))assert.equal(ecologyFieldQuality(1,id),1);
 });
 
-test('runtime composes after forest singularity and adds no texture payload',()=>{
+test('runtime uses world-locked coverage instead of whole-plant rank popping and adds no texture payload',()=>{
  const boot=readFileSync(new URL('../src/bootstrap.ts',import.meta.url),'utf8'),runtime=readFileSync(new URL('../src/ecology-singularity-runtime.ts',import.meta.url),'utf8');
  assert.ok(boot.indexOf("import('./forest-singularity-runtime')")<boot.indexOf("import('./ecology-singularity-runtime')"));
- assert.match(runtime,/awEcologyMix/);assert.match(runtime,/Observer ecology/);assert.match(runtime,/__perceptualBudget/);assert.doesNotMatch(runtime,/TextureLoader/);assert.doesNotMatch(runtime,/loadAsync\(/);
+ assert.match(runtime,/awEcologyMix/);assert.match(runtime,/Observer ecology/);assert.match(runtime,/__perceptualBudget/);
+ assert.match(runtime,/awPlantWorld/);assert.match(runtime,/awPlantDither/);assert.match(runtime,/awPlantCoverage/);assert.doesNotMatch(runtime,/awPlantRank/);
+ assert.doesNotMatch(runtime,/TextureLoader/);assert.doesNotMatch(runtime,/loadAsync\(/);
 });
