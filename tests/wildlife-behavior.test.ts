@@ -44,7 +44,7 @@ test('a remote Ironward meadow guarantees one genuinely Massive bison discovery'
 
 test('every species owns complete gameplay tuning in one registry',()=>{
  for(const [kind,config] of Object.entries(WILDLIFE_SPECIES)){assert.ok(config.maxHealth>0,kind);assert.ok(config.turnRate>0,kind);if(config.authored)assert.ok((config.modelHeight??0)>0,kind);}
- assert.deepEqual(WILDLIFE_SPECIES.wolf.predator?.prey,['hare','goat','sheep','deer','bison','eagle']);assert.equal(WILDLIFE_SPECIES.wolf.herd,true);
+ assert.deepEqual(WILDLIFE_SPECIES.wolf.predator?.prey,['hare','rabbit','goat','sheep','deer','stag','boar','fox','bison','eagle']);assert.equal(WILDLIFE_SPECIES.wolf.herd,true);
  assert.ok(WILDLIFE_SPECIES.bear.predator?.prey.includes('wolf'));
 });
 
