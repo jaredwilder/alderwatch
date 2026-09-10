@@ -21,10 +21,35 @@ export const VILLAGERS:Villager[]=[
 
 interface Actor {villager:Villager;root:T.Group;mixer:T.AnimationMixer;baseYaw:number}
 
+// Street identity is world dressing, not an interior side-effect. The first tavern
+// pass accidentally built its only readable sign inside lazy interior construction,
+// so the pub could exist in code while being literally undiscoverable in Alderbrook.
+// This marker is created synchronously with the village every time the realm builds.
+export const TIPSY_ALDER_MARKER={x:-12.15,z:-26.35};
+function installTipsyAlderStreetMarker(root:T.Group,assets:Assets){
+ if(typeof document==='undefined')return;
+ const g=new T.Group();g.name='The Tipsy Alder · permanent street marker';g.position.set(TIPSY_ALDER_MARKER.x,height(TIPSY_ALDER_MARKER.x,TIPSY_ALDER_MARKER.z)+.02,TIPSY_ALDER_MARKER.z);root.add(g);
+ const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=512;const c=canvas.getContext('2d');if(!c)return;
+ c.fillStyle='#21150d';c.fillRect(0,0,1024,512);c.strokeStyle='#c7a45d';c.lineWidth=24;c.strokeRect(24,24,976,464);c.strokeStyle='#6d512d';c.lineWidth=7;c.strokeRect(55,55,914,402);
+ c.textAlign='center';c.fillStyle='#ead59a';c.font='700 76px Georgia';c.fillText('THE TIPSY',512,170);c.font='700 112px Georgia';c.fillText('ALDER',512,292);c.fillStyle='#c8ae72';c.font='italic 34px Georgia';c.fillText('ALE · BONES · BAD COUNSEL',512,385);
+ const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;texture.anisotropy=4;
+ const wood=new T.MeshStandardMaterial({color:'#4a3424',roughness:.92,metalness:0}),boardMat=new T.MeshStandardMaterial({map:texture,roughness:.82,metalness:.01,emissive:'#241406',emissiveIntensity:.32});
+ const post=new T.Mesh(new T.BoxGeometry(.18,3.25,.18),wood);post.position.set(-1.62,1.62,0);post.castShadow=true;g.add(post);
+ const arm=new T.Mesh(new T.BoxGeometry(3.35,.16,.16),wood);arm.position.set(0,3.08,0);arm.castShadow=true;g.add(arm);
+ const brace=new T.Mesh(new T.BoxGeometry(.13,1.45,.13),wood);brace.position.set(-1.05,2.57,0);brace.rotation.z=-.72;g.add(brace);
+ const board=new T.Mesh(new T.BoxGeometry(2.75,1.28,.13),boardMat);board.position.set(.18,2.14,0);board.castShadow=true;g.add(board);
+ const iron=new T.MeshStandardMaterial({color:'#282522',roughness:.5,metalness:.64});for(const x of [-.66,1.01]){const chain=new T.Mesh(new T.BoxGeometry(.045,.65,.045),iron);chain.position.set(x,2.78,0);g.add(chain);}
+ const lanternSource=assets.medieval.lantern;if(lanternSource){const lantern=lanternSource.clone(true);lantern.position.set(-1.63,2.35,.28);lantern.scale.setScalar(.62);g.add(lantern);}
+ const light=new T.PointLight('#ffad61',3.0,7.5,2);light.position.set(-1.6,2.55,.34);g.add(light);
+ // Ground clutter makes the frontage read as a tavern even before the sign text resolves.
+ for(const [x,z,s] of [[.95,.48,.7],[1.56,.32,.56]] as const){const source=assets.medieval.barrel;if(!source)break;const barrel=source.clone(true);barrel.position.set(x,0,z);barrel.scale.setScalar(s);g.add(barrel);}
+}
+
 /** Standing villagers plus Alderbrook's enterable tavern interaction seam. */
 export class Village {
  actors=new Map<string,Actor>();tavern:TavernBridge;
  constructor(root:T.Group,assets:Assets){
+  installTipsyAlderStreetMarker(root,assets);
   this.tavern=new TavernBridge(root,assets);
   const idle=assets.survivor.animations.find(a=>a.name==='idle');
   if(!idle)throw new Error('Animation release blocker: idle');
