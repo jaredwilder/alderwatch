@@ -9,22 +9,18 @@ import {MAX_INTOXICATION as INTOXICATION_CAP} from './tavern-rules';
 export interface TavernEntity{id:string;name:string;role:string;position:Vec3;yaw:number;greeting:string;hair:string;cloth:string}
 let currentCharacter:Character|undefined;
 let activeTavern:AlderbrookTavern|undefined;
+let activeBridge:TavernBridge|undefined;
 let patchInstalled=false;
 
-// The tavern occupies the -9,-34 longhouse. Its authored door can be either the
-// wide-cottage door (~-10.59,-29.42) or narrow-cottage door (~-9.10,-29.57)
-// depending on the saved realm footprint. Use the whole porch as the interaction
-// target instead of one magic point buried inside the facade.
-const PORCH={minX:-13.25,maxX:-6.35,minZ:-31.15,maxZ:-25.55};
+// Live visual acceptance showed that a narrow rectangle around two inferred cottage
+// door points is the wrong contract. The player approaches the visible sign/frontage,
+// not a coordinate spreadsheet. This radius covers the sign, both authored doorway
+// variants and the small front yard while remaining tightly local to one building.
+const ENTRY={x:-10.4,z:-27.8,radius:6.5};
 const DISTRICT_CENTER:[number,number]=[-9.3,-29.4];
-// Live acceptance proved Alderbrook's main-road approach can see this building
-// from ~136m away. The old 48m lazy gate literally hid the tavern/sign until the
-// player was nearly on top of an invisible frontage. Discovery must beat draw
-// distance: construct synchronously inside 180m, while retaining a cheap 220m
-// idle prewarm ring for approach from farther out.
 const DISCOVERY_RADIUS=180;
 const PREWARM_RADIUS=220;
-const atTavernPorch=(position:Vec3)=>position[0]>=PORCH.minX&&position[0]<=PORCH.maxX&&position[2]>=PORCH.minZ&&position[2]<=PORCH.maxZ;
+const atTavernEntry=(position:Vec3)=>Math.hypot(position[0]-ENTRY.x,position[2]-ENTRY.z)<=ENTRY.radius;
 const nearTavern=(position:Vec3,radius=DISCOVERY_RADIUS)=>Math.hypot(position[0]-DISTRICT_CENTER[0],position[2]-DISTRICT_CENTER[1])<=radius;
 
 const entity=(id:string,name:string,role:string,position:Vec3,greeting=''):TavernEntity=>({id,name,role,position:[...position],yaw:0,greeting,hair:'#4b3527',cloth:'#66503e'});
@@ -64,10 +60,16 @@ function setTavernPresentationActive(active:boolean){
  if(active)document.documentElement.dataset.awInterior='tavern';
  else delete document.documentElement.dataset.awInterior;
 }
+function enterNow(tavern:AlderbrookTavern,character:Character){
+ clearOutdoorNoise();const to=tavern.enter();setTavernPresentationActive(true);relocate(character,to.position,to.yaw);return true;
+}
+function leaveNow(tavern:AlderbrookTavern,character:Character){
+ const to=tavern.leave();setTavernPresentationActive(false);relocate(character,to.position,to.yaw);document.querySelector('.tavern-atmosphere')?.remove();return true;
+}
 
 export class TavernBridge{
  private tavern?:AlderbrookTavern;private target?:TavernEntity;private hudQueued=false;private atmosphere?:HTMLDivElement;private atmosphereOpacity=-1;private lastPosition:Vec3=[0,0,0];private warmupQueued=false;
- constructor(private root:T.Group,private assets:Assets){}
+ constructor(private root:T.Group,private assets:Assets){activeBridge=this;}
  get inside(){return !!this.tavern?.inside;}
  private construct(position:Vec3){
   if(this.tavern||!currentCharacter)return this.tavern;
@@ -79,11 +81,7 @@ export class TavernBridge{
  private ensure(position:Vec3){
   if(this.tavern)return this.tavern;
   if(!nearTavern(position,PREWARM_RADIUS))return undefined;
-  // The authored tavern frontage is visible well before porch range. Build the
-  // complete hidden-interior capsule now so the sign/lantern cannot pop in late.
-  if(atTavernPorch(position)||nearTavern(position,DISCOVERY_RADIUS))return this.construct(position);
-  // Outside discovery range, use an idle prewarm so the tavern is ready before
-  // the player reaches the point where the frontage can enter the camera view.
+  if(atTavernEntry(position)||nearTavern(position,DISCOVERY_RADIUS))return this.construct(position);
   if(!this.warmupQueued&&currentCharacter){
    this.warmupQueued=true;
    const run=()=>{this.warmupQueued=false;if(!this.tavern&&nearTavern(this.lastPosition,PREWARM_RADIUS))this.construct(this.lastPosition);};
@@ -94,11 +92,16 @@ export class TavernBridge{
  }
  nearest(position:Vec3){
   this.lastPosition=[...position];const tavern=this.ensure(position);if(!tavern)return;
-  // Outside, PlayerState is authoritative and the porch footprint is the target.
-  // Inside, runtime state intentionally saves to the exterior, so use the physical body.
   const live=tavern.inside?physicalPosition(position):position;
-  const action:TavernInteraction|undefined=tavern.inside?tavern.interactionAt(live):(atTavernPorch(live)?{kind:'enter'}:undefined);
+  const action:TavernInteraction|undefined=tavern.inside?tavern.interactionAt(live):(atTavernEntry(live)?{kind:'enter'}:undefined);
   this.target=action?interactionEntity(action,live):undefined;return this.target;
+ }
+ /** Dev acceptance escape hatch: enter the real interior through the same relocation path as E. */
+ devEnter(){
+  if(!currentCharacter)return false;
+  const live=currentCharacter.root.position.toArray() as Vec3;
+  this.lastPosition=[...live];const tavern=this.ensure(live)??this.construct(live);if(!tavern)return false;
+  return enterNow(tavern,currentCharacter);
  }
  private queueHudRewrite(){if(this.hudQueued)return;this.hudQueued=true;queueMicrotask(()=>{this.hudQueued=false;this.rewriteHud();});}
  private updateAtmosphere(tavern:AlderbrookTavern){
@@ -115,7 +118,7 @@ export class TavernBridge{
  private rewriteHud(){
   const tavern=this.tavern,prompt=document.querySelector<HTMLElement>('#ui .interaction'),location=document.querySelector<HTMLElement>('#ui .location span');if(!tavern||!prompt)return;
   const live=tavern.inside?physicalPosition(this.lastPosition):this.lastPosition;
-  const action:TavernInteraction|undefined=tavern.inside?tavern.interactionAt(live):(atTavernPorch(live)?{kind:'enter'}:undefined);
+  const action:TavernInteraction|undefined=tavern.inside?tavern.interactionAt(live):(atTavernEntry(live)?{kind:'enter'}:undefined);
   if(tavern.inside){
    const text=action?.kind==='exit'?'E · Leave The Tipsy Alder':action?.kind==='bartender'?'E · Brinna Keggs · drinks & gossip':action?.kind==='bones'?'E · Play Alderbones':action?.kind==='pipe'?'E · House pipe · one pull':action?.kind==='patron'?`E · Speak to ${interactionEntity(action,live).name}`:'';
    prompt.textContent=text;prompt.hidden=!text;if(location)location.textContent='The Tipsy Alder · Alderbrook';
@@ -125,13 +128,15 @@ export class TavernBridge{
    const map=document.querySelector<HTMLElement>('.minimap,.mini-map,#minimap');if(map)map.style.visibility='';
   }
  }
- read(){return{...this.tavern?.read(),porch:{...PORCH},lastPosition:[...this.lastPosition],porchActive:atTavernPorch(this.lastPosition),warmupQueued:this.warmupQueued,discoveryRadius:DISCOVERY_RADIUS,prewarmRadius:PREWARM_RADIUS};}
+ read(){return{...this.tavern?.read(),entry:{...ENTRY},lastPosition:[...this.lastPosition],entryActive:atTavernEntry(this.lastPosition),warmupQueued:this.warmupQueued,discoveryRadius:DISCOVERY_RADIUS,prewarmRadius:PREWARM_RADIUS};}
 }
+
+export function forceEnterTipsyAlderForDev(){return activeBridge?.devEnter()??false;}
 
 export function handleTavernEntity(ui:HTMLElement,id:string,resume:()=>void){
  const tavern=activeTavern,character=currentCharacter;if(!tavern||!character||!id.startsWith('tavern:'))return false;
- if(id==='tavern:enter'){clearOutdoorNoise();const to=tavern.enter();setTavernPresentationActive(true);relocate(character,to.position,to.yaw);resume();return true;}
- if(id==='tavern:exit'){const to=tavern.leave();setTavernPresentationActive(false);relocate(character,to.position,to.yaw);document.querySelector('.tavern-atmosphere')?.remove();resume();return true;}
+ if(id==='tavern:enter'){enterNow(tavern,character);resume();return true;}
+ if(id==='tavern:exit'){leaveNow(tavern,character);resume();return true;}
  if(id==='tavern:brinna'){tavern.openBar(ui,character.state,stats(character.state).stamina,resume);return true;}
  if(id==='tavern:bones'){tavern.openBones(ui,resume);return true;}
  const panel=(title:string,eyebrow:string,copy:string)=>{ui.innerHTML='<section class="menu-card game-panel tavern-panel"><button class="back">← Back to the room</button><div class="eyebrow"></div><h2></h2><div class="tavern-content"><p class="tavern-quote"></p></div></section>';ui.querySelector<HTMLButtonElement>('.back')!.onclick=resume;ui.querySelector('.eyebrow')!.textContent=eyebrow;ui.querySelector('h2')!.textContent=title;ui.querySelector<HTMLElement>('.tavern-quote')!.textContent=copy;};
