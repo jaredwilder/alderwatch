@@ -36,8 +36,14 @@ export function createEcologyPlantGeometry(spec:EcologyFieldSpec){
   for(let i=0;i<3;i++){const x=(i-1)*.075,h=.52+i*.08,w=.010;quad(d,[x-w,0,0],[x+w,0,0],[x+w*.55,h,0],[x-w*.55,h,0],i===1?palette.dryLight:palette.dry);}
   tri(d,[-.015,.66,0],[.015,.66,0],[0,.79,.01],palette.dryLight);tri(d,[0,.68,-.015],[0,.68,.015],[.095,.74,0],palette.dryLight);
  }else{
-  for(let i=0;i<6;i++){const a=i/6*Math.PI*2,dx=Math.cos(a),dz=Math.sin(a),px=-dz,pz=dx,r=.055,l=.38+(i%2)*.08,w=.115,h=.44+(i%3)*.08;
-   quad(d,[dx*r+px*w*.35,.03,dz*r+pz*w*.35],[dx*r-px*w*.35,.03,dz*r-pz*w*.35],[dx*l-px*w,h,dz*l-pz*w],[dx*l+px*w,h,dz*l+pz*w],i%2?palette.shrub:palette.shrubLight);}
+  // Six deliberately non-radial leaf curtains. The old regular starburst read
+  // as a low-poly game token. Golden-angle overlap gives the same 12 triangles
+  // a fuller, asymmetric hedgerow silhouette from arbitrary camera headings.
+  const golden=2.399963229728653;
+  for(let i=0;i<6;i++){
+   const a=.31+i*golden,dx=Math.cos(a),dz=Math.sin(a),px=-dz,pz=dx,r=.035+.025*(i%3),reach=.30+.055*((i*5)%4),w=.14+.018*(i%2),h=.43+.055*((i+1)%3),lean=.055*(i%2?1:-1),cx=dx*r,cz=dz*r;
+   quad(d,[cx+px*w*.42,.025,cz+pz*w*.42],[cx-px*w*.42,.025,cz-pz*w*.42],[cx+dx*(reach+lean)-px*w,h,cz+dz*(reach+lean)-pz*w],[cx+dx*(reach-lean)+px*w,h*.92,cz+dz*(reach-lean)+pz*w],i%2?palette.shrub:palette.shrubLight);
+  }
  }
  const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(d.positions,3));geometry.setAttribute('color',new T.Float32BufferAttribute(d.colors,3));geometry.setIndex(d.indices);geometry.computeVertexNormals();geometry.computeBoundingSphere();
  const triangles=d.indices.length/3;if(triangles!==spec.triangles)throw new Error(`${spec.id} geometry budget drift: ${triangles} != ${spec.triangles}`);return geometry;
@@ -48,9 +54,9 @@ function plantMaterial(spec:EcologyFieldSpec){
  material.name=`Alderwatch ecology ${spec.id}`;material.userData.awEcologyQuality=quality;material.userData.awEcologyTime=time;
  material.onBeforeCompile=shader=>{
   shader.uniforms.awEcologyQuality=quality;shader.uniforms.awEcologyTime=time;
-  shader.vertexShader='uniform float awEcologyTime;varying vec2 awPlantAnchor;\n'+shader.vertexShader;
+  shader.vertexShader='uniform float awEcologyTime;varying vec2 awPlantAnchor;varying vec3 awPlantWorld;\n'+shader.vertexShader;
   shader.vertexShader=shader.vertexShader.replace('void main() {',`void main() {
-   awPlantAnchor=vec2(0.0);
+   awPlantAnchor=vec2(0.0);awPlantWorld=vec3(0.0);
    #ifdef USE_INSTANCING
     awPlantAnchor=(modelMatrix*instanceMatrix*vec4(0.0,0.0,0.0,1.0)).xz;
    #endif
@@ -60,19 +66,28 @@ function plantMaterial(spec:EcologyFieldSpec){
    float awPlantLift=clamp(position.y*1.75,0.0,1.0);
    float awPlantWind=sin(awEcologyTime*.86+awPlantAnchor.x*.17+awPlantAnchor.y*.13+position.y*2.1)*${sway}*awPlantLift;
    transformed.x+=awPlantWind;transformed.z+=awPlantWind*.57;
+   vec4 awPlantLocal=vec4(transformed,1.0);
+   #ifdef USE_INSTANCING
+    awPlantLocal=instanceMatrix*awPlantLocal;
+   #endif
+   awPlantWorld=(modelMatrix*awPlantLocal).xyz;
   `);
-  shader.fragmentShader='uniform float awEcologyQuality;varying vec2 awPlantAnchor;\n'+shader.fragmentShader;
+  shader.fragmentShader='uniform float awEcologyQuality;varying vec2 awPlantAnchor;varying vec3 awPlantWorld;\n'+shader.fragmentShader;
   const fadeIn=spec.fadeFull<=spec.fadeIn?'1.0':`smoothstep(${spec.fadeIn.toFixed(2)},${spec.fadeFull.toFixed(2)},awPlantDistance)`;
   shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
    float awPlantDistance=length(vViewPosition);
    float awPlantVisible=${fadeIn}*(1.0-smoothstep(${spec.fadeStart.toFixed(2)},${spec.fadeOut.toFixed(2)},awPlantDistance))*awEcologyQuality;
-   vec2 awPlantCell=floor(awPlantAnchor*1.913+vec2(${(spec.seed%701).toFixed(1)},${(spec.seed%409).toFixed(1)}));
-   float awPlantRank=fract(sin(dot(awPlantCell,vec2(12.9898,78.233)))*43758.5453123);
-   if(awPlantRank>awPlantVisible)discard;
+   // Coverage changes in a world-locked microfield instead of deleting whole
+   // plants by cell rank. Camera motion can no longer make a shrub shrink away
+   // and then pop back into existence.
+   vec3 awPlantQ=floor(awPlantWorld*9.5+vec3(${(spec.seed%97).toFixed(1)},${(spec.seed%131).toFixed(1)},${(spec.seed%173).toFixed(1)}));
+   float awPlantDither=fract(sin(dot(awPlantQ,vec3(12.9898,78.233,37.719)))*43758.5453123);
+   float awPlantCoverage=awPlantVisible*awPlantVisible*(3.0-2.0*awPlantVisible);
+   if(awPlantDither>awPlantCoverage)discard;
    diffuseColor.rgb+=vec3(.025,.040,.012)*(gl_FrontFacing?0.0:1.0);
   `);
  };
- material.customProgramCacheKey=()=>`aw-ecology-${spec.id}-v1`;material.needsUpdate=true;return material;
+ material.customProgramCacheKey=()=>`aw-ecology-${spec.id}-v2-stable-coverage`;material.needsUpdate=true;return material;
 }
 
 function roadDistance(x:number,z:number){return z>45?trailDistance(x,z):Math.abs(x-roadX(z));}
@@ -135,7 +150,7 @@ function installEcologyGround(landscape:Landscape){
    diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*awEcoDry,awEcoDryMix);
    #include <roughnessmap_fragment>`);
  };
- material.customProgramCacheKey=()=>oldKey()+'-ecology-singularity-v1';material.needsUpdate=true;(landscape as any).__ecologySurfaceStats={vertices:pos.count,latentSamples:cache.size,sampleCell:ECOLOGY_SURFACE_SAMPLE_CELL};
+ material.customProgramCacheKey=()=>oldKey()+'-ecology-singularity-v2-stable-plants';material.needsUpdate=true;(landscape as any).__ecologySurfaceStats={vertices:pos.count,latentSamples:cache.size,sampleCell:ECOLOGY_SURFACE_SAMPLE_CELL};
 }
 
 function install(){
