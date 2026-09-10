@@ -5,11 +5,12 @@ import {readFileSync} from 'node:fs';
 const transport=readFileSync(new URL('../src/dev-tavern-transport.ts',import.meta.url),'utf8');
 const bootstrap=readFileSync(new URL('../src/bootstrap.ts',import.meta.url),'utf8');
 
-test('dev tools surface a one-click jump to The Tipsy Alder porch',()=>{
+test('dev tools surface a one-click jump onto The Tipsy Alder interaction porch facing the pub',()=>{
  assert.match(transport,/Jump · Tipsy Alder/);
- assert.match(transport,/PORCH_X=-9\.3/);
- assert.match(transport,/PORCH_Z=-27\.15/);
- assert.match(transport,/PORCH_YAW=Math\.PI/);
+ assert.match(transport,/PORCH_X=-9\.8/);
+ assert.match(transport,/PORCH_Z=-25\.8/);
+ assert.match(transport,/PORCH_YAW=0/);
+ assert.doesNotMatch(transport,/PORCH_YAW=Math\.PI/,'regression: PI faces away from the tavern');
  assert.match(transport,/dev\.teleport!\(PORCH_X,PORCH_Z,PORCH_YAW\)/);
  assert.match(transport,/\.aw-dev-panel \.aw-dev-grid/);
  assert.match(transport,/data-tipsy-alder-jump/);
