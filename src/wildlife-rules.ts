@@ -16,7 +16,7 @@ export function ensureAnimalVitals(animal:AnimalState){
 export function animalAlive(animal:AnimalState){return !ensureAnimalVitals(animal).dead&&animal.health!>0;}
 export function corpseId(animalId:string){return 'corpse-'+animalId;}
 export function rareLootHit(world:WorldState,animal:AnimalState,oneIn:number){
- let hash=2166136261>>>0;const text=`${world.worldSeed??0}:${animal.kind}:${animal.id}:rare-cut-v1`;
+ let hash=2166136261>>>0;const text=`${world.worldSeed??0}:${animal.kind}:${animal.id}:${animal.spawnGeneration??0}:rare-cut-v2`;
  for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619)>>>0;}
  return oneIn>0&&hash%oneIn===0;
 }
@@ -39,7 +39,7 @@ export function killAnimal(world:WorldState,animal:AnimalState,killer:WildlifeKi
  const animals=world.animals??{};
  if(animal.carriedPreyId)releaseCarry(animal,animals);
  if(animal.carriedById){const carrier=animals[animal.carriedById];if(carrier)releaseCarry(carrier,animals);animal.carriedById=undefined;}
- animal.health=0;animal.dead=true;animal.killedBy=killer;animal.diedAt=world.tick;animal.airborne=false;
+ animal.health=0;animal.dead=true;animal.killedBy=killer;animal.diedAt=world.tick;animal.corpseClearedAt=undefined;animal.airborne=false;
  const id=corpseId(animal.id);
  if(!world.containers[id]){
   const profile=species(animal.kind),inventory=Object.entries(profile.loot).flatMap(([item,count])=>count?[{id:'item-'+world.nextId++,item:item as ItemId,count,quality:1}]:[]),rare=profile.rareLoot;
