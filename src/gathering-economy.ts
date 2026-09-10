@@ -16,10 +16,13 @@ const specialItem=(i:number):SpecialGatherable=>{
 };
 
 /**
- * Adds a second persisted forage layer without rewriting the original nature-forage IDs.
- * Existing saves keep their gathered/respawn state; newly introduced nodes are additive.
+ * Adds the Far March persisted forage layer without rewriting original nature IDs.
+ * Once realm areas exist, top-level physical collections are an active-area projection;
+ * never seed March plants into Wolfpine/Crownroad merely because loadWorld normalized a save.
  */
 export function seedGatheringEconomy(w:WorldState){
+ const active=w.activeObjectAreaId??((Object.values(w.players)[0] as any)?.areaId??'far-march');
+ if(active!=='far-march')return;
  const rng=random(0xA1D3E5),count=44;
  for(let i=0;i<count;i++){
   const item=specialItem(i),id=`nature-economy-${i}`;
@@ -52,5 +55,4 @@ export function forageBonus(item:ItemId):{item:ItemId;count:number}|undefined{
 
 export const SPECIAL_GATHERABLES:readonly SpecialGatherable[]=['wild_garlic','juniper','sage','truffle','pine_resin'];
 
-// Browser follow-up: register the deep recipe ladder and compendium without coupling save seeding to UI code.
 if(typeof document!=='undefined')void import('./crafting-expansion');
