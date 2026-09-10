@@ -26,6 +26,7 @@ export const CANOPY_PROXY_TO_MASS_ANGLE=.022;
 export const CANOPY_MASS_CUTOFF_ANGLE=.0125;
 export const HORIZON_TERRAIN_SAFE_MARGIN=9;
 export const HORIZON_TERRAIN_EDGE_FADE=38;
+export const SKYWARD_CANOPY_LIMITS={crown:{start:.08,end:.34},mass:{start:0,end:.20}} as const;
 
 /** Exact angular diameter, used as the LOD error variable instead of raw distance. */
 export function angularDiameter(size:number,distance:number){return 2*Math.atan(Math.max(0,size)/(2*Math.max(.001,distance)));}
@@ -78,14 +79,9 @@ export function directionalCanopySupport(boundaryDistance:number,spec:CanopyBand
  return smooth01((boundaryDistance-spec.fadeIn)/(spec.fadeFull-spec.fadeIn));
 }
 
-/**
- * Distant forest is a horizon representation, not sky content. As the camera
- * pitches upward its marginal utility goes to zero. Mass dies first; crown
- * follows. This converts the exact screenshot failure into reclaimed GPU work.
- */
+/** Distant forest is a horizon representation, not sky content. */
 export function skywardCanopyVisibility(cameraForwardY:number,id:CanopyBandId){
- const start=id==='mass'?0:.08,end=id==='mass'?.20:.34;
- return 1-smooth01((cameraForwardY-start)/(end-start));
+ const {start,end}=SKYWARD_CANOPY_LIMITS[id];return 1-smooth01((cameraForwardY-start)/(end-start));
 }
 
 export function horizonHash(x:number,z:number,salt=0){
